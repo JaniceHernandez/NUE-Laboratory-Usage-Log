@@ -1,0 +1,17 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "neu-campus",
+      "description": "Modern university campus building",
+      "imageUrl": "https://picsum.photos/seed/neu1/1200/800",
+      "imageHint": "university campus"
+    },
+    {
+      "id": "lab-room",
+      "description": "Clean modern laboratory room with computers",
+      "imageUrl": "https://picsum.photos/seed/neu2/800/600",
+      "imageHint": "computer lab"
+    }
+  ]
+}
