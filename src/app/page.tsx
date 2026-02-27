@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -8,26 +9,93 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { QrCode, ShieldCheck, GraduationCap, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useAuth, useFirestore } from "@/firebase";
+import { signInWithPopup, GoogleAuthProvider, signOut } from "firebase/auth";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
 
 export default function LandingPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
+  
+  const auth = useAuth();
+  const db = useFirestore();
+  const { toast } = useToast();
+
+  const handleGoogleLogin = async () => {
+    if (!auth || !db) return;
+    
+    setIsLoading(true);
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ hd: "neu.edu.ph" });
+
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      if (!user.email?.endsWith("@neu.edu.ph") && user.email !== "admin@neu.edu.ph") {
+        await signOut(auth);
+        toast({
+          variant: "destructive",
+          title: "Access Denied",
+          description: "Please use your @neu.edu.ph institutional email.",
+        });
+        return;
+      }
+
+      const userRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userRef);
+
+      let role = "professor";
+      if (user.email === "admin@neu.edu.ph") {
+        role = "admin";
+      }
+
+      if (!userSnap.exists()) {
+        await setDoc(userRef, {
+          uid: user.uid,
+          email: user.email,
+          role: role,
+          status: "active",
+          name: user.displayName,
+          photoURL: user.photoURL,
+          createdAt: serverTimestamp(),
+        });
+      } else {
+        const userData = userSnap.data();
+        if (userData.status === "blocked") {
+          await signOut(auth);
+          toast({
+            variant: "destructive",
+            title: "Account Blocked",
+            description: "Your account has been deactivated by an administrator.",
+          });
+          return;
+        }
+        role = userData.role;
+      }
+
+      router.push(role === "admin" ? "/admin/dashboard" : "/professor");
+    } catch (error: any) {
+      console.error(error);
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: error.message || "An unexpected error occurred.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleAdminLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setTimeout(() => {
-      router.push("/admin/dashboard");
-    }, 1500);
-  };
-
-  const handleGoogleLogin = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      router.push("/professor");
-    }, 1500);
+    toast({
+      title: "Notice",
+      description: "For this sprint, please use 'Sign in with @neu.edu.ph' using admin@neu.edu.ph",
+    });
   };
 
   return (
@@ -83,7 +151,7 @@ export default function LandingPage() {
               )}
               <span className="font-semibold">Sign in with @neu.edu.ph</span>
             </Button>
-            <p className="text-[10px] text-center text-slate-400 font-medium">Demo: Use Mock Login</p>
+            <p className="text-[10px] text-center text-slate-400 font-medium">Demo: Log in with admin@neu.edu.ph for Admin role</p>
           </TabsContent>
 
           <TabsContent value="admin" className="p-8 space-y-6 animate-in fade-in zoom-in-95 duration-300">
