@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -11,11 +12,13 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useFirestore, useCollection } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
 import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 export default function LogsPage() {
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState<Date | null>(null);
   const db = useFirestore();
+  const { toast } = useToast();
 
   const sessionsQuery = useMemo(() => {
     if (!db) return null;
@@ -51,6 +54,39 @@ export default function LogsPage() {
     return (minutes / 60).toFixed(1);
   }, [sessions]);
 
+  const handleExportCSV = () => {
+    if (filteredSessions.length === 0) return;
+
+    const headers = ["ID", "Professor", "Room", "College", "Program", "Section", "Start Time", "Duration (Min)", "Status"];
+    const rows = filteredSessions.map(s => [
+      s.id,
+      s.professorEmail,
+      s.roomNumber,
+      s.college,
+      s.program,
+      s.section,
+      s.startTime?.toDate ? format(s.startTime.toDate(), "yyyy-MM-dd HH:mm:ss") : "N/A",
+      s.duration || 0,
+      s.status
+    ]);
+
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `NEU_LabTrack_Logs_${format(new Date(), "yyyyMMdd")}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Export Success",
+      description: "Laboratory usage logs have been exported."
+    });
+  };
+
   if (loading) {
     return (
       <div className="h-96 w-full flex items-center justify-center">
@@ -70,7 +106,8 @@ export default function LogsPage() {
         <Button 
           variant="outline"
           className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl px-6 h-12 flex items-center gap-2 font-bold transition-all shadow-sm"
-          onClick={() => alert("CSV Export coming in the next sprint!")}
+          onClick={handleExportCSV}
+          disabled={filteredSessions.length === 0}
         >
           <FileDown size={20} />
           Export CSV
