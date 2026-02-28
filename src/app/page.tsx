@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { QrCode, ShieldCheck, GraduationCap, Loader2 } from "lucide-react";
@@ -12,8 +11,9 @@ import { useAuth, useFirestore } from "@/firebase";
 import { signInWithPopup, GoogleAuthProvider, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
-// Manual import for Tabs components as they are likely in UI
 import { 
   Tabs as TabsRoot, 
   TabsContent as TContent, 
@@ -36,14 +36,12 @@ export default function LandingPage() {
     
     setIsLoading(true);
     const provider = new GoogleAuthProvider();
-    // Hinting for institutional accounts
     provider.setCustomParameters({ hd: "neu.edu.ph" });
 
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // Validation: Enforce @neu.edu.ph restriction or admin@neu.edu.ph bypass
       const isInstitutionalEmail = user.email?.endsWith("@neu.edu.ph");
       const isAdminEmail = user.email === "admin@neu.edu.ph";
 
@@ -59,13 +57,22 @@ export default function LandingPage() {
       }
 
       const userRef = doc(db, "users", user.uid);
-      const userSnap = await getDoc(userRef);
+      
+      // We still await getDoc because it's part of the login flow logic
+      const userSnap = await getDoc(userRef).catch(async (err) => {
+        if (err.code === 'permission-denied') {
+          errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: userRef.path,
+            operation: 'get'
+          }));
+        }
+        throw err;
+      });
 
       let role = isAdminEmail ? "admin" : "professor";
 
-      // Persistence: Store user profile on first login
       if (!userSnap.exists()) {
-        await setDoc(userRef, {
+        const userData = {
           uid: user.uid,
           email: user.email,
           role: role,
@@ -73,10 +80,22 @@ export default function LandingPage() {
           name: user.displayName,
           photoURL: user.photoURL,
           createdAt: serverTimestamp(),
-        });
+        };
+
+        // Mutation: Non-blocking pattern
+        setDoc(userRef, userData)
+          .catch(async (err) => {
+            if (err.code === 'permission-denied') {
+              errorEmitter.emit('permission-error', new FirestorePermissionError({
+                path: userRef.path,
+                operation: 'create',
+                requestResourceData: userData
+              }));
+            }
+          });
       } else {
         const userData = userSnap.data();
-        if (userData.status === "blocked") {
+        if (userData?.status === "blocked") {
           await signOut(auth);
           toast({
             variant: "destructive",
@@ -86,22 +105,22 @@ export default function LandingPage() {
           setIsLoading(false);
           return;
         }
-        role = userData.role;
+        role = userData?.role || role;
       }
 
-      // Route them appropriately
       router.push(role === "admin" ? "/admin/dashboard" : "/professor");
       toast({
         title: "Login Successful",
         description: `Welcome back, ${user.displayName}!`,
       });
     } catch (error: any) {
-      console.error(error);
-      toast({
-        variant: "destructive",
-        title: "Login Failed",
-        description: error.message || "An unexpected error occurred.",
-      });
+      if (error.code !== 'permission-denied') {
+        toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: error.message || "An unexpected error occurred.",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
