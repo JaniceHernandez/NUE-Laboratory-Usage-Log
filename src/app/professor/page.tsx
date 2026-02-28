@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { LogOut, Play, Square, CheckCircle2, Clock, MapPin, GraduationCap, Loader2, CalendarClock } from "lucide-react";
+import { LogOut, Play, Square, CheckCircle2, Clock, MapPin, GraduationCap, Loader2, CalendarClock, Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AuthGuard } from "@/components/auth-guard";
@@ -231,7 +231,7 @@ export default function ProfessorPortal() {
                 </div>
               </CardHeader>
               <CardContent className="pt-8">
-                <form id="session-form" onSubmit={handleSubmitSession} className="space-y-6">
+                <form id="session-form" onSubmit={handleSubmitSession} className="space-y-8">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="room" className="text-xs font-bold uppercase tracking-wider text-slate-500">Room Number</Label>
@@ -288,29 +288,45 @@ export default function ProfessorPortal() {
                   </div>
 
                   {isManualEntry && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 animate-in slide-in-from-top-2 duration-300">
-                      <div className="space-y-2">
-                        <Label htmlFor="start-time" className="text-xs font-bold uppercase tracking-wider text-slate-500">Actual Start Time</Label>
-                        <Input 
-                          id="start-time" 
-                          type="datetime-local"
-                          className="h-12 rounded-xl border-slate-200 bg-slate-50/50" 
-                          value={manualStart}
-                          onChange={(e) => setManualStart(e.target.value)}
-                          required 
-                        />
+                    <div className="p-6 bg-slate-50/80 border border-slate-100 rounded-2xl space-y-6 animate-in slide-in-from-top-4 duration-500">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CalendarClock size={16} className="text-primary" />
+                        <h3 className="text-sm font-bold text-slate-700 uppercase tracking-tight">Time Specification</h3>
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="end-time" className="text-xs font-bold uppercase tracking-wider text-slate-500">Actual End Time</Label>
-                        <Input 
-                          id="end-time" 
-                          type="datetime-local"
-                          className="h-12 rounded-xl border-slate-200 bg-slate-50/50" 
-                          value={manualEnd}
-                          onChange={(e) => setManualEnd(e.target.value)}
-                          required 
-                        />
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 text-slate-500">
+                            <Calendar size={14} />
+                            <Label htmlFor="start-time" className="text-[10px] font-bold uppercase tracking-widest">Actual Start Time</Label>
+                          </div>
+                          <Input 
+                            id="start-time" 
+                            type="datetime-local"
+                            className="h-14 rounded-xl border-slate-200 bg-white shadow-sm focus:ring-primary/20 transition-all px-4" 
+                            value={manualStart}
+                            onChange={(e) => setManualStart(e.target.value)}
+                            required 
+                          />
+                        </div>
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 text-slate-500">
+                            <Clock size={14} />
+                            <Label htmlFor="end-time" className="text-[10px] font-bold uppercase tracking-widest">Actual End Time</Label>
+                          </div>
+                          <Input 
+                            id="end-time" 
+                            type="datetime-local"
+                            className="h-14 rounded-xl border-slate-200 bg-white shadow-sm focus:ring-primary/20 transition-all px-4" 
+                            value={manualEnd}
+                            onChange={(e) => setManualEnd(e.target.value)}
+                            required 
+                          />
+                        </div>
                       </div>
+                      <p className="text-[10px] text-slate-400 italic">
+                        The system will automatically compute the total duration based on these timestamps.
+                      </p>
                     </div>
                   )}
 
