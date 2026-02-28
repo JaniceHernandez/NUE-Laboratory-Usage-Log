@@ -1,31 +1,62 @@
 
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useMemo } from "react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { UserX, UserCheck, Search, ShieldAlert, Mail } from "lucide-react";
+import { UserX, UserCheck, Search, ShieldAlert, Mail, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { MOCK_PROFESSORS } from "@/lib/mock-data";
+import { useFirestore, useCollection } from "@/firebase";
+import { collection, query, where, doc, updateDoc } from "firebase/firestore";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ProfessorsPage() {
-  const [professors, setProfessors] = useState(MOCK_PROFESSORS);
+  const db = useFirestore();
+  const { toast } = useToast();
 
-  const toggleBlock = (id: string) => {
-    setProfessors(professors.map(p => {
-      if (p.id === id) {
-        const newState = !p.isBlocked;
-        alert(`Professor ${p.name} has been ${newState ? 'BLOCKED' : 'UNBLOCKED'}.`);
-        return { ...p, isBlocked: newState };
-      }
-      return p;
-    }));
+  const professorsQuery = useMemo(() => {
+    if (!db) return null;
+    return query(collection(db, "users"), where("role", "==", "professor"));
+  }, [db]);
+
+  const { data: professors, loading } = useCollection<any>(professorsQuery);
+
+  const toggleBlock = (userId: string, currentStatus: string, name: string) => {
+    if (!db) return;
+    const newStatus = currentStatus === "blocked" ? "active" : "blocked";
+    const userRef = doc(db, "users", userId);
+
+    updateDoc(userRef, { status: newStatus })
+      .then(() => {
+        toast({
+          title: "Status Updated",
+          description: `Professor ${name} has been ${newStatus.toUpperCase()}.`,
+        });
+      })
+      .catch(async (error) => {
+        const permissionError = new FirestorePermissionError({
+          path: userRef.path,
+          operation: "update",
+          requestResourceData: { status: newStatus },
+        });
+        errorEmitter.emit("permission-error", permissionError);
+      });
   };
 
+  if (loading) {
+    return (
+      <div className="h-96 w-full flex items-center justify-center">
+        <Loader2 className="animate-spin text-primary" size={40} />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold text-slate-800 font-headline">Professor Management</h1>
@@ -42,7 +73,7 @@ export default function ProfessorsPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold text-slate-800">
-                  {professors.filter(p => p.isBlocked).length}
+                  {professors.filter(p => p.status === 'blocked').length}
                 </p>
                 <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Blocked Accounts</p>
               </div>
@@ -64,7 +95,6 @@ export default function ProfessorsPage() {
               <TableRow>
                 <TableHead className="font-bold">Name</TableHead>
                 <TableHead className="font-bold">Institutional Email</TableHead>
-                <TableHead className="font-bold">College</TableHead>
                 <TableHead className="font-bold">Access Status</TableHead>
                 <TableHead className="text-right font-bold">Actions</TableHead>
               </TableRow>
@@ -75,9 +105,9 @@ export default function ProfessorsPage() {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
-                        {prof.name.split(' ').map(n => n[0]).join('')}
+                        {(prof.name || prof.email).split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
                       </div>
-                      <span className="font-medium text-slate-700">{prof.name}</span>
+                      <span className="font-medium text-slate-700">{prof.name || "No Name"}</span>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -87,12 +117,7 @@ export default function ProfessorsPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="text-[10px] font-bold">
-                      {prof.college}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {prof.isBlocked ? (
+                    {prof.status === 'blocked' ? (
                       <Badge variant="destructive" className="bg-red-50 text-red-600 border-red-100">Blocked</Badge>
                     ) : (
                       <Badge variant="secondary" className="bg-green-50 text-green-600 border-green-100">Authorized</Badge>
@@ -102,10 +127,10 @@ export default function ProfessorsPage() {
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      className={prof.isBlocked ? "text-accent border-accent hover:bg-accent/5" : "text-destructive border-destructive hover:bg-destructive/5"}
-                      onClick={() => toggleBlock(prof.id)}
+                      className={prof.status === 'blocked' ? "text-accent border-accent hover:bg-accent/5" : "text-destructive border-destructive hover:bg-destructive/5"}
+                      onClick={() => toggleBlock(prof.id, prof.status, prof.name || prof.email)}
                     >
-                      {prof.isBlocked ? (
+                      {prof.status === 'blocked' ? (
                         <>
                           <UserCheck size={14} className="mr-2" />
                           Unblock
@@ -120,6 +145,13 @@ export default function ProfessorsPage() {
                   </TableCell>
                 </TableRow>
               ))}
+              {professors.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="h-24 text-center text-slate-400">
+                    No professors registered yet.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

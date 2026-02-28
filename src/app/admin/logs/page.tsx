@@ -1,17 +1,49 @@
+
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useMemo } from "react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, Download, Filter, Calendar, MoreHorizontal, FileDown, Database, Users, AlertCircle } from "lucide-react";
+import { Search, FileDown, Calendar, Database, Users, AlertCircle, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MOCK_LOGS } from "@/lib/mock-data";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useFirestore, useCollection } from "@/firebase";
+import { collection, query, orderBy } from "firebase/firestore";
+import { format } from "date-fns";
 
 export default function LogsPage() {
   const [search, setSearch] = useState("");
+  const db = useFirestore();
+
+  const sessionsQuery = useMemo(() => {
+    if (!db) return null;
+    return query(collection(db, "sessions"), orderBy("startTime", "desc"));
+  }, [db]);
+
+  const { data: sessions, loading } = useCollection<any>(sessionsQuery);
+
+  const filteredSessions = useMemo(() => {
+    return sessions.filter((session: any) => 
+      session.professorEmail?.toLowerCase().includes(search.toLowerCase()) ||
+      session.roomNumber?.toLowerCase().includes(search.toLowerCase()) ||
+      session.program?.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [sessions, search]);
+
+  const totalHours = useMemo(() => {
+    const minutes = sessions.reduce((acc: number, s: any) => acc + (s.duration || 0), 0);
+    return (minutes / 60).toFixed(1);
+  }, [sessions]);
+
+  if (loading) {
+    return (
+      <div className="h-96 w-full flex items-center justify-center">
+        <Loader2 className="animate-spin text-primary" size={40} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -33,7 +65,7 @@ export default function LogsPage() {
             <div className="relative flex-1 w-full">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <Input 
-                placeholder="Search by professor, room, or section..." 
+                placeholder="Search by professor email, room, or program..." 
                 className="pl-12 h-12 bg-slate-50 border-none rounded-xl focus-visible:ring-1 focus-visible:ring-primary/20 transition-all text-sm"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -42,14 +74,7 @@ export default function LogsPage() {
             <div className="flex flex-wrap gap-2 w-full lg:w-auto">
               <Button variant="outline" className="h-12 px-4 rounded-xl border-slate-200 bg-white gap-2 text-xs font-bold uppercase tracking-wider">
                 <Calendar size={16} />
-                Date: Monthly
-              </Button>
-              <Button variant="outline" className="h-12 px-4 rounded-xl border-slate-200 bg-white gap-2 text-xs font-bold uppercase tracking-wider">
-                <Filter size={16} />
-                Room: All
-              </Button>
-              <Button className="h-12 px-6 rounded-xl bg-slate-800 text-white font-bold text-xs uppercase tracking-wider">
-                Confirm
+                Filter
               </Button>
             </div>
           </div>
@@ -59,60 +84,65 @@ export default function LogsPage() {
             <Table>
               <TableHeader className="bg-slate-50/50">
                 <TableRow className="hover:bg-transparent border-none">
-                  <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">Professor Name</TableHead>
+                  <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">Professor</TableHead>
                   <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">Room</TableHead>
                   <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">College</TableHead>
                   <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">Program/Section</TableHead>
                   <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">Start Time</TableHead>
-                  <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">End Time</TableHead>
                   <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">Duration</TableHead>
+                  <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {MOCK_LOGS.map((log) => (
-                  <TableRow key={log.id} className="hover:bg-slate-50/50 transition-colors border-slate-50">
+                {filteredSessions.map((session: any) => (
+                  <TableRow key={session.id} className="hover:bg-slate-50/50 transition-colors border-slate-50">
                     <TableCell className="px-8 py-5">
                       <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10 border border-slate-100 rounded-xl shadow-sm">
-                          <AvatarImage src={log.professorAvatar} />
-                          <AvatarFallback className="rounded-xl text-[10px] font-bold">{log.professorName.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                          <AvatarFallback className="rounded-xl text-[10px] font-bold">
+                            {session.professorEmail.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
                         </Avatar>
-                        <span className="text-sm font-bold text-slate-800">{log.professorName}</span>
+                        <span className="text-sm font-bold text-slate-800">{session.professorEmail}</span>
                       </div>
                     </TableCell>
                     <TableCell className="px-8 py-5">
-                      <span className="text-sm font-bold text-slate-600">{log.roomNumber}</span>
+                      <span className="text-sm font-bold text-slate-600">{session.roomNumber}</span>
                     </TableCell>
                     <TableCell className="px-8 py-5">
-                      <span className="text-sm font-medium text-slate-500">{log.college}</span>
+                      <span className="text-sm font-medium text-slate-500">{session.college}</span>
                     </TableCell>
                     <TableCell className="px-8 py-5">
-                      <span className="text-sm font-semibold text-slate-700">{log.program}-{log.section}</span>
+                      <span className="text-sm font-semibold text-slate-700">{session.program}-{session.section}</span>
                     </TableCell>
                     <TableCell className="px-8 py-5 whitespace-nowrap">
-                      <span className="text-xs font-medium text-slate-400">{log.startTime}</span>
-                    </TableCell>
-                    <TableCell className="px-8 py-5 whitespace-nowrap">
-                      <span className="text-xs font-medium text-slate-400">{log.endTime || 'In Progress'}</span>
+                      <span className="text-xs font-medium text-slate-400">
+                        {session.startTime?.toDate ? format(session.startTime.toDate(), "MMM dd, hh:mm a") : "---"}
+                      </span>
                     </TableCell>
                     <TableCell className="px-8 py-5">
                       <Badge variant="outline" className="bg-slate-50 border-none text-[10px] font-bold text-slate-600 px-3 py-1">
-                        {log.durationMinutes ? `${log.durationMinutes} mins` : '--'}
+                        {session.duration ? `${session.duration} mins` : '--'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-8 py-5">
+                      <Badge variant="outline" className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 border-none ${
+                        session.status === 'active' ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {session.status}
                       </Badge>
                     </TableCell>
                   </TableRow>
                 ))}
+                {filteredSessions.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center text-slate-400">
+                      No logs found.
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
-          </div>
-          <div className="p-6 border-t border-slate-50 flex items-center justify-between">
-            <p className="text-xs font-bold text-slate-400">Showing 1 to 5 of 24 entries</p>
-            <div className="flex gap-2">
-              <Button size="icon" className="h-8 w-8 rounded-lg bg-primary text-white shadow-md shadow-primary/20 font-bold">1</Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-400 font-bold">2</Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-400 font-bold">3</Button>
-              <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg bg-slate-50 text-slate-400 border-none font-bold">{">"}</Button>
-            </div>
           </div>
         </CardContent>
       </Card>
@@ -123,8 +153,8 @@ export default function LogsPage() {
             <Database size={28} />
           </div>
           <div>
-            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Total Hours (Monthly)</p>
-            <p className="text-2xl font-extrabold text-slate-800 leading-none">1,248 hrs</p>
+            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Total Hours Logged</p>
+            <p className="text-2xl font-extrabold text-slate-800 leading-none">{totalHours} hrs</p>
           </div>
         </Card>
         <Card className="border-none shadow-sm rounded-2xl bg-white flex items-center p-6 gap-6">
@@ -132,8 +162,8 @@ export default function LogsPage() {
             <Users size={28} />
           </div>
           <div>
-            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Student Footfall</p>
-            <p className="text-2xl font-extrabold text-slate-800 leading-none">4,520</p>
+            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Total Sessions</p>
+            <p className="text-2xl font-extrabold text-slate-800 leading-none">{sessions.length}</p>
           </div>
         </Card>
         <Card className="border-none shadow-sm rounded-2xl bg-white flex items-center p-6 gap-6">
@@ -141,8 +171,10 @@ export default function LogsPage() {
             <AlertCircle size={28} />
           </div>
           <div>
-            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Reported Issues</p>
-            <p className="text-2xl font-extrabold text-slate-800 leading-none">12</p>
+            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Active Sessions</p>
+            <p className="text-2xl font-extrabold text-slate-800 leading-none">
+              {sessions.filter((s: any) => s.status === 'active').length}
+            </p>
           </div>
         </Card>
       </div>

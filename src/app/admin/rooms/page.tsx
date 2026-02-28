@@ -1,17 +1,78 @@
+
 "use client";
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useState, useMemo } from "react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit2, Trash2, Search, Monitor, BarChart3, Filter, MoreVertical } from "lucide-react";
+import { Plus, Edit2, Trash2, Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { MOCK_ROOMS } from "@/lib/mock-data";
+import { useFirestore, useCollection } from "@/firebase";
+import { collection, addDoc, doc, deleteDoc } from "firebase/firestore";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
+import { useToast } from "@/hooks/use-toast";
 
 export default function RoomsPage() {
-  const [rooms, setRooms] = useState(MOCK_ROOMS);
   const [search, setSearch] = useState("");
+  const db = useFirestore();
+  const { toast } = useToast();
+
+  const roomsQuery = useMemo(() => {
+    if (!db) return null;
+    return collection(db, "rooms");
+  }, [db]);
+
+  const { data: rooms, loading } = useCollection<any>(roomsQuery);
+
+  const filteredRooms = useMemo(() => {
+    return rooms.filter((room: any) => 
+      room.number?.toLowerCase().includes(search.toLowerCase()) ||
+      room.location?.toLowerCase().includes(search.toLowerCase())
+    );
+  }, [rooms, search]);
+
+  const handleAddRoom = () => {
+    if (!db) return;
+    const roomNumber = prompt("Enter Room Number (e.g., Lab 402):");
+    const location = prompt("Enter Location (e.g., Engineering Hall):");
+    
+    if (roomNumber && location) {
+      addDoc(collection(db, "rooms"), {
+        number: roomNumber,
+        location: location,
+        status: "available",
+        usageCount: 0,
+      }).catch(async (error) => {
+        const permissionError = new FirestorePermissionError({
+          path: "rooms",
+          operation: "create",
+          requestResourceData: { number: roomNumber, location, status: "available" },
+        });
+        errorEmitter.emit("permission-error", permissionError);
+      });
+    }
+  };
+
+  const handleDeleteRoom = (roomId: string) => {
+    if (!db || !confirm("Are you sure you want to delete this room?")) return;
+    deleteDoc(doc(db, "rooms", roomId)).catch(async (error) => {
+      const permissionError = new FirestorePermissionError({
+        path: `rooms/${roomId}`,
+        operation: "delete",
+      });
+      errorEmitter.emit("permission-error", permissionError);
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="h-96 w-full flex items-center justify-center">
+        <Loader2 className="animate-spin text-primary" size={40} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -20,7 +81,7 @@ export default function RoomsPage() {
           <p className="text-[10px] text-primary uppercase font-bold tracking-[0.2em] mb-1">Admin / Room Management</p>
           <h1 className="text-3xl font-extrabold text-slate-800">Room Management</h1>
         </div>
-        <Button className="bg-primary hover:bg-primary/90 rounded-xl px-6 h-12 shadow-lg shadow-primary/20 flex items-center gap-2 font-bold">
+        <Button onClick={handleAddRoom} className="bg-primary hover:bg-primary/90 rounded-xl px-6 h-12 shadow-lg shadow-primary/20 flex items-center gap-2 font-bold">
           <Plus size={20} />
           Add New Room
         </Button>
@@ -31,22 +92,18 @@ export default function RoomsPage() {
           <CardContent className="p-6">
             <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-4">Total Rooms</p>
             <div className="flex items-end gap-3">
-              <span className="text-4xl font-extrabold text-slate-800 leading-none">24</span>
-              <span className="text-[10px] text-green-500 font-bold mb-1">+2 this month</span>
+              <span className="text-4xl font-extrabold text-slate-800 leading-none">{rooms.length}</span>
             </div>
           </CardContent>
         </Card>
         <Card className="border-none shadow-sm rounded-2xl bg-white overflow-hidden">
           <CardContent className="p-6">
             <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-4">Currently Occupied</p>
-            <div className="space-y-2">
-              <div className="flex items-end gap-3">
-                <span className="text-4xl font-extrabold text-slate-800 leading-none">8</span>
-                <span className="text-xs font-bold text-slate-300">/ 24 total</span>
-              </div>
-              <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: '33%' }} />
-              </div>
+            <div className="flex items-end gap-3">
+              <span className="text-4xl font-extrabold text-slate-800 leading-none">
+                {rooms.filter((r: any) => r.status === 'in-use').length}
+              </span>
+              <span className="text-xs font-bold text-slate-300">/ {rooms.length} total</span>
             </div>
           </CardContent>
         </Card>
@@ -54,8 +111,9 @@ export default function RoomsPage() {
           <CardContent className="p-6">
             <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-4">Maintenance</p>
             <div className="flex items-end gap-3">
-              <span className="text-4xl font-extrabold text-orange-500 leading-none">2</span>
-              <span className="text-[10px] text-slate-400 font-bold mb-1">Scheduled next week</span>
+              <span className="text-4xl font-extrabold text-orange-500 leading-none">
+                {rooms.filter((r: any) => r.status === 'maintenance').length}
+              </span>
             </div>
           </CardContent>
         </Card>
@@ -66,7 +124,7 @@ export default function RoomsPage() {
           <div className="relative w-full max-w-xl">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <Input 
-              placeholder="Search by room number or building..." 
+              placeholder="Search by room number or location..." 
               className="pl-12 h-12 bg-slate-50 border-none rounded-xl focus-visible:ring-1 focus-visible:ring-primary/20 transition-all text-sm"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -78,23 +136,23 @@ export default function RoomsPage() {
             <TableHeader className="bg-slate-50/50">
               <TableRow className="hover:bg-transparent border-none">
                 <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">Room Number</TableHead>
-                <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">Building / Location</TableHead>
+                <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">Location</TableHead>
                 <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">Usage Count</TableHead>
                 <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">Status</TableHead>
                 <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rooms.map((room) => (
+              {filteredRooms.map((room: any) => (
                 <TableRow key={room.id} className="hover:bg-slate-50/50 transition-colors border-slate-50">
                   <TableCell className="px-8 py-5">
-                    <span className="text-sm font-bold text-primary cursor-pointer hover:underline">{room.number}</span>
+                    <span className="text-sm font-bold text-primary">{room.number}</span>
                   </TableCell>
                   <TableCell className="px-8 py-5">
                     <span className="text-sm font-semibold text-slate-600">{room.location}</span>
                   </TableCell>
                   <TableCell className="px-8 py-5">
-                    <span className="text-sm font-bold text-slate-800">{room.usageCount}</span>
+                    <span className="text-sm font-bold text-slate-800">{room.usageCount || 0}</span>
                   </TableCell>
                   <TableCell className="px-8 py-5">
                     <Badge 
@@ -107,36 +165,27 @@ export default function RoomsPage() {
                           : 'bg-orange-100 text-orange-600'
                       }`}
                     >
-                      <span className={`w-1 h-1 rounded-full ${
-                        room.status === 'available' ? 'bg-green-600' : room.status === 'in-use' ? 'bg-blue-600' : 'bg-orange-600'
-                      }`} />
-                      {room.status.replace('-', ' ')}
+                      {room.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="px-8 py-5 text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg text-slate-400 hover:text-primary hover:bg-primary/5 transition-all">
-                        <Edit2 size={16} />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all">
+                      <Button onClick={() => handleDeleteRoom(room.id)} variant="ghost" size="icon" className="h-9 w-9 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all">
                         <Trash2 size={16} />
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
               ))}
+              {filteredRooms.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center text-slate-400">
+                    No rooms found.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
-          <div className="p-6 border-t border-slate-50 flex items-center justify-between">
-            <p className="text-xs font-bold text-slate-400">Showing 1 to 5 of 24 entries</p>
-            <div className="flex gap-2">
-              <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg bg-slate-100 text-slate-400 border-none pointer-events-none">{"<"}</Button>
-              <Button size="icon" className="h-8 w-8 rounded-lg bg-primary text-white shadow-md shadow-primary/20 font-bold">1</Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-400 font-bold">2</Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg text-slate-400 font-bold">3</Button>
-              <Button variant="outline" size="icon" className="h-8 w-8 rounded-lg bg-slate-50 text-slate-400 border-none font-bold">{">"}</Button>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>

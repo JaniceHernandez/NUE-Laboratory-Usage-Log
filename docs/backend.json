@@ -57,6 +57,18 @@
         "createdAt": { "type": "string", "format": "date-time" }
       },
       "required": ["professorEmail", "roomNumber", "status", "startTime"]
+    },
+    "Room": {
+      "title": "Room",
+      "description": "Represents a laboratory room.",
+      "type": "object",
+      "properties": {
+        "number": { "type": "string" },
+        "location": { "type": "string" },
+        "status": { "type": "string", "enum": ["available", "in-use", "maintenance"] },
+        "usageCount": { "type": "number" }
+      },
+      "required": ["number", "location", "status"]
     }
   },
   "auth": {
@@ -70,6 +82,10 @@
     "/sessions/{sessionId}": {
       "schema": "Session",
       "description": "Collection of laboratory usage sessions."
+    },
+    "/rooms/{roomId}": {
+      "schema": "Room",
+      "description": "Collection of laboratory rooms managed by the system."
     }
   }
 }

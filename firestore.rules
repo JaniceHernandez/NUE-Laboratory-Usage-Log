@@ -36,6 +36,12 @@ service cloud.firestore {
       allow update: if isSignedIn() && isActive() && resource.data.professorEmail == request.auth.token.email;
     }
 
+    // Rooms collection rules
+    match /rooms/{roomId} {
+      allow read: if isSignedIn();
+      allow write: if hasRole('admin');
+    }
+
     // Default deny
     match /{document=**} {
       allow read, write: if false;
