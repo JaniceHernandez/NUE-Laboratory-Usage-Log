@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,11 +11,12 @@ import { LogOut, Play, Square, CheckCircle2, Clock, MapPin, GraduationCap, Loade
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AuthGuard } from "@/components/auth-guard";
-import { useAuth, useUser, useFirestore } from "@/firebase";
+import { useAuth, useUser, useFirestore, useCollection } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { SessionService, LabSession } from "@/services/session-service";
+import { RoomService, Room } from "@/services/room-service";
 import { useToast } from "@/hooks/use-toast";
-import { Timestamp } from "firebase/firestore";
+import { Timestamp, collection, query, where } from "firebase/firestore";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -46,6 +47,13 @@ export default function ProfessorPortal() {
   const [manualStartTime, setManualStartTime] = useState("08:00");
   const [manualEndDate, setManualEndDate] = useState<Date | undefined>(new Date());
   const [manualEndTime, setManualEndTime] = useState("10:00");
+
+  // Fetch available rooms
+  const roomsQuery = useMemo(() => {
+    if (!db) return null;
+    return query(collection(db, "rooms"), where("status", "==", "available"));
+  }, [db]);
+  const { data: availableRooms, loading: roomsLoading } = useCollection<Room>(roomsQuery);
 
   // Load active session on mount
   useEffect(() => {
@@ -103,6 +111,8 @@ export default function ProfessorPortal() {
           endTime: Timestamp.fromDate(end)
         });
 
+        await RoomService.incrementUsage(db, room);
+
         toast({
           title: "Session Logged",
           description: `Manual entry for ${room} has been saved.`,
@@ -118,6 +128,8 @@ export default function ProfessorPortal() {
           section
         });
         
+        await RoomService.incrementUsage(db, room);
+
         const newActive = await SessionService.getActiveSession(db, user.email);
         setActiveSession(newActive);
         
@@ -179,11 +191,11 @@ export default function ProfessorPortal() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || roomsLoading) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50">
         <Loader2 className="animate-spin text-primary mb-4" size={40} />
-        <p className="text-sm font-medium text-slate-400">Loading your profile...</p>
+        <p className="text-sm font-medium text-slate-400">Syncing with server...</p>
       </div>
     );
   }
@@ -247,11 +259,12 @@ export default function ProfessorPortal() {
                           <SelectValue placeholder="Select room" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="COM LAB 1">COM LAB 1</SelectItem>
-                          <SelectItem value="COM LAB 2">COM LAB 2</SelectItem>
-                          <SelectItem value="PHY LAB">PHY LAB</SelectItem>
-                          <SelectItem value="CHEM LAB">CHEM LAB</SelectItem>
-                          <SelectItem value="LAB 402">LAB 402</SelectItem>
+                          {availableRooms.map((r) => (
+                            <SelectItem key={r.id} value={r.number}>{r.number} - {r.location}</SelectItem>
+                          ))}
+                          {availableRooms.length === 0 && (
+                            <SelectItem value="none" disabled>No active labs available</SelectItem>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -387,7 +400,7 @@ export default function ProfessorPortal() {
                 <Button 
                   form="session-form" 
                   className="w-full h-14 bg-primary hover:bg-primary/90 rounded-xl text-lg font-bold shadow-lg shadow-primary/20 transition-all"
-                  disabled={isActionLoading}
+                  disabled={isActionLoading || availableRooms.length === 0}
                 >
                   {isActionLoading ? <Loader2 className="animate-spin mr-2" /> : (
                     isManualEntry ? <CalendarClock className="mr-2" size={20} /> : <Play className="mr-2" size={20} />

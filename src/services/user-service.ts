@@ -1,6 +1,6 @@
 'use client';
 
-import { doc, getDoc, setDoc, serverTimestamp, Firestore } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp, Firestore, query, collection, where, getDocs } from 'firebase/firestore';
 
 export interface UserProfile {
   uid: string;
@@ -37,6 +37,24 @@ export const UserService = {
       status: 'active',
       createdAt: serverTimestamp(),
     });
+  },
+
+  /**
+   * Updates user status (block/unblock)
+   */
+  async updateUserStatus(db: Firestore, uid: string, status: 'active' | 'blocked'): Promise<void> {
+    const userRef = doc(db, 'users', uid);
+    await updateDoc(userRef, { status });
+  },
+
+  /**
+   * Fetches all professors
+   */
+  async getAllProfessors(db: Firestore): Promise<UserProfile[]> {
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('role', '==', 'professor'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile));
   },
 
   /**
