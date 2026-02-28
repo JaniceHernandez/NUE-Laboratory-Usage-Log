@@ -1,10 +1,9 @@
-
 "use client";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { QrCode, ShieldCheck, GraduationCap, Loader2 } from "lucide-react";
@@ -13,6 +12,14 @@ import { useAuth, useFirestore } from "@/firebase";
 import { signInWithPopup, GoogleAuthProvider, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+
+// Manual import for Tabs components as they are likely in UI
+import { 
+  Tabs as TabsRoot, 
+  TabsContent as TContent, 
+  TabsList as TList, 
+  TabsTrigger as TTrigger 
+} from "@/components/ui/tabs";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -29,30 +36,34 @@ export default function LandingPage() {
     
     setIsLoading(true);
     const provider = new GoogleAuthProvider();
+    // Hinting for institutional accounts
     provider.setCustomParameters({ hd: "neu.edu.ph" });
 
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      if (!user.email?.endsWith("@neu.edu.ph") && user.email !== "admin@neu.edu.ph") {
+      // Validation: Enforce @neu.edu.ph restriction or admin@neu.edu.ph bypass
+      const isInstitutionalEmail = user.email?.endsWith("@neu.edu.ph");
+      const isAdminEmail = user.email === "admin@neu.edu.ph";
+
+      if (!isInstitutionalEmail && !isAdminEmail) {
         await signOut(auth);
         toast({
           variant: "destructive",
           title: "Access Denied",
           description: "Please use your @neu.edu.ph institutional email.",
         });
+        setIsLoading(false);
         return;
       }
 
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
 
-      let role = "professor";
-      if (user.email === "admin@neu.edu.ph") {
-        role = "admin";
-      }
+      let role = isAdminEmail ? "admin" : "professor";
 
+      // Persistence: Store user profile on first login
       if (!userSnap.exists()) {
         await setDoc(userRef, {
           uid: user.uid,
@@ -72,12 +83,18 @@ export default function LandingPage() {
             title: "Account Blocked",
             description: "Your account has been deactivated by an administrator.",
           });
+          setIsLoading(false);
           return;
         }
         role = userData.role;
       }
 
+      // Route them appropriately
       router.push(role === "admin" ? "/admin/dashboard" : "/professor");
+      toast({
+        title: "Login Successful",
+        description: `Welcome back, ${user.displayName}!`,
+      });
     } catch (error: any) {
       console.error(error);
       toast({
@@ -90,11 +107,11 @@ export default function LandingPage() {
     }
   };
 
-  const handleAdminLogin = (e: React.FormEvent) => {
+  const handleAdminPasswordLogin = (e: React.FormEvent) => {
     e.preventDefault();
     toast({
       title: "Notice",
-      description: "For this sprint, please use 'Sign in with @neu.edu.ph' using admin@neu.edu.ph",
+      description: "For this sprint, please use 'Sign in with Google' with admin@neu.edu.ph",
     });
   };
 
@@ -105,17 +122,17 @@ export default function LandingPage() {
       </div>
 
       <Card className="w-full max-w-[480px] border-none shadow-2xl rounded-[24px] overflow-hidden">
-        <Tabs defaultValue="professor" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 h-16 bg-slate-100/50 p-1 rounded-none">
-            <TabsTrigger value="professor" className="rounded-none h-full data-[state=active]:bg-white data-[state=active]:shadow-none data-[state=active]:text-primary font-semibold">
+        <TabsRoot defaultValue="professor" className="w-full">
+          <TList className="grid w-full grid-cols-2 h-16 bg-slate-100/50 p-1 rounded-none">
+            <TTrigger value="professor" className="rounded-none h-full data-[state=active]:bg-white data-[state=active]:shadow-none data-[state=active]:text-primary font-semibold">
               Professor Check-in
-            </TabsTrigger>
-            <TabsTrigger value="admin" className="rounded-none h-full data-[state=active]:bg-white data-[state=active]:shadow-none data-[state=active]:text-primary font-semibold">
+            </TTrigger>
+            <TTrigger value="admin" className="rounded-none h-full data-[state=active]:bg-white data-[state=active]:shadow-none data-[state=active]:text-primary font-semibold">
               Admin Login
-            </TabsTrigger>
-          </TabsList>
+            </TTrigger>
+          </TList>
           
-          <TabsContent value="professor" className="p-8 space-y-8 animate-in fade-in zoom-in-95 duration-300">
+          <TContent value="professor" className="p-8 space-y-8 animate-in fade-in zoom-in-95 duration-300">
             <div className="flex flex-col items-center text-center space-y-6">
               <div className="w-20 h-20 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-center text-slate-400">
                 <QrCode size={40} strokeWidth={1.5} />
@@ -151,10 +168,10 @@ export default function LandingPage() {
               )}
               <span className="font-semibold">Sign in with @neu.edu.ph</span>
             </Button>
-            <p className="text-[10px] text-center text-slate-400 font-medium">Demo: Log in with admin@neu.edu.ph for Admin role</p>
-          </TabsContent>
+            <p className="text-[10px] text-center text-slate-400 font-medium italic">Hint: Use admin@neu.edu.ph to access admin dashboard.</p>
+          </TContent>
 
-          <TabsContent value="admin" className="p-8 space-y-6 animate-in fade-in zoom-in-95 duration-300">
+          <TContent value="admin" className="p-8 space-y-6 animate-in fade-in zoom-in-95 duration-300">
             <div className="flex flex-col items-center text-center space-y-2 mb-4">
               <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-2">
                 <ShieldCheck size={24} />
@@ -163,7 +180,7 @@ export default function LandingPage() {
               <p className="text-slate-500 text-sm">Secure access for management personnel.</p>
             </div>
             
-            <form onSubmit={handleAdminLogin} className="space-y-4">
+            <form onSubmit={handleAdminPasswordLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-slate-500">Email Address</Label>
                 <Input 
@@ -191,8 +208,8 @@ export default function LandingPage() {
                 {isLoading ? <Loader2 className="animate-spin mr-2" size={20} /> : "Login to Dashboard"}
               </Button>
             </form>
-          </TabsContent>
-        </Tabs>
+          </TContent>
+        </TabsRoot>
       </Card>
 
       <footer className="mt-12 text-slate-400 text-xs font-medium">

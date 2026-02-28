@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -27,8 +26,12 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
   useEffect(() => {
     if (authLoading) return;
 
+    // Public routes that don't need auth
+    const publicRoutes = ["/", "/login"];
+    const isPublicRoute = publicRoutes.includes(pathname);
+
     if (!user) {
-      if (pathname !== "/" && pathname !== "/login") {
+      if (!isPublicRoute) {
         router.push("/");
       }
       setRoleLoading(false);
@@ -37,42 +40,46 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
 
     if (!db || !auth) return;
 
+    // Real-time check of user profile and role
     const userRef = doc(db, "users", user.uid);
-    const unsubscribe = onSnapshot(userRef, (doc) => {
-      if (doc.exists()) {
-        const userData = doc.data();
+    const unsubscribe = onSnapshot(userRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const userData = snapshot.data();
         
+        // Blocked status check: Sign out immediately
         if (userData.status === "blocked") {
           signOut(auth).then(() => {
             toast({
               variant: "destructive",
               title: "Session Terminated",
-              description: "Your account has been blocked.",
+              description: "Your account has been deactivated by an administrator.",
             });
             router.push("/");
           });
           return;
         }
 
+        // Role authorization check
         if (allowedRoles && !allowedRoles.includes(userData.role)) {
           toast({
             variant: "destructive",
-            title: "Unauthorized",
-            description: "You do not have permission to access this area.",
+            title: "Access Restricted",
+            description: "You do not have permission to view this section.",
           });
+          // Redirect to their default dashboard
           router.push(userData.role === "admin" ? "/admin/dashboard" : "/professor");
           return;
         }
 
         setAuthorized(true);
       } else {
-        // If profile doesn't exist (shouldn't happen with correct login flow)
+        // Profiling failure: Should be handled at login, but fallback here
         signOut(auth);
         router.push("/");
       }
       setRoleLoading(false);
     }, (error) => {
-      console.error("AuthGuard Snapshot error:", error);
+      console.error("AuthGuard Status Listener Error:", error);
       setRoleLoading(false);
     });
 
@@ -83,14 +90,15 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50 gap-4">
         <Loader2 className="animate-spin text-primary" size={40} />
-        <p className="text-sm font-medium text-slate-400">Verifying session...</p>
+        <p className="text-sm font-medium text-slate-400">Securing your session...</p>
       </div>
     );
   }
 
-  if (!user && (pathname === "/" || pathname === "/login")) {
+  // Allow children if authorized or if on a public route without a user
+  if (authorized || (!user && ["/", "/login"].includes(pathname))) {
     return <>{children}</>;
   }
 
-  return authorized ? <>{children}</> : null;
+  return null;
 }

@@ -1,4 +1,3 @@
-
 export const firebaseConfig = {
   apiKey: "api-key-placeholder",
   authDomain: "project-id-placeholder.firebaseapp.com",
