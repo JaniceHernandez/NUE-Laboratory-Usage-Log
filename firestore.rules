@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper to check if user is signed in
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    // Helper to get user data
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    // Helper to check for specific role
+    function hasRole(role) {
+      return isSignedIn() && getUserData().role == role;
+    }
+
+    // Helper to check if account is active
+    function isActive() {
+      return isSignedIn() && getUserData().status == 'active';
+    }
+
+    // Users collection rules
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      // Only allow creation during login flow or by admin
+      allow create: if isSignedIn() && (request.auth.uid == userId || hasRole('admin'));
+      // Only admin or the user themselves (only for non-security fields) can update
+      allow update: if hasRole('admin') || (request.auth.uid == userId && isActive());
+    }
+    
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

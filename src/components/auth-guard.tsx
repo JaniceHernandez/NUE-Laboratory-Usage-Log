@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useUser, useFirestore, useAuth } from "@/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
-import { signOut } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { AuthService } from "@/services/auth-service";
+import { UserService, UserProfile } from "@/services/user-service";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -40,15 +41,15 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
 
     if (!db || !auth) return;
 
-    // Real-time check of user profile and role
+    // Real-time check of user profile and role via service concepts
     const userRef = doc(db, "users", user.uid);
     const unsubscribe = onSnapshot(userRef, (snapshot) => {
       if (snapshot.exists()) {
-        const userData = snapshot.data();
+        const userData = { id: snapshot.id, ...snapshot.data() } as UserProfile;
         
         // Blocked status check: Sign out immediately
-        if (userData.status === "blocked") {
-          signOut(auth).then(() => {
+        if (UserService.isBlocked(userData)) {
+          AuthService.logout(auth).then(() => {
             toast({
               variant: "destructive",
               title: "Session Terminated",
@@ -73,9 +74,8 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
 
         setAuthorized(true);
       } else {
-        // Profiling failure: Should be handled at login, but fallback here
-        signOut(auth);
-        router.push("/");
+        // If profile doesn't exist but user is authed, something is wrong
+        AuthService.logout(auth).then(() => router.push("/"));
       }
       setRoleLoading(false);
     }, (error) => {

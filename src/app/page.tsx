@@ -5,14 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { QrCode, ShieldCheck, GraduationCap, Loader2 } from "lucide-react";
+import { QrCode, ShieldCheck, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth, useFirestore } from "@/firebase";
-import { signInWithPopup, GoogleAuthProvider, signOut } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { errorEmitter } from "@/firebase/error-emitter";
-import { FirestorePermissionError } from "@/firebase/errors";
+import { AuthService } from "@/services/auth-service";
 
 import { 
   Tabs as TabsRoot, 
@@ -35,103 +32,49 @@ export default function LandingPage() {
     if (!auth || !db) return;
     
     setIsLoading(true);
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ hd: "neu.edu.ph" });
-
     try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
-      const isInstitutionalEmail = user.email?.endsWith("@neu.edu.ph");
-      const isAdminEmail = user.email === "admin@neu.edu.ph";
-
-      if (!isInstitutionalEmail && !isAdminEmail) {
-        await signOut(auth);
-        toast({
-          variant: "destructive",
-          title: "Access Denied",
-          description: "Please use your @neu.edu.ph institutional email.",
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      const userRef = doc(db, "users", user.uid);
+      const { profile } = await AuthService.signInWithGoogle(auth, db);
       
-      // We still await getDoc because it's part of the login flow logic
-      const userSnap = await getDoc(userRef).catch(async (err) => {
-        if (err.code === 'permission-denied') {
-          errorEmitter.emit('permission-error', new FirestorePermissionError({
-            path: userRef.path,
-            operation: 'get'
-          }));
-        }
-        throw err;
-      });
-
-      let role = isAdminEmail ? "admin" : "professor";
-
-      if (!userSnap.exists()) {
-        const userData = {
-          uid: user.uid,
-          email: user.email,
-          role: role,
-          status: "active",
-          name: user.displayName,
-          photoURL: user.photoURL,
-          createdAt: serverTimestamp(),
-        };
-
-        // Mutation: Non-blocking pattern
-        setDoc(userRef, userData)
-          .catch(async (err) => {
-            if (err.code === 'permission-denied') {
-              errorEmitter.emit('permission-error', new FirestorePermissionError({
-                path: userRef.path,
-                operation: 'create',
-                requestResourceData: userData
-              }));
-            }
-          });
-      } else {
-        const userData = userSnap.data();
-        if (userData?.status === "blocked") {
-          await signOut(auth);
-          toast({
-            variant: "destructive",
-            title: "Account Blocked",
-            description: "Your account has been deactivated by an administrator.",
-          });
-          setIsLoading(false);
-          return;
-        }
-        role = userData?.role || role;
-      }
-
-      router.push(role === "admin" ? "/admin/dashboard" : "/professor");
       toast({
         title: "Login Successful",
-        description: `Welcome back, ${user.displayName}!`,
+        description: `Welcome back, ${profile.name || profile.email}!`,
       });
+
+      router.push(profile.role === "admin" ? "/admin/dashboard" : "/professor");
     } catch (error: any) {
-      if (error.code !== 'permission-denied') {
-        toast({
-          variant: "destructive",
-          title: "Login Failed",
-          description: error.message || "An unexpected error occurred.",
-        });
-      }
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: error.message || "An unexpected error occurred.",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleAdminPasswordLogin = (e: React.FormEvent) => {
+  const handleAdminPasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Notice",
-      description: "For this sprint, please use 'Sign in with Google' with admin@neu.edu.ph",
-    });
+    if (!auth || !db) return;
+
+    setIsLoading(true);
+    try {
+      const { profile } = await AuthService.signInAdmin(auth, db, adminEmail, adminPassword);
+      
+      toast({
+        title: "Admin Login Successful",
+        description: "Welcome to the management portal.",
+      });
+
+      router.push("/admin/dashboard");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: error.message || "Invalid admin credentials.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -159,7 +102,7 @@ export default function LandingPage() {
               <div className="space-y-2">
                 <h2 className="text-2xl font-bold text-slate-800">Scan to Check-in</h2>
                 <p className="text-slate-500 text-sm max-w-[280px] mx-auto leading-relaxed">
-                  Use the QR code scanner at the laboratory entrance. Your browser will be directed to your personalized check-in page.
+                  Use the QR code scanner at the laboratory entrance to begin your session.
                 </p>
               </div>
             </div>
@@ -167,7 +110,7 @@ export default function LandingPage() {
             <div className="relative">
               <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-100" /></div>
               <div className="relative flex justify-center text-[10px] uppercase tracking-widest font-bold text-slate-400">
-                <span className="bg-white px-4">or use google</span>
+                <span className="bg-white px-4">or use institutional google</span>
               </div>
             </div>
 
@@ -187,7 +130,6 @@ export default function LandingPage() {
               )}
               <span className="font-semibold">Sign in with @neu.edu.ph</span>
             </Button>
-            <p className="text-[10px] text-center text-slate-400 font-medium italic">Hint: Use admin@neu.edu.ph to access admin dashboard.</p>
           </TContent>
 
           <TContent value="admin" className="p-8 space-y-6 animate-in fade-in zoom-in-95 duration-300">
