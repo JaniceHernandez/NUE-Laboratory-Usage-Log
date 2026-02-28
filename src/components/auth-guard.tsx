@@ -41,13 +41,13 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
 
     if (!db || !auth) return;
 
-    // Real-time check of user profile and role via service concepts
+    // Real-time check of user profile and role
     const userRef = doc(db, "users", user.uid);
     const unsubscribe = onSnapshot(userRef, (snapshot) => {
       if (snapshot.exists()) {
-        const userData = { id: snapshot.id, ...snapshot.data() } as UserProfile;
+        const userData = { uid: snapshot.id, ...snapshot.data() } as UserProfile;
         
-        // Blocked status check: Sign out immediately
+        // Blocked status check
         if (UserService.isBlocked(userData)) {
           AuthService.logout(auth).then(() => {
             toast({
@@ -67,15 +67,15 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
             title: "Access Restricted",
             description: "You do not have permission to view this section.",
           });
-          // Redirect to their default dashboard
           router.push(userData.role === "admin" ? "/admin/dashboard" : "/professor");
           return;
         }
 
         setAuthorized(true);
       } else {
-        // If profile doesn't exist but user is authed, something is wrong
-        AuthService.logout(auth).then(() => router.push("/"));
+        // If profile doesn't exist yet, we might be in the middle of a login flow.
+        // We'll wait briefly for profile creation before deciding.
+        setAuthorized(false);
       }
       setRoleLoading(false);
     }, (error) => {
@@ -86,7 +86,7 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
     return () => unsubscribe();
   }, [user, authLoading, db, auth, allowedRoles, router, pathname, toast]);
 
-  if (authLoading || roleLoading) {
+  if (authLoading || (user && roleLoading)) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50 gap-4">
         <Loader2 className="animate-spin text-primary" size={40} />

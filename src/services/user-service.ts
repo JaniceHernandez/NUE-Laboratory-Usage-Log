@@ -1,6 +1,6 @@
 'use client';
 
-import { doc, getDoc, setDoc, serverTimestamp, Firestore, DocumentSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, Firestore } from 'firebase/firestore';
 
 export interface UserProfile {
   uid: string;
@@ -20,7 +20,7 @@ export const UserService = {
     const docRef = doc(db, 'users', uid);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() } as UserProfile;
+      return { uid: docSnap.id, ...docSnap.data() } as UserProfile;
     }
     return null;
   },

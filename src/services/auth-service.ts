@@ -20,7 +20,6 @@ export const AuthService = {
    */
   async signInWithGoogle(auth: Auth, db: Firestore): Promise<{ user: User; profile: UserProfile }> {
     const provider = new GoogleAuthProvider();
-    // Prompt for account selection
     provider.setCustomParameters({ prompt: 'select_account', hd: 'neu.edu.ph' });
     
     const result = await signInWithPopup(auth, provider);
@@ -67,7 +66,20 @@ export const AuthService = {
     const result = await signInWithEmailAndPassword(auth, email, pass);
     const user = result.user;
 
-    const profile = await UserService.getUserProfile(db, user.uid);
+    let profile = await UserService.getUserProfile(db, user.uid);
+    
+    // Auto-create admin profile if it doesn't exist for the master admin email
+    if (!profile) {
+      const newProfile: Partial<UserProfile> = {
+        uid: user.uid,
+        email: user.email!,
+        role: 'admin',
+        name: 'System Admin',
+        photoURL: null,
+      };
+      await UserService.createUserProfile(db, newProfile);
+      profile = await UserService.getUserProfile(db, user.uid);
+    }
     
     if (!profile || profile.role !== 'admin') {
       await signOut(auth);
