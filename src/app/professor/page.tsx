@@ -7,21 +7,27 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogOut, Play, Square, CheckCircle2, Clock, MapPin, GraduationCap, AlertCircle } from "lucide-react";
+import { LogOut, Play, Square, CheckCircle2, Clock, MapPin, GraduationCap, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AuthGuard } from "@/components/auth-guard";
-import { useAuth, useUser } from "@/firebase";
+import { useAuth, useUser, useFirestore } from "@/firebase";
 import { signOut } from "firebase/auth";
+import { SessionService, LabSession } from "@/services/session-service";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ProfessorPortal() {
   const router = useRouter();
   const auth = useAuth();
+  const db = useFirestore();
   const { user } = useUser();
-  const [isActive, setIsActive] = useState(false);
-  const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
+  const { toast } = useToast();
+
+  const [activeSession, setActiveSession] = useState<LabSession | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isActionLoading, setIsActionLoading] = useState(false);
   const [elapsedTime, setElapsedTime] = useState("00:00:00");
-  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [lastEndedRoom, setLastEndedRoom] = useState<string | null>(null);
   
   // Form State
   const [room, setRoom] = useState("");
@@ -29,12 +35,24 @@ export default function ProfessorPortal() {
   const [program, setProgram] = useState("");
   const [section, setSection] = useState("");
 
+  // Load active session on mount
+  useEffect(() => {
+    if (user?.email && db) {
+      SessionService.getActiveSession(db, user.email)
+        .then(setActiveSession)
+        .finally(() => setIsLoading(false));
+    }
+  }, [user, db]);
+
+  // Timer logic
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isActive && sessionStartTime) {
+    if (activeSession?.startTime) {
       interval = setInterval(() => {
-        const now = new Date();
-        const diff = now.getTime() - sessionStartTime.getTime();
+        const start = activeSession.startTime.toMillis();
+        const now = Date.now();
+        const diff = now - start;
+        
         const h = Math.floor(diff / 3600000).toString().padStart(2, '0');
         const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
         const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
@@ -42,34 +60,93 @@ export default function ProfessorPortal() {
       }, 1000);
     }
     return () => clearInterval(interval);
-  }, [isActive, sessionStartTime]);
+  }, [activeSession]);
 
-  const handleStartSession = (e: React.FormEvent) => {
+  const handleStartSession = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSessionStartTime(new Date());
-    setIsActive(true);
-    setShowConfirmation(false);
+    if (!db || !user?.email) return;
+
+    setIsActionLoading(true);
+    setLastEndedRoom(null);
+
+    try {
+      await SessionService.startSession(db, {
+        professorEmail: user.email,
+        roomNumber: room,
+        college,
+        program,
+        section
+      });
+      
+      // Refresh state
+      const newActive = await SessionService.getActiveSession(db, user.email);
+      setActiveSession(newActive);
+      
+      toast({
+        title: "Session Started",
+        description: `Now tracking usage for ${room}.`,
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Could not start session.",
+      });
+    } finally {
+      setIsActionLoading(false);
+    }
   };
 
-  const handleEndSession = () => {
-    setIsActive(false);
-    setShowConfirmation(true);
-    setSessionStartTime(null);
-    setElapsedTime("00:00:00");
+  const handleEndSession = async () => {
+    if (!db || !activeSession?.id || !activeSession.startTime) return;
+
+    setIsActionLoading(true);
+    const roomName = activeSession.roomNumber;
+
+    try {
+      await SessionService.endSession(db, activeSession.id, activeSession.startTime);
+      setActiveSession(null);
+      setLastEndedRoom(roomName);
+      setElapsedTime("00:00:00");
+      
+      toast({
+        title: "Session Ended",
+        description: "Your lab usage has been recorded successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Could not end session.",
+      });
+    } finally {
+      setIsActionLoading(false);
+    }
   };
 
   const handleLogout = async () => {
-    if (isActive) {
-      if (confirm("You have an active session. End session and log out?")) {
-        handleEndSession();
-        if (auth) await signOut(auth);
-        router.push("/");
-      }
-    } else {
-      if (auth) await signOut(auth);
+    if (activeSession) {
+      toast({
+        variant: "destructive",
+        title: "Active Session",
+        description: "Please end your current laboratory session before logging out.",
+      });
+      return;
+    }
+    if (auth) {
+      await signOut(auth);
       router.push("/");
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50">
+        <Loader2 className="animate-spin text-primary mb-4" size={40} />
+        <p className="text-sm font-medium text-slate-400">Loading your profile...</p>
+      </div>
+    );
+  }
 
   return (
     <AuthGuard allowedRoles={["professor", "admin"]}>
@@ -90,177 +167,155 @@ export default function ProfessorPortal() {
           </div>
         </header>
 
-        <main className="max-w-4xl mx-auto p-6 mt-4">
-          {showConfirmation && (
-            <Alert className="mb-6 bg-accent text-white border-none shadow-md animate-in slide-in-from-top-4">
-              <CheckCircle2 className="h-4 w-4 text-white" />
-              <AlertTitle>Session Logged Successfully</AlertTitle>
+        <main className="max-w-2xl mx-auto p-6 mt-8">
+          {lastEndedRoom && (
+            <Alert className="mb-6 bg-green-50 text-green-700 border-green-200 shadow-sm animate-in fade-in slide-in-from-top-4">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              <AlertTitle className="font-bold">Session Logged Successfully</AlertTitle>
               <AlertDescription>
-                Thank you for using Room <span className="font-bold">{room}</span>. Your usage has been recorded.
+                Thank you for using Room <span className="font-bold">{lastEndedRoom}</span>.
               </AlertDescription>
             </Alert>
           )}
 
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="md:col-span-2">
-              {!isActive ? (
-                <Card className="shadow-md border-none">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Play size={20} className="text-primary" />
-                      Start New Lab Session
-                    </CardTitle>
-                    <CardDescription>
-                      Fill in the details below to begin tracking your lab room usage.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <form id="session-form" onSubmit={handleStartSession} className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="room">Room Number</Label>
-                          <Select onValueChange={setRoom} required>
-                            <SelectTrigger id="room">
-                              <SelectValue placeholder="Select room" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="COM LAB 1">COM LAB 1</SelectItem>
-                              <SelectItem value="COM LAB 2">COM LAB 2</SelectItem>
-                              <SelectItem value="PHY LAB">PHY LAB</SelectItem>
-                              <SelectItem value="CHEM LAB">CHEM LAB</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="college">College</Label>
-                          <Select onValueChange={setCollege} required>
-                            <SelectTrigger id="college">
-                              <SelectValue placeholder="Select college" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="CICS">CICS</SelectItem>
-                              <SelectItem value="CEA">CEA</SelectItem>
-                              <SelectItem value="CAS">CAS</SelectItem>
-                              <SelectItem value="CBA">CBA</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="program">Program</Label>
-                          <Input id="program" placeholder="e.g., BSCS" onChange={(e) => setProgram(e.target.value)} required />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="section">Section</Label>
-                          <Input id="section" placeholder="e.g., 3B" onChange={(e) => setSection(e.target.value)} required />
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Time Started</Label>
-                        <div className="p-3 bg-slate-50 border rounded-md text-sm text-muted-foreground flex items-center gap-2">
-                          <Clock size={16} />
-                          Current time will be used as start time
-                        </div>
-                      </div>
-                    </form>
-                  </CardContent>
-                  <CardFooter>
-                    <Button form="session-form" className="w-full bg-primary hover:bg-primary/90">
-                      <Play className="mr-2" size={18} />
-                      Start Session
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ) : (
-                <Card className="shadow-lg border-primary/20 bg-primary/5">
-                  <CardHeader className="text-center">
-                    <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-2">
-                      <Clock size={32} className="animate-pulse" />
+          {!activeSession ? (
+            <Card className="shadow-md border-none rounded-2xl overflow-hidden">
+              <CardHeader className="bg-white border-b border-slate-50 pb-6">
+                <CardTitle className="flex items-center gap-2 text-xl font-bold">
+                  <Play size={20} className="text-primary" />
+                  Start New Lab Session
+                </CardTitle>
+                <CardDescription className="text-slate-400">
+                  Fill in the details below to begin tracking your usage.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-8">
+                <form id="session-form" onSubmit={handleStartSession} className="space-y-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="room" className="text-xs font-bold uppercase tracking-wider text-slate-500">Room Number</Label>
+                      <Select onValueChange={setRoom} required>
+                        <SelectTrigger id="room" className="h-12 rounded-xl border-slate-200 bg-slate-50/50">
+                          <SelectValue placeholder="Select room" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="COM LAB 1">COM LAB 1</SelectItem>
+                          <SelectItem value="COM LAB 2">COM LAB 2</SelectItem>
+                          <SelectItem value="PHY LAB">PHY LAB</SelectItem>
+                          <SelectItem value="CHEM LAB">CHEM LAB</SelectItem>
+                          <SelectItem value="LAB 402">LAB 402</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <CardTitle className="text-2xl font-headline text-primary">Active Session</CardTitle>
-                    <CardDescription>
-                      Your usage of <span className="font-bold text-foreground">{room}</span> is being tracked.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="bg-white rounded-xl p-8 shadow-inner border text-center space-y-2">
-                      <p className="text-sm text-muted-foreground uppercase tracking-wider font-medium">Session Duration</p>
-                      <p className="text-5xl font-mono font-bold text-primary tabular-nums">{elapsedTime}</p>
+                    <div className="space-y-2">
+                      <Label htmlFor="college" className="text-xs font-bold uppercase tracking-wider text-slate-500">College</Label>
+                      <Select onValueChange={setCollege} required>
+                        <SelectTrigger id="college" className="h-12 rounded-xl border-slate-200 bg-slate-50/50">
+                          <SelectValue placeholder="Select college" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="CICS">CICS</SelectItem>
+                          <SelectItem value="CEA">CEA</SelectItem>
+                          <SelectItem value="CAS">CAS</SelectItem>
+                          <SelectItem value="CBA">CBA</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
-                        <MapPin size={18} className="text-primary" />
-                        <div>
-                          <p className="text-[10px] text-muted-foreground uppercase">Room</p>
-                          <p className="text-sm font-semibold">{room}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
-                        <Clock size={18} className="text-primary" />
-                        <div>
-                          <p className="text-[10px] text-muted-foreground uppercase">Started At</p>
-                          <p className="text-sm font-semibold">{sessionStartTime?.toLocaleTimeString()}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button variant="destructive" className="w-full h-12" onClick={handleEndSession}>
-                      <Square className="mr-2" size={18} />
-                      End Session
-                    </Button>
-                  </CardFooter>
-                </Card>
-              )}
-            </div>
-
-            <div className="space-y-6">
-              <Card className="border-none shadow-md overflow-hidden">
-                <CardHeader className="bg-secondary/10 pb-4">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <AlertCircle size={18} className="text-secondary" />
-                    Real-Time Availability
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="divide-y">
-                    {[
-                      { room: 'COM LAB 1', status: 'available' },
-                      { room: 'COM LAB 2', status: 'in-use' },
-                      { room: 'PHY LAB', status: 'available' },
-                      { room: 'CHEM LAB', status: 'available' }
-                    ].map((item) => (
-                      <div key={item.room} className="flex justify-between items-center p-4">
-                        <span className="text-sm font-medium">{item.room}</span>
-                        <div className="flex items-center gap-2">
-                          <div className={`w-2 h-2 rounded-full ${item.status === 'available' ? 'bg-accent' : 'bg-destructive'}`} />
-                          <span className="text-xs text-muted-foreground capitalize">{item.status}</span>
-                        </div>
-                      </div>
-                    ))}
                   </div>
-                </CardContent>
-              </Card>
 
-              <Card className="border-none shadow-md bg-slate-900 text-white">
-                <CardHeader>
-                  <CardTitle className="text-base">Support & Help</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-slate-400 mb-4">
-                    For login issues or incorrect room assignments, please contact the CICS IT Support.
-                  </p>
-                  <Button variant="outline" size="sm" className="w-full text-black border-slate-700 hover:bg-slate-800 hover:text-white transition-colors">
-                    Contact Support
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="program" className="text-xs font-bold uppercase tracking-wider text-slate-500">Program</Label>
+                      <Input 
+                        id="program" 
+                        placeholder="e.g., BSCS" 
+                        className="h-12 rounded-xl border-slate-200 bg-slate-50/50" 
+                        onChange={(e) => setProgram(e.target.value)} 
+                        required 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="section" className="text-xs font-bold uppercase tracking-wider text-slate-500">Section</Label>
+                      <Input 
+                        id="section" 
+                        placeholder="e.g., 3B" 
+                        className="h-12 rounded-xl border-slate-200 bg-slate-50/50" 
+                        onChange={(e) => setSection(e.target.value)} 
+                        required 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-xl flex items-start gap-3">
+                    <Clock size={18} className="text-primary mt-0.5" />
+                    <p className="text-xs text-blue-700 leading-relaxed font-medium">
+                      Your session timer will start immediately after clicking the button below.
+                    </p>
+                  </div>
+                </form>
+              </CardContent>
+              <CardFooter className="p-6 pt-2">
+                <Button 
+                  form="session-form" 
+                  className="w-full h-14 bg-primary hover:bg-primary/90 rounded-xl text-lg font-bold shadow-lg shadow-primary/20 transition-all"
+                  disabled={isActionLoading}
+                >
+                  {isActionLoading ? <Loader2 className="animate-spin mr-2" /> : <Play className="mr-2" size={20} />}
+                  Start Session
+                </Button>
+              </CardFooter>
+            </Card>
+          ) : (
+            <Card className="shadow-2xl border-none rounded-3xl overflow-hidden bg-white animate-in zoom-in-95 duration-500">
+              <CardHeader className="text-center pb-2 pt-10">
+                <div className="mx-auto w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-4">
+                  <Clock size={40} className="animate-pulse" />
+                </div>
+                <CardTitle className="text-3xl font-extrabold text-slate-800">Active Session</CardTitle>
+                <CardDescription className="text-slate-400 font-medium">
+                  Currently using <span className="text-primary font-bold">{activeSession.roomNumber}</span>
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-8 px-8 pb-10">
+                <div className="bg-slate-50 rounded-[32px] p-10 border border-slate-100 text-center shadow-inner">
+                  <p className="text-xs text-slate-400 uppercase tracking-[0.2em] font-bold mb-4">Elapsed Time</p>
+                  <p className="text-6xl font-mono font-bold text-primary tabular-nums tracking-tighter">{elapsedTime}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-4 p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                    <div className="w-10 h-10 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center shrink-0">
+                      <MapPin size={20} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Location</p>
+                      <p className="text-sm font-bold text-slate-700">{activeSession.roomNumber}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                    <div className="w-10 h-10 bg-orange-50 text-orange-500 rounded-xl flex items-center justify-center shrink-0">
+                      <GraduationCap size={20} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Program</p>
+                      <p className="text-sm font-bold text-slate-700">{activeSession.program}-{activeSession.section}</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="px-8 pb-10">
+                <Button 
+                  variant="destructive" 
+                  className="w-full h-16 rounded-2xl text-xl font-extrabold shadow-xl shadow-red-100 hover:scale-[1.01] transition-all active:scale-95" 
+                  onClick={handleEndSession}
+                  disabled={isActionLoading}
+                >
+                  {isActionLoading ? <Loader2 className="animate-spin mr-2" /> : <Square className="mr-2" size={24} />}
+                  Complete Session
+                </Button>
+              </CardFooter>
+            </Card>
+          )}
         </main>
       </div>
     </AuthGuard>

@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -24,12 +25,17 @@ service cloud.firestore {
     // Users collection rules
     match /users/{userId} {
       allow read: if isSignedIn();
-      // Only allow creation during login flow or by admin
       allow create: if isSignedIn() && (request.auth.uid == userId || hasRole('admin'));
-      // Only admin or the user themselves (only for non-security fields) can update
       allow update: if hasRole('admin') || (request.auth.uid == userId && isActive());
     }
     
+    // Sessions collection rules
+    match /sessions/{sessionId} {
+      allow read: if hasRole('admin') || (isSignedIn() && request.auth.token.email == resource.data.professorEmail);
+      allow create: if isSignedIn() && isActive() && request.resource.data.professorEmail == request.auth.token.email;
+      allow update: if isSignedIn() && isActive() && resource.data.professorEmail == request.auth.token.email;
+    }
+
     // Default deny
     match /{document=**} {
       allow read, write: if false;

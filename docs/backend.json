@@ -39,6 +39,24 @@
         }
       },
       "required": ["uid", "email", "role", "status"]
+    },
+    "Session": {
+      "title": "Session",
+      "description": "Represents a laboratory usage session.",
+      "type": "object",
+      "properties": {
+        "professorEmail": { "type": "string" },
+        "roomNumber": { "type": "string" },
+        "college": { "type": "string" },
+        "program": { "type": "string" },
+        "section": { "type": "string" },
+        "startTime": { "type": "string", "format": "date-time" },
+        "endTime": { "type": "string", "format": "date-time" },
+        "duration": { "type": "number", "description": "Duration in minutes" },
+        "status": { "type": "string", "enum": ["active", "completed"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["professorEmail", "roomNumber", "status", "startTime"]
     }
   },
   "auth": {
@@ -48,6 +66,10 @@
     "/users/{userId}": {
       "schema": "User",
       "description": "Collection of authorized users and their roles."
+    },
+    "/sessions/{sessionId}": {
+      "schema": "Session",
+      "description": "Collection of laboratory usage sessions."
     }
   }
 }
