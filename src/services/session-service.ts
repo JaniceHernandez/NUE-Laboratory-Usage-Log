@@ -1,4 +1,3 @@
-
 'use client';
 
 import { 
@@ -69,6 +68,30 @@ export const SessionService = {
       createdAt: serverTimestamp()
     });
     
+    return docRef.id;
+  },
+
+  /**
+   * Logs a completed session manually
+   */
+  async logManualSession(db: Firestore, data: Omit<LabSession, 'id' | 'status' | 'createdAt' | 'duration'>): Promise<string> {
+    const startMs = data.startTime.toMillis();
+    const endMs = data.endTime?.toMillis() || Date.now();
+    
+    if (endMs <= startMs) {
+      throw new Error('End time must be after start time.');
+    }
+
+    const durationMinutes = Math.floor((endMs - startMs) / 60000);
+    const sessionsRef = collection(db, 'sessions');
+    
+    const docRef = await addDoc(sessionsRef, {
+      ...data,
+      status: 'completed',
+      duration: durationMinutes,
+      createdAt: serverTimestamp()
+    });
+
     return docRef.id;
   },
 

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -7,7 +6,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LogOut, Play, Square, CheckCircle2, Clock, MapPin, GraduationCap, Loader2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { LogOut, Play, Square, CheckCircle2, Clock, MapPin, GraduationCap, Loader2, CalendarClock } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AuthGuard } from "@/components/auth-guard";
@@ -15,6 +15,7 @@ import { useAuth, useUser, useFirestore } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { SessionService, LabSession } from "@/services/session-service";
 import { useToast } from "@/hooks/use-toast";
+import { Timestamp } from "firebase/firestore";
 
 export default function ProfessorPortal() {
   const router = useRouter();
@@ -34,6 +35,11 @@ export default function ProfessorPortal() {
   const [college, setCollege] = useState("");
   const [program, setProgram] = useState("");
   const [section, setSection] = useState("");
+  
+  // Manual Entry State
+  const [isManualEntry, setIsManualEntry] = useState(false);
+  const [manualStart, setManualStart] = useState("");
+  const [manualEnd, setManualEnd] = useState("");
 
   // Load active session on mount
   useEffect(() => {
@@ -62,7 +68,7 @@ export default function ProfessorPortal() {
     return () => clearInterval(interval);
   }, [activeSession]);
 
-  const handleStartSession = async (e: React.FormEvent) => {
+  const handleSubmitSession = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!db || !user?.email) return;
 
@@ -70,27 +76,54 @@ export default function ProfessorPortal() {
     setLastEndedRoom(null);
 
     try {
-      await SessionService.startSession(db, {
-        professorEmail: user.email,
-        roomNumber: room,
-        college,
-        program,
-        section
-      });
-      
-      // Refresh state
-      const newActive = await SessionService.getActiveSession(db, user.email);
-      setActiveSession(newActive);
-      
-      toast({
-        title: "Session Started",
-        description: `Now tracking usage for ${room}.`,
-      });
+      if (isManualEntry) {
+        if (!manualStart || !manualEnd) throw new Error("Please provide both start and end times.");
+        
+        const startTS = Timestamp.fromDate(new Date(manualStart));
+        const endTS = Timestamp.fromDate(new Date(manualEnd));
+
+        await SessionService.logManualSession(db, {
+          professorEmail: user.email,
+          roomNumber: room,
+          college,
+          program,
+          section,
+          startTime: startTS,
+          endTime: endTS
+        });
+
+        toast({
+          title: "Session Logged",
+          description: `Manual entry for ${room} has been saved.`,
+        });
+        
+        // Reset manual form
+        setLastEndedRoom(room);
+        setManualStart("");
+        setManualEnd("");
+      } else {
+        await SessionService.startSession(db, {
+          professorEmail: user.email,
+          roomNumber: room,
+          college,
+          program,
+          section
+        });
+        
+        // Refresh state
+        const newActive = await SessionService.getActiveSession(db, user.email);
+        setActiveSession(newActive);
+        
+        toast({
+          title: "Session Started",
+          description: `Now tracking usage for ${room}.`,
+        });
+      }
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Could not start session.",
+        description: error.message || "Could not process session.",
       });
     } finally {
       setIsActionLoading(false);
@@ -167,7 +200,7 @@ export default function ProfessorPortal() {
           </div>
         </header>
 
-        <main className="max-w-2xl mx-auto p-6 mt-8">
+        <main className="max-w-2xl mx-auto p-6 mt-8 pb-20">
           {lastEndedRoom && (
             <Alert className="mb-6 bg-green-50 text-green-700 border-green-200 shadow-sm animate-in fade-in slide-in-from-top-4">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
@@ -179,18 +212,26 @@ export default function ProfessorPortal() {
           )}
 
           {!activeSession ? (
-            <Card className="shadow-md border-none rounded-2xl overflow-hidden">
+            <Card className="shadow-md border-none rounded-2xl overflow-hidden bg-white">
               <CardHeader className="bg-white border-b border-slate-50 pb-6">
-                <CardTitle className="flex items-center gap-2 text-xl font-bold">
-                  <Play size={20} className="text-primary" />
-                  Start New Lab Session
-                </CardTitle>
-                <CardDescription className="text-slate-400">
-                  Fill in the details below to begin tracking your usage.
-                </CardDescription>
+                <div className="flex justify-between items-center">
+                  <div className="space-y-1">
+                    <CardTitle className="flex items-center gap-2 text-xl font-bold text-slate-800">
+                      {isManualEntry ? <CalendarClock size={20} className="text-primary" /> : <Play size={20} className="text-primary" />}
+                      {isManualEntry ? "Log Past Session" : "Start New Lab Session"}
+                    </CardTitle>
+                    <CardDescription className="text-slate-400">
+                      {isManualEntry ? "Enter the details for a session you've already completed." : "Fill in the details below to begin tracking your usage."}
+                    </CardDescription>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <Label htmlFor="manual-mode" className="text-[10px] font-bold uppercase text-slate-400">Manual Entry</Label>
+                    <Switch id="manual-mode" checked={isManualEntry} onCheckedChange={setIsManualEntry} />
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="pt-8">
-                <form id="session-form" onSubmit={handleStartSession} className="space-y-6">
+                <form id="session-form" onSubmit={handleSubmitSession} className="space-y-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="room" className="text-xs font-bold uppercase tracking-wider text-slate-500">Room Number</Label>
@@ -246,12 +287,41 @@ export default function ProfessorPortal() {
                     </div>
                   </div>
 
-                  <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-xl flex items-start gap-3">
-                    <Clock size={18} className="text-primary mt-0.5" />
-                    <p className="text-xs text-blue-700 leading-relaxed font-medium">
-                      Your session timer will start immediately after clicking the button below.
-                    </p>
-                  </div>
+                  {isManualEntry && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 animate-in slide-in-from-top-2 duration-300">
+                      <div className="space-y-2">
+                        <Label htmlFor="start-time" className="text-xs font-bold uppercase tracking-wider text-slate-500">Actual Start Time</Label>
+                        <Input 
+                          id="start-time" 
+                          type="datetime-local"
+                          className="h-12 rounded-xl border-slate-200 bg-slate-50/50" 
+                          value={manualStart}
+                          onChange={(e) => setManualStart(e.target.value)}
+                          required 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="end-time" className="text-xs font-bold uppercase tracking-wider text-slate-500">Actual End Time</Label>
+                        <Input 
+                          id="end-time" 
+                          type="datetime-local"
+                          className="h-12 rounded-xl border-slate-200 bg-slate-50/50" 
+                          value={manualEnd}
+                          onChange={(e) => setManualEnd(e.target.value)}
+                          required 
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {!isManualEntry && (
+                    <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-xl flex items-start gap-3">
+                      <Clock size={18} className="text-primary mt-0.5" />
+                      <p className="text-xs text-blue-700 leading-relaxed font-medium">
+                        Your session timer will start immediately after clicking the button below.
+                      </p>
+                    </div>
+                  )}
                 </form>
               </CardContent>
               <CardFooter className="p-6 pt-2">
@@ -260,8 +330,10 @@ export default function ProfessorPortal() {
                   className="w-full h-14 bg-primary hover:bg-primary/90 rounded-xl text-lg font-bold shadow-lg shadow-primary/20 transition-all"
                   disabled={isActionLoading}
                 >
-                  {isActionLoading ? <Loader2 className="animate-spin mr-2" /> : <Play className="mr-2" size={20} />}
-                  Start Session
+                  {isActionLoading ? <Loader2 className="animate-spin mr-2" /> : (
+                    isManualEntry ? <CalendarClock className="mr-2" size={20} /> : <Play className="mr-2" size={20} />
+                  )}
+                  {isManualEntry ? "Log Completed Session" : "Start Session"}
                 </Button>
               </CardFooter>
             </Card>
