@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { LogOut, Play, Square, CheckCircle2, Clock, MapPin, GraduationCap, Loader2, CalendarClock, ShieldCheck, Sparkles } from "lucide-react";
+import { LogOut, Play, Square, CheckCircle2, Clock, MapPin, GraduationCap, Loader2, CalendarClock, ShieldCheck, Sparkles, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AuthGuard } from "@/components/auth-guard";
@@ -59,6 +59,8 @@ const PROGRAMS: Record<string, string[]> = {
   ]
 };
 
+const AUTO_LOGOUT_THRESHOLD_MS = 4 * 60 * 60 * 1000; // 4 Hours
+
 export default function ProfessorPortal() {
   const router = useRouter();
   const auth = useAuth();
@@ -73,23 +75,21 @@ export default function ProfessorPortal() {
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [elapsedTime, setElapsedTime] = useState("00:00:00");
+  const [showThresholdWarning, setShowThresholdWarning] = useState(false);
   const [lastEndedRoom, setLastEndedRoom] = useState<string | null>(null);
   const [showThankYou, setShowThankYou] = useState(false);
   
-  // Form State
   const [room, setRoom] = useState("");
   const [college, setCollege] = useState("");
   const [program, setProgram] = useState("");
   const [section, setSection] = useState("");
   
-  // Manual Entry State
   const [isManualEntry, setIsManualEntry] = useState(false);
   const [manualStartDate, setManualStartDate] = useState<Date | undefined>(new Date());
   const [manualStartTime, setManualStartTime] = useState("08:00");
   const [manualEndDate, setManualEndDate] = useState<Date | undefined>(new Date());
   const [manualEndTime, setManualEndTime] = useState("10:00");
 
-  // Onboarding State
   const [onboardingCollege, setOnboardingCollege] = useState("");
 
   const roomsQuery = useMemo(() => {
@@ -98,7 +98,6 @@ export default function ProfessorPortal() {
   }, [db]);
   const { data: availableRooms, loading: roomsLoading } = useCollection<Room>(roomsQuery);
 
-  // Real-time Current Session Listener
   useEffect(() => {
     if (!db || !user?.email) return;
 
@@ -123,7 +122,6 @@ export default function ProfessorPortal() {
     return () => unsubscribe();
   }, [db, user]);
 
-  // Timer Update Loop
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (activeSession?.startTime) {
@@ -132,11 +130,17 @@ export default function ProfessorPortal() {
         const now = Date.now();
         const diff = now - start;
         
+        if (diff > AUTO_LOGOUT_THRESHOLD_MS) {
+          setShowThresholdWarning(true);
+        }
+
         const h = Math.floor(diff / 3600000).toString().padStart(2, '0');
         const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
         const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
         setElapsedTime(`${h}:${m}:${s}`);
       }, 1000);
+    } else {
+      setShowThresholdWarning(false);
     }
     return () => clearInterval(interval);
   }, [activeSession]);
@@ -146,7 +150,7 @@ export default function ProfessorPortal() {
     setIsActionLoading(true);
     try {
       await UserService.updateUserCollege(db, user.uid, onboardingCollege);
-      toast({ title: "Profile Completed", description: "Your college affiliation has been set." });
+      toast({ title: "Profile Completed", description: "Your institutional college has been set." });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Error", description: e.message });
     } finally {
@@ -165,11 +169,9 @@ export default function ProfessorPortal() {
     try {
       if (isManualEntry) {
         if (!manualStartDate || !manualEndDate) throw new Error("Please select both start and end dates.");
-        
         const start = new Date(manualStartDate);
         const [sH, sM] = manualStartTime.split(':');
         start.setHours(parseInt(sH), parseInt(sM));
-
         const end = new Date(manualEndDate);
         const [eH, eM] = manualEndTime.split(':');
         end.setHours(parseInt(eH), parseInt(eM));
@@ -183,9 +185,7 @@ export default function ProfessorPortal() {
           startTime: Timestamp.fromDate(start),
           endTime: Timestamp.fromDate(end)
         });
-
-        await RoomService.incrementUsage(db, room);
-        toast({ title: "Session Logged", description: `Laboratory ${room} log saved.` });
+        toast({ title: "Logged Successfully", description: `Laboratory usage record saved.` });
       } else {
         await SessionService.startSession(db, {
           professorEmail: user.email,
@@ -194,12 +194,10 @@ export default function ProfessorPortal() {
           program,
           section
         });
-        
-        await RoomService.incrementUsage(db, room);
-        toast({ title: "Check-in Successful", description: `You have successfully checked into Room ${room}.` });
+        toast({ title: "Check-in Successful", description: `Active session started in Room ${room}.` });
       }
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message });
+      toast({ variant: "destructive", title: "System Alert", description: error.message });
     } finally {
       setIsActionLoading(false);
     }
@@ -211,13 +209,13 @@ export default function ProfessorPortal() {
     const roomName = activeSession.roomNumber;
 
     try {
-      await SessionService.endSession(db, activeSession.id, activeSession.startTime);
+      await SessionService.endSession(db, activeSession.id, activeSession.startTime, roomName);
       setLastEndedRoom(roomName);
       setShowThankYou(true);
       setElapsedTime("00:00:00");
-      toast({ title: "Check-out Complete", description: "Laboratory usage recorded." });
+      toast({ title: "Check-out Complete", description: "Your laboratory usage has been logged." });
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Error", description: error.message });
+      toast({ variant: "destructive", title: "Operation Failed", description: error.message });
     } finally {
       setIsActionLoading(false);
     }
@@ -225,7 +223,7 @@ export default function ProfessorPortal() {
 
   const handleLogout = async () => {
     if (activeSession) {
-      toast({ variant: "destructive", title: "Active Session", description: "Please check-out before logging out." });
+      toast({ variant: "destructive", title: "Active Session", description: "Please check-out before leaving." });
       return;
     }
     if (auth) {
@@ -238,7 +236,7 @@ export default function ProfessorPortal() {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50">
         <Loader2 className="animate-spin text-primary mb-4" size={40} />
-        <p className="text-sm font-medium text-slate-400">Loading your profile...</p>
+        <p className="text-sm font-medium text-slate-400">Syncing with NEU LabTrack...</p>
       </div>
     );
   }
@@ -299,12 +297,22 @@ export default function ProfessorPortal() {
             </Card>
           ) : (
             <>
+              {showThresholdWarning && (
+                <Alert className="mb-6 bg-orange-50 text-orange-700 border-orange-200 shadow-sm animate-bounce rounded-2xl">
+                  <AlertTriangle className="h-4 w-4 text-orange-600" />
+                  <AlertTitle className="font-bold">Extended Session Warning</AlertTitle>
+                  <AlertDescription>
+                    Your session has exceeded 4 hours. Please check-out if your activities are complete.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {showThankYou && lastEndedRoom && (
                 <Alert className="mb-6 bg-green-50 text-green-700 border-green-200 shadow-sm animate-in fade-in slide-in-from-top-4 rounded-2xl">
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <AlertTitle className="font-bold">Session Ended</AlertTitle>
+                  <AlertTitle className="font-bold">Check-out Successful</AlertTitle>
                   <AlertDescription>
-                    Thank you for using Room <span className="font-bold">{lastEndedRoom}</span>. Your laboratory usage has been logged.
+                    Thank you for using Room <span className="font-bold">{lastEndedRoom}</span>.
                   </AlertDescription>
                 </Alert>
               )}
@@ -318,7 +326,7 @@ export default function ProfessorPortal() {
                           {isManualEntry ? <CalendarClock size={22} className="text-primary" /> : <Play size={22} className="text-primary" />}
                           {isManualEntry ? "Log Manual Usage" : "Laboratory Check-in"}
                         </CardTitle>
-                        <CardDescription className="text-slate-400">Complete the form to start tracking your usage.</CardDescription>
+                        <CardDescription className="text-slate-400">Facility availability is updated in real-time.</CardDescription>
                       </div>
                       <div className="flex flex-col items-end gap-2">
                         <Label htmlFor="manual-mode" className="text-[10px] font-bold uppercase text-slate-400">Manual</Label>
@@ -337,7 +345,14 @@ export default function ProfessorPortal() {
                             </SelectTrigger>
                             <SelectContent>
                               {availableRooms.map((r) => (
-                                <SelectItem key={r.id} value={r.number}>{r.number} - {r.location}</SelectItem>
+                                <SelectItem 
+                                  key={r.id} 
+                                  value={r.number} 
+                                  disabled={r.currentlyOccupied}
+                                  className={r.currentlyOccupied ? "opacity-50 line-through" : ""}
+                                >
+                                  {r.number} - {r.location} {r.currentlyOccupied ? "(In Use)" : ""}
+                                </SelectItem>
                               ))}
                               {availableRooms.length === 0 && <SelectItem value="none" disabled>No active facilities available</SelectItem>}
                             </SelectContent>
@@ -425,7 +440,7 @@ export default function ProfessorPortal() {
                       disabled={isActionLoading || availableRooms.length === 0}
                     >
                       {isActionLoading ? <Loader2 className="animate-spin mr-2" /> : (isManualEntry ? <CalendarClock className="mr-2" size={20} /> : <Play className="mr-2" size={20} />)}
-                      {isManualEntry ? "Save Log" : "Begin Session"}
+                      {isManualEntry ? "Save Log" : "Check-in Facility"}
                     </Button>
                   </CardFooter>
                 </Card>
@@ -438,13 +453,13 @@ export default function ProfessorPortal() {
                     </div>
                     <CardTitle className="text-3xl font-extrabold text-slate-800">Session in Progress</CardTitle>
                     <CardDescription className="text-slate-400 font-bold flex items-center justify-center gap-1">
-                      <MapPin size={14} /> Room {activeSession.roomNumber}
+                      <MapPin size={14} /> Laboratory {activeSession.roomNumber}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-8 px-10 pb-10">
                     <div className="bg-slate-50 rounded-[48px] p-12 border border-slate-100 text-center shadow-inner relative overflow-hidden">
                       <div className="absolute top-0 right-0 p-4"><Sparkles className="text-primary/20" size={32} /></div>
-                      <p className="text-xs text-slate-400 uppercase tracking-[0.3em] font-bold mb-4">Duration</p>
+                      <p className="text-xs text-slate-400 uppercase tracking-[0.3em] font-bold mb-4">Usage Duration</p>
                       <p className="text-7xl font-mono font-bold text-primary tabular-nums tracking-tighter">{elapsedTime}</p>
                     </div>
 
@@ -455,7 +470,7 @@ export default function ProfessorPortal() {
                       </div>
                       <div className="flex flex-col p-5 bg-white rounded-3xl border border-slate-100 shadow-sm">
                         <span className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Target</span>
-                        <p className="text-sm font-extrabold text-slate-700 truncate">{activeSession.program}-{activeSession.section}</p>
+                        <p className="text-sm font-extrabold text-slate-700 truncate">{activeSession.program}</p>
                       </div>
                     </div>
                   </CardContent>
@@ -467,7 +482,7 @@ export default function ProfessorPortal() {
                       disabled={isActionLoading}
                     >
                       {isActionLoading ? <Loader2 className="animate-spin mr-2" /> : <Square className="mr-3" size={28} />}
-                      Check-out
+                      Check-out Facility
                     </Button>
                   </CardFooter>
                 </Card>

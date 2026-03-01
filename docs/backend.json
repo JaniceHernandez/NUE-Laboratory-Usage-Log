@@ -25,6 +25,10 @@
           "enum": ["active", "blocked"],
           "description": "The current account status."
         },
+        "college": {
+          "type": "string",
+          "description": "Primary institutional college affiliation."
+        },
         "name": {
           "type": "string",
           "description": "Display name from Google profile."
@@ -65,7 +69,8 @@
       "properties": {
         "number": { "type": "string" },
         "location": { "type": "string" },
-        "status": { "type": "string", "enum": ["available", "in-use", "maintenance"] },
+        "status": { "type": "string", "enum": ["available", "inactive", "maintenance"] },
+        "currentlyOccupied": { "type": "boolean", "description": "Whether a session is currently active in this room." },
         "usageCount": { "type": "number" }
       },
       "required": ["number", "location", "status"]

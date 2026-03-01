@@ -1,3 +1,4 @@
+
 'use client';
 
 import { 
@@ -11,9 +12,9 @@ import {
   getDocs, 
   serverTimestamp,
   Timestamp,
-  orderBy,
   limit
 } from 'firebase/firestore';
+import { RoomService } from './room-service';
 
 export interface LabSession {
   id?: string;
@@ -30,9 +31,6 @@ export interface LabSession {
 }
 
 export const SessionService = {
-  /**
-   * Fetches the current active session for a professor
-   */
   async getActiveSession(db: Firestore, email: string): Promise<LabSession | null> {
     const sessionsRef = collection(db, 'sessions');
     const q = query(
@@ -50,14 +48,27 @@ export const SessionService = {
     return null;
   },
 
-  /**
-   * Starts a new laboratory session
-   */
+  async isRoomOccupied(db: Firestore, roomNumber: string): Promise<boolean> {
+    const sessionsRef = collection(db, 'sessions');
+    const q = query(
+      sessionsRef,
+      where('roomNumber', '==', roomNumber),
+      where('status', '==', 'active'),
+      limit(1)
+    );
+    const snapshot = await getDocs(q);
+    return !snapshot.empty;
+  },
+
   async startSession(db: Firestore, data: Omit<LabSession, 'id' | 'startTime' | 'status' | 'createdAt'>): Promise<string> {
-    // Safety check: ensure no other active sessions exist
     const active = await this.getActiveSession(db, data.professorEmail);
     if (active) {
       throw new Error('You already have an active session.');
+    }
+
+    const occupied = await this.isRoomOccupied(db, data.roomNumber);
+    if (occupied) {
+      throw new Error(`Room ${data.roomNumber} is currently occupied by another session.`);
     }
 
     const sessionsRef = collection(db, 'sessions');
@@ -68,12 +79,12 @@ export const SessionService = {
       createdAt: serverTimestamp()
     });
     
+    await RoomService.updateRoomOccupancy(db, data.roomNumber, true);
+    await RoomService.incrementUsage(db, data.roomNumber);
+    
     return docRef.id;
   },
 
-  /**
-   * Logs a completed session manually
-   */
   async logManualSession(db: Firestore, data: Omit<LabSession, 'id' | 'status' | 'createdAt' | 'duration'>): Promise<string> {
     const startMs = data.startTime.toMillis();
     const endMs = data.endTime?.toMillis() || Date.now();
@@ -95,13 +106,8 @@ export const SessionService = {
     return docRef.id;
   },
 
-  /**
-   * Ends an active laboratory session
-   */
-  async endSession(db: Firestore, sessionId: string, startTime: Timestamp): Promise<void> {
+  async endSession(db: Firestore, sessionId: string, startTime: Timestamp, roomNumber: string): Promise<void> {
     const sessionRef = doc(db, 'sessions', sessionId);
-    
-    // Calculate duration in minutes
     const startMs = startTime.toMillis();
     const endMs = Date.now();
     const durationMinutes = Math.floor((endMs - startMs) / 60000);
@@ -111,5 +117,7 @@ export const SessionService = {
       endTime: serverTimestamp(),
       duration: durationMinutes
     });
+
+    await RoomService.updateRoomOccupancy(db, roomNumber, false);
   }
 };

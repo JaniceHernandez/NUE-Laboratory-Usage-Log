@@ -1,3 +1,4 @@
+
 'use client';
 
 import { 
@@ -19,23 +20,18 @@ export interface Room {
   number: string;
   location: string;
   status: 'available' | 'inactive' | 'maintenance';
+  currentlyOccupied?: boolean;
   usageCount: number;
-  createdAt: Timestamp;
+  createdAt?: Timestamp;
 }
 
 export const RoomService = {
-  /**
-   * Fetches all rooms from Firestore
-   */
   async getRooms(db: Firestore): Promise<Room[]> {
     const roomsRef = collection(db, 'rooms');
     const snapshot = await getDocs(roomsRef);
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Room));
   },
 
-  /**
-   * Fetches only active/available rooms for professor selection
-   */
   async getAvailableRooms(db: Firestore): Promise<Room[]> {
     const roomsRef = collection(db, 'rooms');
     const q = query(roomsRef, where('status', '==', 'available'));
@@ -43,38 +39,35 @@ export const RoomService = {
     return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Room));
   },
 
-  /**
-   * Adds a new laboratory room
-   */
-  async addRoom(db: Firestore, data: Omit<Room, 'id' | 'createdAt' | 'usageCount'>): Promise<string> {
+  async addRoom(db: Firestore, data: Omit<Room, 'id' | 'createdAt' | 'usageCount' | 'currentlyOccupied'>): Promise<string> {
     const roomsRef = collection(db, 'rooms');
     const docRef = await addDoc(roomsRef, {
       ...data,
+      currentlyOccupied: false,
       usageCount: 0,
       createdAt: serverTimestamp()
     });
     return docRef.id;
   },
 
-  /**
-   * Updates room details
-   */
-  async updateRoom(db: Firestore, roomId: string, data: Partial<Room>): Promise<void> {
-    const roomRef = doc(db, 'rooms', roomId);
-    await updateDoc(roomRef, data);
+  async updateRoomOccupancy(db: Firestore, roomNumber: string, occupied: boolean): Promise<void> {
+    const roomsRef = collection(db, 'rooms');
+    const q = query(roomsRef, where('number', '==', roomNumber));
+    const snapshot = await getDocs(q);
+    
+    if (!snapshot.empty) {
+      const roomDoc = snapshot.docs[0];
+      await updateDoc(doc(db, 'rooms', roomDoc.id), {
+        currentlyOccupied: occupied
+      });
+    }
   },
 
-  /**
-   * Deletes a room
-   */
   async deleteRoom(db: Firestore, roomId: string): Promise<void> {
     const roomRef = doc(db, 'rooms', roomId);
     await deleteDoc(roomRef);
   },
 
-  /**
-   * Increments the usage count for a room
-   */
   async incrementUsage(db: Firestore, roomNumber: string): Promise<void> {
     const roomsRef = collection(db, 'rooms');
     const q = query(roomsRef, where('number', '==', roomNumber));
