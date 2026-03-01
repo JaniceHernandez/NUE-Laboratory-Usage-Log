@@ -7,6 +7,7 @@ export interface UserProfile {
   email: string;
   role: 'admin' | 'professor';
   status: 'active' | 'blocked';
+  college?: string;
   name: string | null;
   photoURL: string | null;
   createdAt: any;
@@ -45,6 +46,14 @@ export const UserService = {
   async updateUserStatus(db: Firestore, uid: string, status: 'active' | 'blocked'): Promise<void> {
     const userRef = doc(db, 'users', uid);
     await updateDoc(userRef, { status });
+  },
+
+  /**
+   * Updates user college affiliation
+   */
+  async updateUserCollege(db: Firestore, uid: string, college: string): Promise<void> {
+    const userRef = doc(db, 'users', uid);
+    await updateDoc(userRef, { college });
   },
 
   /**
