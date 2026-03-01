@@ -35,7 +35,23 @@ export default function RoomsPage() {
     return query(collection(db, "rooms"), orderBy("number", "asc"));
   }, [db]);
 
-  const { data: rooms, loading } = useCollection<Room>(roomsQuery);
+  const sessionsQuery = useMemo(() => {
+    if (!db) return null;
+    return collection(db, "sessions");
+  }, [db]);
+
+  const { data: rooms, loading: roomsLoading } = useCollection<Room>(roomsQuery);
+  const { data: sessions, loading: sessionsLoading } = useCollection<any>(sessionsQuery);
+
+  const roomUsageCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    sessions.forEach(s => {
+      if (s.roomNumber) {
+        counts[s.roomNumber] = (counts[s.roomNumber] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [sessions]);
 
   const filteredRooms = useMemo(() => {
     return rooms.filter((room) => 
@@ -113,7 +129,7 @@ export default function RoomsPage() {
     setIsEditDialogOpen(true);
   };
 
-  if (loading) {
+  if (roomsLoading || sessionsLoading) {
     return (
       <div className="h-96 w-full flex items-center justify-center">
         <Loader2 className="animate-spin text-primary" size={40} />
@@ -190,7 +206,7 @@ export default function RoomsPage() {
                     </div>
                   </TableCell>
                   <TableCell className="px-8 py-5 text-center font-mono font-bold text-slate-700">
-                    {room.usageCount || 0}
+                    {roomUsageCounts[room.number] || 0}
                   </TableCell>
                   <TableCell className="px-8 py-5 text-center">
                     {room.currentlyOccupied ? (

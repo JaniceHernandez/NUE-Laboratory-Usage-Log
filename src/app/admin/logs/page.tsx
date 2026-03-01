@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -118,6 +119,38 @@ export default function LogsPage() {
         </Button>
       </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="border-none shadow-sm rounded-[2rem] bg-white flex items-center p-6 gap-6 transition-all hover:shadow-md">
+          <div className="w-14 h-14 bg-blue-50 text-blue-500 rounded-[1.25rem] flex items-center justify-center shrink-0 shadow-sm">
+            <Database size={28} />
+          </div>
+          <div>
+            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Total Utilization</p>
+            <p className="text-2xl font-extrabold text-slate-800 leading-none">{totalHours} hrs</p>
+          </div>
+        </Card>
+        <Card className="border-none shadow-sm rounded-[2rem] bg-white flex items-center p-6 gap-6 transition-all hover:shadow-md">
+          <div className="w-14 h-14 bg-green-50 text-green-500 rounded-[1.25rem] flex items-center justify-center shrink-0 shadow-sm">
+            <Users size={28} />
+          </div>
+          <div>
+            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Recent Faculty Logs</p>
+            <p className="text-2xl font-extrabold text-slate-800 leading-none">{sessions.length}</p>
+          </div>
+        </Card>
+        <Card className="border-none shadow-sm rounded-[2rem] bg-white flex items-center p-6 gap-6 transition-all hover:shadow-md">
+          <div className="w-14 h-14 bg-orange-50 text-orange-500 rounded-[1.25rem] flex items-center justify-center shrink-0 shadow-sm">
+            <AlertCircle size={28} />
+          </div>
+          <div>
+            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Active Now</p>
+            <p className="text-2xl font-extrabold text-slate-800 leading-none">
+              {sessions.filter((s: any) => s.status === 'active').length}
+            </p>
+          </div>
+        </Card>
+      </div>
+
       <Card className="border-none shadow-sm rounded-[2rem] bg-white overflow-hidden">
         <CardHeader className="p-6 border-b border-slate-50 bg-slate-50/30">
           <div className="flex flex-col lg:flex-row gap-4 items-center">
@@ -233,38 +266,6 @@ export default function LogsPage() {
           )}
         </CardContent>
       </Card>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="border-none shadow-sm rounded-[2rem] bg-white flex items-center p-6 gap-6 transition-all hover:shadow-md">
-          <div className="w-14 h-14 bg-blue-50 text-blue-500 rounded-[1.25rem] flex items-center justify-center shrink-0 shadow-sm">
-            <Database size={28} />
-          </div>
-          <div>
-            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Total Utilization</p>
-            <p className="text-2xl font-extrabold text-slate-800 leading-none">{totalHours} hrs</p>
-          </div>
-        </Card>
-        <Card className="border-none shadow-sm rounded-[2rem] bg-white flex items-center p-6 gap-6 transition-all hover:shadow-md">
-          <div className="w-14 h-14 bg-green-50 text-green-500 rounded-[1.25rem] flex items-center justify-center shrink-0 shadow-sm">
-            <Users size={28} />
-          </div>
-          <div>
-            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Recent Faculty Logs</p>
-            <p className="text-2xl font-extrabold text-slate-800 leading-none">{sessions.length}</p>
-          </div>
-        </Card>
-        <Card className="border-none shadow-sm rounded-[2rem] bg-white flex items-center p-6 gap-6 transition-all hover:shadow-md">
-          <div className="w-14 h-14 bg-orange-50 text-orange-500 rounded-[1.25rem] flex items-center justify-center shrink-0 shadow-sm">
-            <AlertCircle size={28} />
-          </div>
-          <div>
-            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Active Now</p>
-            <p className="text-2xl font-extrabold text-slate-800 leading-none">
-              {sessions.filter((s: any) => s.status === 'active').length}
-            </p>
-          </div>
-        </Card>
-      </div>
     </div>
   );
 }

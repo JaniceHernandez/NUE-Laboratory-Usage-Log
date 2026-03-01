@@ -25,6 +25,7 @@ import {
   isSameWeek, isSameMonth
 } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const COLLEGE_MAP: Record<string, string> = {
   "CICS": "College of Informatics and Computing Studies (CICS)",
@@ -276,8 +277,11 @@ export default function DashboardPage() {
                 <Pie data={collegeData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={5} dataKey="value" stroke="none">
                   {collegeData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                 </Pie>
-                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                <Legend iconType="circle" />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                  formatter={(value, name) => [value, name]}
+                />
+                <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -293,34 +297,52 @@ export default function DashboardPage() {
           <Badge variant="outline" className="text-[10px] text-slate-400">Live Feed</Badge>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="divide-y divide-slate-50">
-            {recentActivityList.map((activity, i) => (
-              <div key={i} className="px-6 py-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10 rounded-xl shadow-sm bg-slate-100 border border-slate-200">
-                    <AvatarFallback className="rounded-xl text-[10px] font-bold text-slate-500">
-                      {activity.initials}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-bold text-slate-700">{activity.professor}</p>
-                      <Badge className={`text-[9px] font-bold px-1.5 py-0 ${activity.action === 'Check-in' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'}`}>
-                        {activity.action}
-                      </Badge>
+          <Table>
+            <TableHeader className="bg-slate-50/50">
+              <TableRow className="border-none">
+                <TableHead className="px-6 h-12 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Professor</TableHead>
+                <TableHead className="px-6 h-12 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Facility</TableHead>
+                <TableHead className="px-6 h-12 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Action</TableHead>
+                <TableHead className="px-6 h-12 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Timestamp</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {recentActivityList.map((activity, i) => (
+                <TableRow key={i} className="hover:bg-slate-50/50 transition-colors border-slate-50">
+                  <TableCell className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8 rounded-lg bg-slate-100 border border-slate-200">
+                        <AvatarFallback className="rounded-lg text-[10px] font-bold text-slate-500">
+                          {activity.initials}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="text-sm font-bold text-slate-700">{activity.professor}</span>
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-1">{activity.time}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs font-bold text-slate-600">{activity.room}</p>
-                </div>
-              </div>
-            ))}
-            {recentActivityList.length === 0 && (
-              <div className="p-12 text-center text-slate-400 text-sm italic">No recent activity found.</div>
-            )}
-          </div>
+                  </TableCell>
+                  <TableCell className="px-6 py-4 text-center">
+                    <Badge variant="outline" className="bg-primary/5 text-primary border-none font-bold text-[10px]">
+                      {activity.room}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="px-6 py-4 text-center">
+                    <Badge className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${activity.action === 'Check-in' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'}`}>
+                      {activity.action}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="px-6 py-4 text-right">
+                    <span className="text-[11px] font-medium text-slate-400">{activity.time}</span>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {recentActivityList.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="h-40 text-center text-slate-400 font-medium italic">
+                    No recent activity found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
