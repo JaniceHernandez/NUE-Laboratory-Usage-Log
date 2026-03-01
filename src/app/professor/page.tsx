@@ -25,14 +25,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 
 const COLLEGES = [
-  { id: "CIC", name: "College of Informatics and Computing Studies (CIC)" },
+  { id: "CICS", name: "College of Informatics and Computing Studies (CICS)" },
   { id: "CEA", name: "College of Engineering and Architecture (CEA)" },
   { id: "COC", name: "College of Communication (COC)" },
   { id: "CA", name: "College of Accountancy (CA)" },
 ];
 
 const PROGRAMS: Record<string, string[]> = {
-  CIC: [
+  CICS: [
     "Bachelor of Library and Information Science",
     "Bachelor of Science in Computer Science",
     "Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Digital Animation Technology",
