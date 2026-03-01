@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -31,7 +32,7 @@ export default function RoomsPage() {
 
   const roomsQuery = useMemo(() => {
     if (!db) return null;
-    return query(collection(db, "rooms"), orderBy("usageCount", "desc"));
+    return query(collection(db, "rooms"), orderBy("number", "asc"));
   }, [db]);
 
   const { data: rooms, loading } = useCollection<Room>(roomsQuery);
@@ -172,6 +173,7 @@ export default function RoomsPage() {
               <TableRow className="hover:bg-transparent border-none">
                 <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">Facility Number</TableHead>
                 <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">Building / Location</TableHead>
+                <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14 text-center">Usage Count</TableHead>
                 <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14 text-center">Occupancy</TableHead>
                 <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">System Status</TableHead>
                 <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14 text-right">Actions</TableHead>
@@ -186,6 +188,9 @@ export default function RoomsPage() {
                       <MapPin size={14} className="text-slate-300" />
                       {room.location}
                     </div>
+                  </TableCell>
+                  <TableCell className="px-8 py-5 text-center font-mono font-bold text-slate-700">
+                    {room.usageCount || 0}
                   </TableCell>
                   <TableCell className="px-8 py-5 text-center">
                     {room.currentlyOccupied ? (
@@ -227,7 +232,7 @@ export default function RoomsPage() {
               ))}
               {filteredRooms.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-40 text-center text-slate-400 font-medium italic">No facilities found.</TableCell>
+                  <TableCell colSpan={6} className="h-40 text-center text-slate-400 font-medium italic">No facilities found.</TableCell>
                 </TableRow>
               )}
             </TableBody>
@@ -271,7 +276,7 @@ export default function RoomsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Dialog (Action Session) */}
+      {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[425px] rounded-2xl">
           <DialogHeader>

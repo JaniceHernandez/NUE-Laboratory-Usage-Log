@@ -14,7 +14,8 @@ import {
   Users, 
   Database,
   ArrowRight,
-  Search
+  Search,
+  X
 } from "lucide-react";
 import { useFirestore, useCollection } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
@@ -23,12 +24,14 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 
 export default function ReportsPage() {
   const db = useFirestore();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
-  const [dateRange, setDateRange] = useState({
+  const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>({
     start: subDays(new Date(), 30),
     end: new Date()
   });
@@ -126,14 +129,42 @@ export default function ReportsPage() {
           <h1 className="text-3xl font-extrabold text-slate-800 leading-none">Institutional Reports</h1>
           <p className="text-sm text-slate-400 font-medium mt-2">Generate, filter, and export laboratory utilization data.</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center bg-white border border-slate-100 rounded-xl px-4 py-2 gap-3 shadow-sm">
             <div className="flex flex-col">
-              <span className="text-[9px] uppercase font-bold text-slate-400">Report Window</span>
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
-                <span>{format(dateRange.start, "MMM dd")}</span>
+              <span className="text-[9px] uppercase font-bold text-slate-400">Date Range Selection</span>
+              <div className="flex items-center gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" className="h-6 p-0 text-xs font-bold text-slate-700 hover:bg-transparent">
+                      {format(dateRange.start, "MMM dd, yyyy")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dateRange.start}
+                      onSelect={(date) => date && setDateRange(prev => ({ ...prev, start: date }))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
                 <ArrowRight size={12} className="text-slate-300" />
-                <span>{format(dateRange.end, "MMM dd")}</span>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" className="h-6 p-0 text-xs font-bold text-slate-700 hover:bg-transparent">
+                      {format(dateRange.end, "MMM dd, yyyy")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dateRange.end}
+                      onSelect={(date) => date && setDateRange(prev => ({ ...prev, end: date }))}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
             <Separator orientation="vertical" className="h-8" />
@@ -186,7 +217,7 @@ export default function ReportsPage() {
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <div className="space-y-1">
               <CardTitle className="text-xl font-bold">Consolidated Log Explorer</CardTitle>
-              <CardDescription>Detailed session records for the active filter set.</CardDescription>
+              <CardDescription>Detailed session records for the active date range and filter.</CardDescription>
             </div>
             <div className="relative w-full lg:w-96 group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={18} />
@@ -251,7 +282,7 @@ export default function ReportsPage() {
                 {filteredData.length === 0 && (
                   <tr>
                     <td colSpan={5} className="px-8 py-20 text-center text-slate-400 font-medium italic">
-                      No matching records found for the selected timeframe.
+                      No matching records found for the selected criteria.
                     </td>
                   </tr>
                 )}

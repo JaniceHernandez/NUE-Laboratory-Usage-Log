@@ -12,10 +12,10 @@ import {
 import { 
   Clock, Monitor, Users, Activity, Loader2, MapPin, 
   TrendingUp, BarChart3, PieChart as PieChartIcon, 
-  ShieldCheck, Calendar, Filter
+  History, Calendar, Filter
 } from "lucide-react";
 import { useFirestore, useCollection } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
+import { collection, query, orderBy, limit } from "firebase/firestore";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { 
@@ -25,6 +25,13 @@ import {
   isSameWeek, isSameMonth
 } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const COLLEGE_MAP: Record<string, string> = {
+  "CICS": "College of Informatics and Computing Studies (CICS)",
+  "CEA": "College of Engineering and Architecture (CEA)",
+  "COC": "College of Communication (COC)",
+  "CA": "College of Accountancy (CA)"
+};
 
 export default function DashboardPage() {
   const db = useFirestore();
@@ -96,7 +103,8 @@ export default function DashboardPage() {
     const counts: Record<string, number> = {};
     sessions.forEach(s => {
       if (s.college) {
-        counts[s.college] = (counts[s.college] || 0) + 1;
+        const fullName = COLLEGE_MAP[s.college] || s.college;
+        counts[fullName] = (counts[fullName] || 0) + 1;
       }
     });
     
@@ -122,11 +130,12 @@ export default function DashboardPage() {
       .slice(0, 5);
   }, [sessions]);
 
-  const activeSessionsList = useMemo(() => {
-    return sessions.filter(s => s.status === 'active').slice(0, 5).map(s => ({
+  const recentActivityList = useMemo(() => {
+    return sessions.slice(0, 10).map(s => ({
       professor: s.professorEmail || "Unknown",
       room: s.roomNumber || "N/A",
-      time: s.startTime?.toDate ? format(s.startTime.toDate(), "hh:mm a") : "---",
+      time: s.startTime?.toDate ? format(s.startTime.toDate(), "MMM dd, hh:mm a") : "---",
+      action: s.status === 'active' ? 'Check-in' : 'Check-out',
       initials: (s.professorEmail || "??").substring(0, 2).toUpperCase()
     }));
   }, [sessions]);
@@ -278,14 +287,14 @@ export default function DashboardPage() {
       <Card className="border-none shadow-sm rounded-2xl bg-white overflow-hidden">
         <CardHeader className="p-6 border-b border-slate-50 flex flex-row items-center justify-between">
           <CardTitle className="text-lg font-bold flex items-center gap-2">
-            <ShieldCheck className="text-primary" size={20} />
-            Current Check-ins
+            <History className="text-primary" size={20} />
+            Recent Activity
           </CardTitle>
-          <Badge variant="outline" className="text-[10px] text-slate-400">Live Status</Badge>
+          <Badge variant="outline" className="text-[10px] text-slate-400">Live Feed</Badge>
         </CardHeader>
         <CardContent className="p-0">
           <div className="divide-y divide-slate-50">
-            {activeSessionsList.map((activity, i) => (
+            {recentActivityList.map((activity, i) => (
               <div key={i} className="px-6 py-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10 rounded-xl shadow-sm bg-slate-100 border border-slate-200">
@@ -294,17 +303,22 @@ export default function DashboardPage() {
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="text-sm font-bold text-slate-700">{activity.professor}</p>
-                    <p className="text-[10px] text-slate-400">Started at {activity.time}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-bold text-slate-700">{activity.professor}</p>
+                      <Badge className={`text-[9px] font-bold px-1.5 py-0 ${activity.action === 'Check-in' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'}`}>
+                        {activity.action}
+                      </Badge>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1">{activity.time}</p>
                   </div>
                 </div>
-                <Badge variant="outline" className="text-[9px] font-bold border-none px-2.5 py-1 bg-primary/10 text-primary">
-                  {activity.room}
-                </Badge>
+                <div className="text-right">
+                  <p className="text-xs font-bold text-slate-600">{activity.room}</p>
+                </div>
               </div>
             ))}
-            {activeSessionsList.length === 0 && (
-              <div className="p-12 text-center text-slate-400 text-sm italic">No active sessions found.</div>
+            {recentActivityList.length === 0 && (
+              <div className="p-12 text-center text-slate-400 text-sm italic">No recent activity found.</div>
             )}
           </div>
         </CardContent>
