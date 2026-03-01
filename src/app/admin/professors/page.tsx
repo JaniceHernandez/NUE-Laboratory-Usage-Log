@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { UserX, UserCheck, Search, ShieldAlert, Mail, Loader2 } from "lucide-react";
+import { UserX, UserCheck, Search, ShieldAlert, Mail, Loader2, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useFirestore, useCollection } from "@/firebase";
 import { collection, query, where, doc, updateDoc } from "firebase/firestore";
@@ -74,6 +74,22 @@ export default function ProfessorsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card className="border-none shadow-sm bg-green-50/50 border-l-4 border-l-green-500 rounded-[1.5rem]">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center text-green-600">
+                <UserCheck size={24} />
+              </div>
+              <div>
+                <p className="text-2xl font-black text-slate-800">
+                  {professors.filter(p => p.status !== 'blocked').length}
+                </p>
+                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Authorized Accounts</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="border-none shadow-sm bg-red-50/50 border-l-4 border-l-red-500 rounded-[1.5rem]">
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
@@ -85,6 +101,22 @@ export default function ProfessorsPage() {
                   {professors.filter(p => p.status === 'blocked').length}
                 </p>
                 <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Blocked Accounts</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-sm bg-blue-50/50 border-l-4 border-l-blue-500 rounded-[1.5rem]">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600">
+                <Users size={24} />
+              </div>
+              <div>
+                <p className="text-2xl font-black text-slate-800">
+                  {professors.length}
+                </p>
+                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Total Faculty</p>
               </div>
             </div>
           </CardContent>
