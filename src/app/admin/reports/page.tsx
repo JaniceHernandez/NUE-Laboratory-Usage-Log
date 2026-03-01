@@ -13,7 +13,8 @@ import {
   Clock, 
   Users, 
   Database,
-  ArrowRight
+  ArrowRight,
+  Search
 } from "lucide-react";
 import { useFirestore, useCollection } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
@@ -21,10 +22,12 @@ import { format, isWithinInterval, startOfDay, endOfDay, subDays } from "date-fn
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
 
 export default function ReportsPage() {
   const db = useFirestore();
   const { toast } = useToast();
+  const [search, setSearch] = useState("");
   const [dateRange, setDateRange] = useState({
     start: subDays(new Date(), 30),
     end: new Date()
@@ -37,13 +40,20 @@ export default function ReportsPage() {
   const filteredData = useMemo(() => {
     return sessions.filter((s: any) => {
       const date = s.startTime?.toDate();
-      if (!date) return false;
-      return isWithinInterval(date, {
+      const matchesDate = date ? isWithinInterval(date, {
         start: startOfDay(dateRange.start),
         end: endOfDay(dateRange.end)
-      });
+      }) : false;
+
+      const matchesSearch = 
+        s.professorEmail?.toLowerCase().includes(search.toLowerCase()) ||
+        s.roomNumber?.toLowerCase().includes(search.toLowerCase()) ||
+        s.college?.toLowerCase().includes(search.toLowerCase()) ||
+        s.program?.toLowerCase().includes(search.toLowerCase());
+
+      return matchesDate && matchesSearch;
     });
-  }, [sessions, dateRange]);
+  }, [sessions, dateRange, search]);
 
   const reportStats = useMemo(() => {
     const totalSessions = filteredData.length;
@@ -64,7 +74,7 @@ export default function ReportsPage() {
       toast({
         variant: "destructive",
         title: "No Data",
-        description: "No logs found for the selected date range."
+        description: "No logs found for the selected criteria."
       });
       return;
     }
@@ -112,14 +122,14 @@ export default function ReportsPage() {
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
-          <p className="text-[10px] text-primary uppercase font-bold tracking-[0.2em] mb-1">Admin / Analytics</p>
-          <h1 className="text-3xl font-extrabold text-slate-800 leading-none">System Reports</h1>
-          <p className="text-sm text-slate-400 font-medium mt-2">Generate and export institutional usage analytics.</p>
+          <p className="text-[10px] text-primary uppercase font-bold tracking-[0.2em] mb-1">Admin / Audit & Analytics</p>
+          <h1 className="text-3xl font-extrabold text-slate-800 leading-none">Institutional Reports</h1>
+          <p className="text-sm text-slate-400 font-medium mt-2">Generate, filter, and export laboratory utilization data.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center bg-white border border-slate-100 rounded-xl px-4 py-2 gap-3 shadow-sm">
             <div className="flex flex-col">
-              <span className="text-[9px] uppercase font-bold text-slate-400">Date Range</span>
+              <span className="text-[9px] uppercase font-bold text-slate-400">Report Window</span>
               <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
                 <span>{format(dateRange.start, "MMM dd")}</span>
                 <ArrowRight size={12} className="text-slate-300" />
@@ -127,9 +137,20 @@ export default function ReportsPage() {
               </div>
             </div>
             <Separator orientation="vertical" className="h-8" />
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-primary rounded-lg">
-              <Filter size={16} />
-            </Button>
+            <div className="flex gap-1">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 text-[10px] font-bold px-2 rounded-lg"
+                onClick={() => setDateRange({ start: subDays(new Date(), 7), end: new Date() })}
+              >7D</Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 text-[10px] font-bold px-2 rounded-lg"
+                onClick={() => setDateRange({ start: subDays(new Date(), 30), end: new Date() })}
+              >30D</Button>
+            </div>
           </div>
           <Button 
             onClick={handleExportCSV}
@@ -143,10 +164,10 @@ export default function ReportsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: "Range Logs", value: reportStats.sessions, icon: Database, color: "text-blue-500", bgColor: "bg-blue-50" },
-          { label: "Active Faculty", value: reportStats.professors, icon: Users, color: "text-green-500", bgColor: "bg-green-50" },
+          { label: "Filtered Logs", value: reportStats.sessions, icon: Database, color: "text-blue-500", bgColor: "bg-blue-50" },
+          { label: "Faculty Involved", value: reportStats.professors, icon: Users, color: "text-green-500", bgColor: "bg-green-50" },
           { label: "Total Usage", value: `${reportStats.hours}h`, icon: Clock, color: "text-orange-500", bgColor: "bg-orange-50" },
-          { label: "Facilities Used", value: reportStats.rooms, icon: BarChart, color: "text-purple-500", bgColor: "bg-purple-50" },
+          { label: "Rooms Utilized", value: reportStats.rooms, icon: BarChart, color: "text-purple-500", bgColor: "bg-purple-50" },
         ].map((stat, i) => (
           <Card key={i} className="border-none shadow-sm rounded-2xl bg-white overflow-hidden group hover:scale-[1.02] transition-transform">
             <CardContent className="p-6">
@@ -162,14 +183,20 @@ export default function ReportsPage() {
 
       <Card className="border-none shadow-sm rounded-2xl bg-white overflow-hidden">
         <CardHeader className="p-8 border-b border-slate-50 bg-slate-50/20">
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle className="text-xl font-bold">Consolidated Usage Data</CardTitle>
-              <CardDescription>Detailed session records for the selected period.</CardDescription>
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+            <div className="space-y-1">
+              <CardTitle className="text-xl font-bold">Consolidated Log Explorer</CardTitle>
+              <CardDescription>Detailed session records for the active filter set.</CardDescription>
             </div>
-            <Badge variant="secondary" className="bg-primary/10 text-primary font-bold border-none px-3 py-1">
-              {filteredData.length} Records Found
-            </Badge>
+            <div className="relative w-full lg:w-96 group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={18} />
+              <Input 
+                placeholder="Search by faculty, room, or program..." 
+                className="pl-12 h-11 bg-white border-slate-200 rounded-xl focus-visible:ring-1 focus-visible:ring-primary/20 transition-all text-sm"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -179,13 +206,13 @@ export default function ReportsPage() {
                 <tr>
                   <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Faculty Member</th>
                   <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Facility</th>
-                  <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Program</th>
+                  <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Program / College</th>
                   <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Duration</th>
                   <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Date</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {filteredData.slice(0, 15).map((session) => (
+                {filteredData.slice(0, 20).map((session) => (
                   <tr key={session.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-8 py-4">
                       <div className="flex flex-col">
@@ -214,10 +241,10 @@ export default function ReportsPage() {
                     </td>
                   </tr>
                 ))}
-                {filteredData.length > 15 && (
+                {filteredData.length > 20 && (
                   <tr>
                     <td colSpan={5} className="px-8 py-6 text-center bg-slate-50/30">
-                      <p className="text-xs text-slate-400 italic">Showing top 15 records. Use Export for the full dataset.</p>
+                      <p className="text-xs text-slate-400 italic">Showing top 20 records. Use "Export CSV" for the full dataset.</p>
                     </td>
                   </tr>
                 )}

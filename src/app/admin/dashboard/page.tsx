@@ -1,23 +1,34 @@
 
 "use client";
 
-import { useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useMemo, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { 
   PieChart, Pie, Cell, 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, 
   LineChart, Line, 
   ResponsiveContainer, Tooltip, Legend 
 } from "recharts";
-import { Clock, Monitor, Users, Activity, Loader2, MapPin, TrendingUp, BarChart3, PieChart as PieChartIcon, ShieldCheck } from "lucide-react";
+import { 
+  Clock, Monitor, Users, Activity, Loader2, MapPin, 
+  TrendingUp, BarChart3, PieChart as PieChartIcon, 
+  ShieldCheck, Calendar, Filter
+} from "lucide-react";
 import { useFirestore, useCollection } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { format, subDays, isAfter, eachDayOfInterval } from "date-fns";
+import { 
+  format, subDays, isAfter, eachDayOfInterval, 
+  startOfDay, endOfDay, subWeeks, subMonths,
+  eachWeekOfInterval, eachMonthOfInterval, isSameDay,
+  isSameWeek, isSameMonth
+} from "date-fns";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function DashboardPage() {
   const db = useFirestore();
+  const [trendGranularity, setTrendGranularity] = useState<"daily" | "weekly" | "monthly">("daily");
 
   const { data: sessions, loading: sessionsLoading } = useCollection<any>(
     useMemo(() => db ? query(collection(db, "sessions"), orderBy("startTime", "desc")) : null, [db])
@@ -29,12 +40,13 @@ export default function DashboardPage() {
   const analytics = useMemo(() => {
     const totalSessions = sessions.length;
     const totalMinutes = sessions.reduce((acc, s) => acc + (s.duration || 0), 0);
-    const activeSessionsCount = sessions.filter(s => s.status === 'active').length;
     const occupiedRoomsCount = rooms.filter(r => r.currentlyOccupied).length;
     
     const roomCounts: Record<string, number> = {};
     sessions.forEach(s => {
-      roomCounts[s.roomNumber] = (roomCounts[s.roomNumber] || 0) + 1;
+      if (s.roomNumber) {
+        roomCounts[s.roomNumber] = (roomCounts[s.roomNumber] || 0) + 1;
+      }
     });
     const mostUsedRoomEntry = Object.entries(roomCounts).sort((a, b) => b[1] - a[1])[0];
     const mostUsedRoom = mostUsedRoomEntry ? mostUsedRoomEntry[0] : "N/A";
@@ -48,28 +60,37 @@ export default function DashboardPage() {
   }, [sessions, rooms]);
 
   const trendData = useMemo(() => {
-    const last7Days = eachDayOfInterval({
-      start: subDays(new Date(), 6),
-      end: new Date(),
-    });
+    const now = new Date();
+    let intervals: Date[] = [];
+    let formatStr = "MMM dd";
+    
+    if (trendGranularity === "daily") {
+      intervals = eachDayOfInterval({ start: subDays(now, 6), end: now });
+      formatStr = "MMM dd";
+    } else if (trendGranularity === "weekly") {
+      intervals = eachWeekOfInterval({ start: subWeeks(now, 4), end: now });
+      formatStr = "MMM dd";
+    } else if (trendGranularity === "monthly") {
+      intervals = eachMonthOfInterval({ start: subMonths(now, 5), end: now });
+      formatStr = "MMM yyyy";
+    }
 
-    const dayCounts: Record<string, number> = {};
-    last7Days.forEach(day => {
-      dayCounts[format(day, "MMM dd")] = 0;
-    });
+    return intervals.map(date => {
+      const count = sessions.filter(s => {
+        const sDate = s.startTime?.toDate();
+        if (!sDate) return false;
+        if (trendGranularity === "daily") return isSameDay(sDate, date);
+        if (trendGranularity === "weekly") return isSameWeek(sDate, date);
+        if (trendGranularity === "monthly") return isSameMonth(sDate, date);
+        return false;
+      }).length;
 
-    sessions.forEach(s => {
-      const date = s.startTime?.toDate();
-      if (date && isAfter(date, subDays(new Date(), 7))) {
-        const dayKey = format(date, "MMM dd");
-        if (dayCounts[dayKey] !== undefined) {
-          dayCounts[dayKey]++;
-        }
-      }
+      return {
+        name: format(date, formatStr),
+        sessions: count
+      };
     });
-
-    return Object.entries(dayCounts).map(([name, sessions]) => ({ name, sessions }));
-  }, [sessions]);
+  }, [sessions, trendGranularity]);
 
   const collegeData = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -85,6 +106,20 @@ export default function DashboardPage() {
       value,
       color: colors[idx % colors.length]
     }));
+  }, [sessions]);
+
+  const roomUsageData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    sessions.forEach(s => {
+      if (s.roomNumber) {
+        counts[s.roomNumber] = (counts[s.roomNumber] || 0) + 1;
+      }
+    });
+
+    return Object.entries(counts)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
   }, [sessions]);
 
   const activeSessionsList = useMemo(() => {
@@ -130,19 +165,37 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <Card className="lg:col-span-2 border-none shadow-sm rounded-2xl bg-white overflow-hidden">
           <CardHeader className="p-6 border-b border-slate-50 flex flex-row items-center justify-between">
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <TrendingUp className="text-primary" size={20} />
-              System Utilization
-            </CardTitle>
-            <Badge variant="secondary" className="bg-slate-50 text-slate-500 font-bold border-none">Weekly Trends</Badge>
+            <div className="space-y-1">
+              <CardTitle className="text-lg font-bold flex items-center gap-2">
+                <TrendingUp className="text-primary" size={20} />
+                Utilization Trends
+              </CardTitle>
+              <CardDescription>Laboratory session frequency over time.</CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Calendar className="text-slate-400" size={16} />
+              <Select value={trendGranularity} onValueChange={(v: any) => setTrendGranularity(v)}>
+                <SelectTrigger className="w-[120px] h-9 bg-slate-50 border-none rounded-lg text-xs font-bold">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </CardHeader>
           <CardContent className="h-[350px] p-6">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={trendData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 12 }} />
-                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10 }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10 }} />
+                <Tooltip 
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                  labelStyle={{ fontWeight: 'bold', color: '#1e293b' }}
+                />
                 <Line type="monotone" dataKey="sessions" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ r: 4, fill: 'white', strokeWidth: 2, stroke: 'hsl(var(--primary))' }} />
               </LineChart>
             </ResponsiveContainer>
@@ -184,8 +237,28 @@ export default function DashboardPage() {
         <Card className="border-none shadow-sm rounded-2xl bg-white overflow-hidden">
           <CardHeader className="p-6 border-b border-slate-50">
             <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <BarChart3 className="text-purple-500" size={20} />
+              Most Used Facilities
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="h-[300px] p-6">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={roomUsageData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
+                <XAxis type="number" hide />
+                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={100} tick={{ fill: '#64748b', fontSize: 11, fontWeight: 'bold' }} />
+                <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+                <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} barSize={20} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-sm rounded-2xl bg-white overflow-hidden">
+          <CardHeader className="p-6 border-b border-slate-50">
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
               <PieChartIcon className="text-orange-500" size={20} />
-              Academic Distribution
+              Usage by College
             </CardTitle>
           </CardHeader>
           <CardContent className="h-[300px] p-6">
@@ -195,47 +268,47 @@ export default function DashboardPage() {
                   {collegeData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                 </Pie>
                 <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                <Legend />
+                <Legend iconType="circle" />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
-
-        <Card className="border-none shadow-sm rounded-2xl bg-white overflow-hidden">
-          <CardHeader className="p-6 border-b border-slate-50 flex flex-row items-center justify-between">
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <ShieldCheck className="text-primary" size={20} />
-              Current Check-ins
-            </CardTitle>
-            <Badge variant="outline" className="text-[10px] text-slate-400">Live List</Badge>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="divide-y divide-slate-50">
-              {activeSessionsList.map((activity, i) => (
-                <div key={i} className="px-6 py-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10 rounded-xl shadow-sm bg-slate-100 border border-slate-200">
-                      <AvatarFallback className="rounded-xl text-[10px] font-bold text-slate-500">
-                        {activity.initials}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="text-sm font-bold text-slate-700">{activity.professor}</p>
-                      <p className="text-[10px] text-slate-400">Started at {activity.time}</p>
-                    </div>
-                  </div>
-                  <Badge variant="outline" className="text-[9px] font-bold border-none px-2.5 py-1 bg-primary/10 text-primary">
-                    {activity.room}
-                  </Badge>
-                </div>
-              ))}
-              {activeSessionsList.length === 0 && (
-                <div className="p-12 text-center text-slate-400 text-sm italic">No active sessions found.</div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
       </div>
+
+      <Card className="border-none shadow-sm rounded-2xl bg-white overflow-hidden">
+        <CardHeader className="p-6 border-b border-slate-50 flex flex-row items-center justify-between">
+          <CardTitle className="text-lg font-bold flex items-center gap-2">
+            <ShieldCheck className="text-primary" size={20} />
+            Current Check-ins
+          </CardTitle>
+          <Badge variant="outline" className="text-[10px] text-slate-400">Live Status</Badge>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="divide-y divide-slate-50">
+            {activeSessionsList.map((activity, i) => (
+              <div key={i} className="px-6 py-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10 rounded-xl shadow-sm bg-slate-100 border border-slate-200">
+                    <AvatarFallback className="rounded-xl text-[10px] font-bold text-slate-500">
+                      {activity.initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="text-sm font-bold text-slate-700">{activity.professor}</p>
+                    <p className="text-[10px] text-slate-400">Started at {activity.time}</p>
+                  </div>
+                </div>
+                <Badge variant="outline" className="text-[9px] font-bold border-none px-2.5 py-1 bg-primary/10 text-primary">
+                  {activity.room}
+                </Badge>
+              </div>
+            ))}
+            {activeSessionsList.length === 0 && (
+              <div className="p-12 text-center text-slate-400 text-sm italic">No active sessions found.</div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
