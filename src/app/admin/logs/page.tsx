@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -6,24 +5,29 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, FileDown, Calendar, Database, Users, AlertCircle, Loader2, X } from "lucide-react";
+import { Search, FileDown, Database, Users, AlertCircle, Loader2, X, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useFirestore, useCollection } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
+import { collection, query, orderBy, limit } from "firebase/firestore";
 import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
 export default function LogsPage() {
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState<Date | null>(null);
+  const [limitCount, setLimitCount] = useState(25);
   const db = useFirestore();
   const { toast } = useToast();
 
   const sessionsQuery = useMemo(() => {
     if (!db) return null;
-    return query(collection(db, "sessions"), orderBy("startTime", "desc"));
-  }, [db]);
+    return query(
+      collection(db, "sessions"), 
+      orderBy("startTime", "desc"),
+      limit(limitCount)
+    );
+  }, [db, limitCount]);
 
   const { data: sessions, loading } = useCollection<any>(sessionsQuery);
 
@@ -87,7 +91,7 @@ export default function LogsPage() {
     });
   };
 
-  if (loading) {
+  if (loading && sessions.length === 0) {
     return (
       <div className="h-96 w-full flex items-center justify-center">
         <Loader2 className="animate-spin text-primary" size={40} />
@@ -105,7 +109,7 @@ export default function LogsPage() {
         </div>
         <Button 
           variant="outline"
-          className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl px-6 h-12 flex items-center gap-2 font-bold transition-all shadow-sm"
+          className="bg-white border-slate-200 text-slate-700 hover:bg-slate-50 rounded-2xl px-6 h-12 flex items-center gap-2 font-bold transition-all shadow-sm"
           onClick={handleExportCSV}
           disabled={filteredSessions.length === 0}
         >
@@ -114,14 +118,14 @@ export default function LogsPage() {
         </Button>
       </div>
 
-      <Card className="border-none shadow-sm rounded-2xl bg-white overflow-hidden">
+      <Card className="border-none shadow-sm rounded-[2rem] bg-white overflow-hidden">
         <CardHeader className="p-6 border-b border-slate-50 bg-slate-50/30">
           <div className="flex flex-col lg:flex-row gap-4 items-center">
             <div className="relative flex-1 w-full group">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={18} />
               <Input 
                 placeholder="Search by faculty email, room number, or program..." 
-                className="pl-12 h-12 bg-white border-slate-100 rounded-xl focus-visible:ring-1 focus-visible:ring-primary/20 shadow-sm transition-all text-sm"
+                className="pl-12 h-12 bg-white border-slate-100 rounded-2xl focus-visible:ring-1 focus-visible:ring-primary/20 shadow-sm transition-all text-sm"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -130,7 +134,7 @@ export default function LogsPage() {
               <div className="relative group">
                 <Input 
                   type="date" 
-                  className="h-12 bg-white border-slate-100 rounded-xl px-4 shadow-sm text-sm"
+                  className="h-12 bg-white border-slate-100 rounded-2xl px-4 shadow-sm text-sm"
                   onChange={(e) => setDateFilter(e.target.value ? new Date(e.target.value) : null)}
                 />
                 {dateFilter && (
@@ -215,12 +219,24 @@ export default function LogsPage() {
               </TableBody>
             </Table>
           </div>
+          {sessions.length >= limitCount && (
+            <div className="p-8 flex justify-center border-t border-slate-50">
+              <Button 
+                variant="ghost" 
+                className="text-primary font-bold gap-2 hover:bg-primary/5 rounded-xl px-8"
+                onClick={() => setLimitCount(prev => prev + 25)}
+              >
+                <ChevronDown size={18} />
+                Load More Records
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="border-none shadow-sm rounded-2xl bg-white flex items-center p-6 gap-6 transition-all hover:shadow-md">
-          <div className="w-14 h-14 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center shrink-0 shadow-sm">
+        <Card className="border-none shadow-sm rounded-[2rem] bg-white flex items-center p-6 gap-6 transition-all hover:shadow-md">
+          <div className="w-14 h-14 bg-blue-50 text-blue-500 rounded-[1.25rem] flex items-center justify-center shrink-0 shadow-sm">
             <Database size={28} />
           </div>
           <div>
@@ -228,17 +244,17 @@ export default function LogsPage() {
             <p className="text-2xl font-extrabold text-slate-800 leading-none">{totalHours} hrs</p>
           </div>
         </Card>
-        <Card className="border-none shadow-sm rounded-2xl bg-white flex items-center p-6 gap-6 transition-all hover:shadow-md">
-          <div className="w-14 h-14 bg-green-50 text-green-500 rounded-2xl flex items-center justify-center shrink-0 shadow-sm">
+        <Card className="border-none shadow-sm rounded-[2rem] bg-white flex items-center p-6 gap-6 transition-all hover:shadow-md">
+          <div className="w-14 h-14 bg-green-50 text-green-500 rounded-[1.25rem] flex items-center justify-center shrink-0 shadow-sm">
             <Users size={28} />
           </div>
           <div>
-            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Faculty Logs</p>
+            <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Recent Faculty Logs</p>
             <p className="text-2xl font-extrabold text-slate-800 leading-none">{sessions.length}</p>
           </div>
         </Card>
-        <Card className="border-none shadow-sm rounded-2xl bg-white flex items-center p-6 gap-6 transition-all hover:shadow-md">
-          <div className="w-14 h-14 bg-orange-50 text-orange-500 rounded-2xl flex items-center justify-center shrink-0 shadow-sm">
+        <Card className="border-none shadow-sm rounded-[2rem] bg-white flex items-center p-6 gap-6 transition-all hover:shadow-md">
+          <div className="w-14 h-14 bg-orange-50 text-orange-500 rounded-[1.25rem] flex items-center justify-center shrink-0 shadow-sm">
             <AlertCircle size={28} />
           </div>
           <div>

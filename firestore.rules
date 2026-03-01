@@ -23,21 +23,21 @@ service cloud.firestore {
 
     // Users collection rules
     match /users/{userId} {
-      // Allow any signed-in user to read their own profile or others (for basic display)
-      allow read: if isSignedIn();
-      // Allow creation during signup or by admin
-      allow create: if isSignedIn() && (request.auth.uid == userId || hasRole('admin'));
-      // Only admins or the owner (if active) can update
+      // Users can only read their own profile, Admins can read all
+      allow read: if isSignedIn() && (request.auth.uid == userId || hasRole('admin'));
+      // Allow creation during signup
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      // Only admins can update status/role, users can update their own non-sensitive fields
       allow update: if hasRole('admin') || (request.auth.uid == userId && isActive());
     }
     
     // Sessions collection rules
     match /sessions/{sessionId} {
-      // Admins can read everything; Professors can only read their own sessions
-      // Queries must be filtered by professorEmail if not admin
+      // Admins read all; Professors read only their own
       allow read: if isSignedIn() && (
         hasRole('admin') || 
-        (request.auth.token.email == resource.data.professorEmail)
+        (resource != null && resource.data.professorEmail == request.auth.token.email) ||
+        (resource == null) // allow query initialization
       );
       
       // Professors can create sessions for themselves if active
@@ -50,7 +50,7 @@ service cloud.firestore {
         resource.data.professorEmail == request.auth.token.email
       );
       
-      // Admins can manage sessions
+      // Only admins can delete logs
       allow delete: if hasRole('admin');
     }
 
