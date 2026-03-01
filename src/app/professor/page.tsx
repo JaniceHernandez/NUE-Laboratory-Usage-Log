@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -9,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { LogOut, Play, Square, CheckCircle2, Clock, MapPin, GraduationCap, Loader2, CalendarClock, ShieldCheck, Sparkles, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Alert, AlertDescription, AlertTitle } from "@/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AuthGuard } from "@/components/auth-guard";
 import { useAuth, useUser, useFirestore, useCollection, useDoc } from "@/firebase";
 import { signOut } from "firebase/auth";

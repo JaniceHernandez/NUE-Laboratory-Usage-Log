@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo, useState } from "react";
@@ -44,6 +45,17 @@ export default function DashboardPage() {
   const { data: rooms, loading: roomsLoading } = useCollection<any>(
     useMemo(() => db ? collection(db, "rooms") : null, [db])
   );
+  const { data: users, loading: usersLoading } = useCollection<any>(
+    useMemo(() => db ? collection(db, "users") : null, [db])
+  );
+
+  const userMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    users.forEach(u => {
+      if (u.email) map[u.email] = u.name || u.email;
+    });
+    return map;
+  }, [users]);
 
   const analytics = useMemo(() => {
     const totalSessions = sessions.length;
@@ -135,30 +147,31 @@ export default function DashboardPage() {
     const events: any[] = [];
     
     sessions.forEach(s => {
+      const profName = userMap[s.professorEmail] || s.professorEmail || "Unknown";
+      
       // Check-in Event
       if (s.startTime?.toDate) {
         events.push({
-          professor: s.professorEmail || "Unknown",
+          professor: profName,
           room: s.roomNumber || "N/A",
           rawTime: s.startTime.toDate(),
           action: 'Check-in',
-          initials: (s.professorEmail || "??").substring(0, 2).toUpperCase()
+          initials: profName.substring(0, 2).toUpperCase()
         });
       }
       
       // Check-out Event (if completed)
       if (s.status === 'completed' && s.endTime?.toDate) {
         events.push({
-          professor: s.professorEmail || "Unknown",
+          professor: profName,
           room: s.roomNumber || "N/A",
           rawTime: s.endTime.toDate(),
           action: 'Check-out',
-          initials: (s.professorEmail || "??").substring(0, 2).toUpperCase()
+          initials: profName.substring(0, 2).toUpperCase()
         });
       }
     });
 
-    // Sort by absolute time descending and limit to 5 for dashboard
     return events
       .sort((a, b) => b.rawTime.getTime() - a.rawTime.getTime())
       .slice(0, 5)
@@ -166,9 +179,9 @@ export default function DashboardPage() {
         ...e,
         time: format(e.rawTime, "MMM dd, hh:mm a")
       }));
-  }, [sessions]);
+  }, [sessions, userMap]);
 
-  if (sessionsLoading || roomsLoading) {
+  if (sessionsLoading || roomsLoading || usersLoading) {
     return (
       <div className="h-96 w-full flex items-center justify-center">
         <Loader2 className="animate-spin text-primary" size={40} />
