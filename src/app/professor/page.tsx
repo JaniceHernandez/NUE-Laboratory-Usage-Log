@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { LogOut, Play, Square, CheckCircle2, Clock, MapPin, GraduationCap, Loader2, CalendarClock, ShieldCheck, Sparkles, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/alert";
 import { AuthGuard } from "@/components/auth-guard";
 import { useAuth, useUser, useFirestore, useCollection, useDoc } from "@/firebase";
 import { signOut } from "firebase/auth";
@@ -84,9 +84,8 @@ export default function ProfessorPortal() {
   const [section, setSection] = useState("");
   
   const [isManualEntry, setIsManualEntry] = useState(false);
-  const [manualStartDate, setManualStartDate] = useState<Date | undefined>(new Date());
+  const [manualDate, setManualDate] = useState<Date | undefined>(new Date());
   const [manualStartTime, setManualStartTime] = useState("08:00");
-  const [manualEndDate, setManualEndDate] = useState<Date | undefined>(new Date());
   const [manualEndTime, setManualEndTime] = useState("10:00");
 
   const [onboardingCollege, setOnboardingCollege] = useState("");
@@ -167,13 +166,17 @@ export default function ProfessorPortal() {
 
     try {
       if (isManualEntry) {
-        if (!manualStartDate || !manualEndDate) throw new Error("Please select both start and end dates.");
-        const start = new Date(manualStartDate);
+        if (!manualDate) throw new Error("Please select a session date.");
+        
+        const start = new Date(manualDate);
         const [sH, sM] = manualStartTime.split(':');
         start.setHours(parseInt(sH), parseInt(sM));
-        const end = new Date(manualEndDate);
+        
+        const end = new Date(manualDate);
         const [eH, eM] = manualEndTime.split(':');
         end.setHours(parseInt(eH), parseInt(eM));
+
+        if (end <= start) throw new Error("End time must be after start time.");
 
         await SessionService.logManualSession(db, {
           professorEmail: user.email,
@@ -392,40 +395,28 @@ export default function ProfessorPortal() {
 
                       {isManualEntry && (
                         <div className="p-6 bg-slate-50/50 border border-slate-100 rounded-2xl space-y-6 animate-in slide-in-from-top-4 duration-500">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                          <div className="space-y-3">
+                            <Label className="text-[10px] font-bold uppercase text-slate-400">Session Date</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant={"outline"} className={cn("w-full h-12 justify-start rounded-xl bg-white", !manualDate && "text-muted-foreground")}>
+                                  <Clock className="mr-2 h-4 w-4" />
+                                  {manualDate ? format(manualDate, "PPP") : <span>Pick session date</span>}
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
+                                <Calendar mode="single" selected={manualDate} onSelect={setManualDate} initialFocus />
+                              </PopoverContent>
+                            </Popover>
+                          </div>
+                          <div className="grid grid-cols-2 gap-6">
                             <div className="space-y-3">
                               <Label className="text-[10px] font-bold uppercase text-slate-400">Start Time</Label>
-                              <div className="flex flex-col gap-2">
-                                <Popover>
-                                  <PopoverTrigger asChild>
-                                    <Button variant={"outline"} className={cn("w-full h-12 justify-start rounded-xl bg-white", !manualStartDate && "text-muted-foreground")}>
-                                      <Clock className="mr-2 h-4 w-4" />
-                                      {manualStartDate ? format(manualStartDate, "PPP") : <span>Pick date</span>}
-                                    </Button>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
-                                    <Calendar mode="single" selected={manualStartDate} onSelect={setManualStartDate} initialFocus />
-                                  </PopoverContent>
-                                </Popover>
-                                <Input type="time" className="h-12 rounded-xl bg-white" value={manualStartTime} onChange={(e) => setManualStartTime(e.target.value)} />
-                              </div>
+                              <Input type="time" className="h-12 rounded-xl bg-white" value={manualStartTime} onChange={(e) => setManualStartTime(e.target.value)} />
                             </div>
                             <div className="space-y-3">
                               <Label className="text-[10px] font-bold uppercase text-slate-400">End Time</Label>
-                              <div className="flex flex-col gap-2">
-                                <Popover>
-                                  <PopoverTrigger asChild>
-                                    <Button variant={"outline"} className={cn("w-full h-12 justify-start rounded-xl bg-white", !manualEndDate && "text-muted-foreground")}>
-                                      <Clock className="mr-2 h-4 w-4" />
-                                      {manualEndDate ? format(manualEndDate, "PPP") : <span>Pick date</span>}
-                                    </Button>
-                                  </PopoverTrigger>
-                                  <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
-                                    <Calendar mode="single" selected={manualEndDate} onSelect={setManualEndDate} initialFocus />
-                                  </PopoverContent>
-                                </Popover>
-                                <Input type="time" className="h-12 rounded-xl bg-white" value={manualEndTime} onChange={(e) => setManualEndTime(e.target.value)} />
-                              </div>
+                              <Input type="time" className="h-12 rounded-xl bg-white" value={manualEndTime} onChange={(e) => setManualEndTime(e.target.value)} />
                             </div>
                           </div>
                         </div>
