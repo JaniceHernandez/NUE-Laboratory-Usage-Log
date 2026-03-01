@@ -29,7 +29,7 @@ import { Calendar } from "@/components/ui/calendar";
 export default function ReportsPage() {
   const db = useFirestore();
   const { toast } = useToast();
-  const [search, setSearch] = setSearch("");
+  const [search, setSearch] = useState("");
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>({
     start: subDays(new Date(), 30),
     end: new Date()

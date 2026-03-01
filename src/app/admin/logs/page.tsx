@@ -14,7 +14,7 @@ import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
 export default function LogsPage() {
-  const [search, setSearch] = setSearch("");
+  const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState<Date | null>(null);
   const [limitCount, setLimitCount] = useState(25);
   const db = useFirestore();

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo, useState } from "react";
@@ -294,7 +293,7 @@ export default function DashboardPage() {
             <History className="text-primary" size={20} />
             Recent Activity
           </CardTitle>
-          <Badge variant="outline" className="text-[10px] text-slate-400">Live Feed</Badge>
+          <Badge variant="outline" className="text-[10px] text-slate-400">Activity Log</Badge>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
