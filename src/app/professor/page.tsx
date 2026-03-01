@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -7,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { LogOut, Play, Square, CheckCircle2, Clock, MapPin, GraduationCap, Loader2, CalendarClock, Calendar as CalendarIcon, ShieldCheck, Sparkles } from "lucide-react";
+import { LogOut, Play, Square, CheckCircle2, Clock, MapPin, GraduationCap, Loader2, CalendarClock, ShieldCheck, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AuthGuard } from "@/components/auth-guard";
@@ -17,17 +18,17 @@ import { SessionService, LabSession } from "@/services/session-service";
 import { RoomService, Room } from "@/services/room-service";
 import { UserService, UserProfile } from "@/services/user-service";
 import { useToast } from "@/hooks/use-toast";
-import { Timestamp, collection, query, where, doc } from "firebase/firestore";
+import { Timestamp, collection, query, where, doc, onSnapshot, limit } from "firebase/firestore";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 const COLLEGES = [
-  { id: "CIC", name: "College of Informatics and Computing Studies" },
-  { id: "CEA", name: "College of Engineering and Architecture" },
-  { id: "COC", name: "College of Communication" },
-  { id: "CA", name: "College of Accountancy" },
+  { id: "CIC", name: "College of Informatics and Computing Studies (CIC)" },
+  { id: "CEA", name: "College of Engineering and Architecture (CEA)" },
+  { id: "COC", name: "College of Communication (COC)" },
+  { id: "CA", name: "College of Accountancy (CA)" },
 ];
 
 const PROGRAMS: Record<string, string[]> = {
@@ -73,6 +74,7 @@ export default function ProfessorPortal() {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [elapsedTime, setElapsedTime] = useState("00:00:00");
   const [lastEndedRoom, setLastEndedRoom] = useState<string | null>(null);
+  const [showThankYou, setShowThankYou] = useState(false);
   
   // Form State
   const [room, setRoom] = useState("");
@@ -96,14 +98,32 @@ export default function ProfessorPortal() {
   }, [db]);
   const { data: availableRooms, loading: roomsLoading } = useCollection<Room>(roomsQuery);
 
+  // Real-time Current Session Listener
   useEffect(() => {
-    if (user?.email && db) {
-      SessionService.getActiveSession(db, user.email)
-        .then(setActiveSession)
-        .finally(() => setIsLoading(false));
-    }
-  }, [user, db]);
+    if (!db || !user?.email) return;
 
+    const sessionsRef = collection(db, "sessions");
+    const q = query(
+      sessionsRef,
+      where("professorEmail", "==", user.email),
+      where("status", "==", "active"),
+      limit(1)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      if (!snapshot.empty) {
+        const docData = snapshot.docs[0];
+        setActiveSession({ id: docData.id, ...docData.data() } as LabSession);
+      } else {
+        setActiveSession(null);
+      }
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [db, user]);
+
+  // Timer Update Loop
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (activeSession?.startTime) {
@@ -140,6 +160,7 @@ export default function ProfessorPortal() {
 
     setIsActionLoading(true);
     setLastEndedRoom(null);
+    setShowThankYou(false);
 
     try {
       if (isManualEntry) {
@@ -164,8 +185,7 @@ export default function ProfessorPortal() {
         });
 
         await RoomService.incrementUsage(db, room);
-        toast({ title: "Session Logged", description: `Facility ${room} log saved.` });
-        setLastEndedRoom(room);
+        toast({ title: "Session Logged", description: `Laboratory ${room} log saved.` });
       } else {
         await SessionService.startSession(db, {
           professorEmail: user.email,
@@ -176,9 +196,7 @@ export default function ProfessorPortal() {
         });
         
         await RoomService.incrementUsage(db, room);
-        const newActive = await SessionService.getActiveSession(db, user.email);
-        setActiveSession(newActive);
-        toast({ title: "Check-in Successful", description: `You are now using Facility ${room}.` });
+        toast({ title: "Check-in Successful", description: `You have successfully checked into Room ${room}.` });
       }
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message });
@@ -194,8 +212,8 @@ export default function ProfessorPortal() {
 
     try {
       await SessionService.endSession(db, activeSession.id, activeSession.startTime);
-      setActiveSession(null);
       setLastEndedRoom(roomName);
+      setShowThankYou(true);
       setElapsedTime("00:00:00");
       toast({ title: "Check-out Complete", description: "Laboratory usage recorded." });
     } catch (error: any) {
@@ -254,7 +272,7 @@ export default function ProfessorPortal() {
                   <ShieldCheck size={32} />
                 </div>
                 <CardTitle className="text-2xl font-bold">First-Time Setup</CardTitle>
-                <CardDescription>Select your primary college to finish your profile.</CardDescription>
+                <CardDescription>Select your primary college to complete your institutional profile.</CardDescription>
               </CardHeader>
               <CardContent className="px-10 py-6 space-y-6">
                 <div className="space-y-2">
@@ -275,18 +293,18 @@ export default function ProfessorPortal() {
                   disabled={!onboardingCollege || isActionLoading}
                   onClick={handleOnboarding}
                 >
-                  {isActionLoading ? <Loader2 className="animate-spin" /> : "Complete Profile"}
+                  {isActionLoading ? <Loader2 className="animate-spin" /> : "Finish Setup"}
                 </Button>
               </CardFooter>
             </Card>
           ) : (
             <>
-              {lastEndedRoom && (
+              {showThankYou && lastEndedRoom && (
                 <Alert className="mb-6 bg-green-50 text-green-700 border-green-200 shadow-sm animate-in fade-in slide-in-from-top-4 rounded-2xl">
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <AlertTitle className="font-bold">Check-out Complete</AlertTitle>
+                  <AlertTitle className="font-bold">Session Ended</AlertTitle>
                   <AlertDescription>
-                    Usage for Facility <span className="font-bold">{lastEndedRoom}</span> has been successfully logged.
+                    Thank you for using Room <span className="font-bold">{lastEndedRoom}</span>. Your laboratory usage has been logged.
                   </AlertDescription>
                 </Alert>
               )}
@@ -298,9 +316,9 @@ export default function ProfessorPortal() {
                       <div className="space-y-1">
                         <CardTitle className="flex items-center gap-2 text-xl font-bold text-slate-800">
                           {isManualEntry ? <CalendarClock size={22} className="text-primary" /> : <Play size={22} className="text-primary" />}
-                          {isManualEntry ? "Log Past Session" : "New Check-in"}
+                          {isManualEntry ? "Log Manual Usage" : "Laboratory Check-in"}
                         </CardTitle>
-                        <CardDescription className="text-slate-400">Enter facility details to record usage.</CardDescription>
+                        <CardDescription className="text-slate-400">Complete the form to start tracking your usage.</CardDescription>
                       </div>
                       <div className="flex flex-col items-end gap-2">
                         <Label htmlFor="manual-mode" className="text-[10px] font-bold uppercase text-slate-400">Manual</Label>
@@ -367,7 +385,7 @@ export default function ProfessorPortal() {
                                 <Popover>
                                   <PopoverTrigger asChild>
                                     <Button variant={"outline"} className={cn("w-full h-12 justify-start rounded-xl bg-white", !manualStartDate && "text-muted-foreground")}>
-                                      <CalendarIcon className="mr-2 h-4 w-4" />
+                                      <Clock className="mr-2 h-4 w-4" />
                                       {manualStartDate ? format(manualStartDate, "PPP") : <span>Pick date</span>}
                                     </Button>
                                   </PopoverTrigger>
@@ -384,7 +402,7 @@ export default function ProfessorPortal() {
                                 <Popover>
                                   <PopoverTrigger asChild>
                                     <Button variant={"outline"} className={cn("w-full h-12 justify-start rounded-xl bg-white", !manualEndDate && "text-muted-foreground")}>
-                                      <CalendarIcon className="mr-2 h-4 w-4" />
+                                      <Clock className="mr-2 h-4 w-4" />
                                       {manualEndDate ? format(manualEndDate, "PPP") : <span>Pick date</span>}
                                     </Button>
                                   </PopoverTrigger>
@@ -407,7 +425,7 @@ export default function ProfessorPortal() {
                       disabled={isActionLoading || availableRooms.length === 0}
                     >
                       {isActionLoading ? <Loader2 className="animate-spin mr-2" /> : (isManualEntry ? <CalendarClock className="mr-2" size={20} /> : <Play className="mr-2" size={20} />)}
-                      {isManualEntry ? "Log Manual Session" : "Check-in Now"}
+                      {isManualEntry ? "Save Log" : "Begin Session"}
                     </Button>
                   </CardFooter>
                 </Card>
@@ -418,15 +436,15 @@ export default function ProfessorPortal() {
                       <Clock size={48} className="animate-pulse" />
                       <div className="absolute inset-0 bg-primary/5 rounded-full animate-ping opacity-20" />
                     </div>
-                    <CardTitle className="text-3xl font-extrabold text-slate-800">Active Session</CardTitle>
+                    <CardTitle className="text-3xl font-extrabold text-slate-800">Session in Progress</CardTitle>
                     <CardDescription className="text-slate-400 font-bold flex items-center justify-center gap-1">
-                      <MapPin size={14} /> {activeSession.roomNumber}
+                      <MapPin size={14} /> Room {activeSession.roomNumber}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-8 px-10 pb-10">
                     <div className="bg-slate-50 rounded-[48px] p-12 border border-slate-100 text-center shadow-inner relative overflow-hidden">
                       <div className="absolute top-0 right-0 p-4"><Sparkles className="text-primary/20" size={32} /></div>
-                      <p className="text-xs text-slate-400 uppercase tracking-[0.3em] font-bold mb-4">Elapsed Time</p>
+                      <p className="text-xs text-slate-400 uppercase tracking-[0.3em] font-bold mb-4">Duration</p>
                       <p className="text-7xl font-mono font-bold text-primary tabular-nums tracking-tighter">{elapsedTime}</p>
                     </div>
 
