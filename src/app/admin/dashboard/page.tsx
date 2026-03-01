@@ -11,7 +11,7 @@ import {
 import { 
   Clock, Monitor, Users, Activity, Loader2, MapPin, 
   TrendingUp, BarChart3, PieChart as PieChartIcon, 
-  History, Calendar, Filter
+  History, Calendar, ArrowRight
 } from "lucide-react";
 import { useFirestore, useCollection } from "@/firebase";
 import { collection, query, orderBy, limit } from "firebase/firestore";
@@ -25,6 +25,7 @@ import {
 } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import Link from "next/link";
 
 const COLLEGE_MAP: Record<string, string> = {
   "CICS": "College of Informatics and Computing Studies (CICS)",
@@ -157,10 +158,10 @@ export default function DashboardPage() {
       }
     });
 
-    // Sort by absolute time descending and limit to 10
+    // Sort by absolute time descending and limit to 5 for dashboard
     return events
       .sort((a, b) => b.rawTime.getTime() - a.rawTime.getTime())
-      .slice(0, 10)
+      .slice(0, 5)
       .map(e => ({
         ...e,
         time: format(e.rawTime, "MMM dd, hh:mm a")
@@ -320,7 +321,9 @@ export default function DashboardPage() {
             <History className="text-primary" size={20} />
             Recent Activity
           </CardTitle>
-          <Badge variant="outline" className="text-[10px] text-slate-400">Audit Log</Badge>
+          <Link href="/admin/logs" className="text-xs font-bold text-primary hover:underline flex items-center gap-1">
+            View All <ArrowRight size={14} />
+          </Link>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
