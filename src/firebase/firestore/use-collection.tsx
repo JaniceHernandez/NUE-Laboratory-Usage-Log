@@ -29,10 +29,10 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
         setData(snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id } as T)));
         setLoading(false);
       },
-      async (err) => {
+      (err) => {
         if (err.code === 'permission-denied') {
-          // Attempt to extract path from query internal structure or fall back
-          const path = (query as any).path || (query as any)._query?.path?.toString() || 'unknown collection';
+          // Attempt to extract path from query internal structure
+          const path = (query as any)._query?.path?.segments?.join('/') || (query as any).path || 'unknown/path';
           const permissionError = new FirestorePermissionError({
             path,
             operation: 'list',

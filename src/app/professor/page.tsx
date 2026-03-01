@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -65,7 +64,7 @@ export default function ProfessorPortal() {
   const router = useRouter();
   const auth = useAuth();
   const db = useFirestore();
-  const { user } = useUser();
+  const { user, loading: authLoading } = useUser();
   const { toast } = useToast();
 
   const userProfileRef = useMemo(() => (db && user) ? doc(db, "users", user.uid) : null, [db, user]);
@@ -93,9 +92,9 @@ export default function ProfessorPortal() {
   const [onboardingCollege, setOnboardingCollege] = useState("");
 
   const roomsQuery = useMemo(() => {
-    if (!db) return null;
+    if (!db || !user) return null;
     return query(collection(db, "rooms"), where("status", "==", "available"));
-  }, [db]);
+  }, [db, user]);
   const { data: availableRooms, loading: roomsLoading } = useCollection<Room>(roomsQuery);
 
   useEffect(() => {
@@ -123,7 +122,7 @@ export default function ProfessorPortal() {
   }, [db, user]);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: any;
     if (activeSession?.startTime) {
       interval = setInterval(() => {
         const start = activeSession.startTime.toMillis();
@@ -232,7 +231,7 @@ export default function ProfessorPortal() {
     }
   };
 
-  if (isLoading || roomsLoading || profileLoading) {
+  if (authLoading || roomsLoading || profileLoading) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50">
         <Loader2 className="animate-spin text-primary mb-4" size={40} />
@@ -437,7 +436,7 @@ export default function ProfessorPortal() {
                     <Button 
                       form="session-form" 
                       className="w-full h-16 bg-primary hover:bg-primary/90 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20 transition-all hover:scale-[1.01] active:scale-[0.98]"
-                      disabled={isActionLoading || availableRooms.length === 0}
+                      disabled={isActionLoading || (availableRooms && availableRooms.length === 0)}
                     >
                       {isActionLoading ? <Loader2 className="animate-spin mr-2" /> : (isManualEntry ? <CalendarClock className="mr-2" size={20} /> : <Play className="mr-2" size={20} />)}
                       {isManualEntry ? "Save Log" : "Check-in Facility"}

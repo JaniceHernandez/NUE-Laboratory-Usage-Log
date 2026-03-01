@@ -1,56 +1,48 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper to check if user is signed in
+    // Basic sign-in check
     function isSignedIn() {
       return request.auth != null;
     }
     
-    // Helper to get user data from the users collection
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-    
-    // Helper to check for specific role
+    // Safely check for a role without failing if the user document is missing
     function hasRole(role) {
-      return isSignedIn() && getUserData().role == role;
+      return isSignedIn() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
     }
 
-    // Helper to check if account is active
+    // Check if account is active
     function isActive() {
-      return isSignedIn() && getUserData().status == 'active';
+      return isSignedIn() && 
+             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'active';
     }
 
     // Users collection rules
     match /users/{userId} {
-      // Users can only read their own profile, Admins can read all
       allow read: if isSignedIn() && (request.auth.uid == userId || hasRole('admin'));
-      // Allow creation during signup
       allow create: if isSignedIn() && request.auth.uid == userId;
-      // Only admins can update status/role, users can update their own non-sensitive fields
       allow update: if hasRole('admin') || (request.auth.uid == userId && isActive());
     }
     
     // Sessions collection rules
     match /sessions/{sessionId} {
-      // Admins read all; Professors read only their own
       allow read: if isSignedIn() && (
         hasRole('admin') || 
         (resource != null && resource.data.professorEmail == request.auth.token.email) ||
-        (resource == null) // allow query initialization
+        (resource == null) // Allow query initiation
       );
       
-      // Professors can create sessions for themselves if active
-      allow create: if isSignedIn() && isActive() && (
+      allow create: if isSignedIn() && (
         request.resource.data.professorEmail == request.auth.token.email
       );
       
-      // Professors can update their own active sessions
-      allow update: if isSignedIn() && isActive() && (
-        resource.data.professorEmail == request.auth.token.email
+      allow update: if isSignedIn() && (
+        resource.data.professorEmail == request.auth.token.email || hasRole('admin')
       );
       
-      // Only admins can delete logs
       allow delete: if hasRole('admin');
     }
 
@@ -62,7 +54,7 @@ service cloud.firestore {
       allow write: if hasRole('admin');
     }
 
-    // Default deny for everything else
+    // Default deny
     match /{document=**} {
       allow read, write: if false;
     }

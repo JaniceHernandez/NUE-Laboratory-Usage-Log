@@ -10,17 +10,18 @@ export function FirebaseErrorListener() {
 
   useEffect(() => {
     const handlePermissionError = (error: FirestorePermissionError) => {
-      // In development, log the full context object clearly
-      console.error('Firestore Permission Error Context:', JSON.stringify(error.context, null, 2));
+      // Log simple diagnostic info
+      console.warn(`Firestore Permission Denied: ${error.context.operation} at ${error.context.path}`);
       
       toast({
         variant: "destructive",
-        title: "Permission Denied",
-        description: `You don't have access to ${error.context.path} (${error.context.operation}).`,
+        title: "Access Restricted",
+        description: `Your current permissions do not allow ${error.context.operation} on this resource.`,
       });
 
+      // In development, log the full context object clearly for debugging
       if (process.env.NODE_ENV === 'development') {
-        throw error;
+        console.dir(error.context);
       }
     };
 
