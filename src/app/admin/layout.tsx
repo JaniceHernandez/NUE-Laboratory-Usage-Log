@@ -1,16 +1,21 @@
 
 "use client";
 
+import { useState } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import { LayoutDashboard, FileText, Monitor, Users, Settings, LogOut, GraduationCap, ChevronRight, BarChart3, Bell, Search } from "lucide-react";
+import { LayoutDashboard, FileText, Monitor, Users, Settings, LogOut, GraduationCap, BarChart3, Search, User, Shield, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { AuthGuard } from "@/components/auth-guard";
-import { useAuth, useUser } from "@/firebase";
-import { signOut } from "firebase/auth";
+import { useAuth, useUser, useFirestore } from "@/firebase";
+import { signOut, updateProfile } from "firebase/auth";
+import { doc, updateDoc } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 const navItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/admin/dashboard" },
@@ -24,12 +29,47 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const auth = useAuth();
+  const db = useFirestore();
   const { user } = useUser();
+  const { toast } = useToast();
+
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [displayName, setDisplayName] = useState(user?.displayName || "");
 
   const handleLogout = async () => {
     if (auth) {
       await signOut(auth);
       router.push("/");
+    }
+  };
+
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!auth?.currentUser || !db) return;
+
+    setIsSaving(true);
+    try {
+      // Update Firebase Auth
+      await updateProfile(auth.currentUser, { displayName });
+      
+      // Update Firestore
+      const userRef = doc(db, "users", auth.currentUser.uid);
+      await updateDoc(userRef, { name: displayName });
+
+      toast({
+        title: "Settings Updated",
+        description: "Your administrative profile has been successfully updated.",
+      });
+      setIsSettingsOpen(false);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: error.message || "Could not update settings.",
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -72,7 +112,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </SidebarContent>
             <SidebarFooter className="p-4 border-t border-slate-50 bg-slate-50/30">
               <div className="space-y-1">
-                <Button variant="ghost" className="w-full justify-start h-10 px-4 text-slate-500 hover:text-slate-900 hover:bg-white rounded-xl">
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start h-10 px-4 text-slate-500 hover:text-slate-900 hover:bg-white rounded-xl"
+                  onClick={() => {
+                    setDisplayName(user?.displayName || "");
+                    setIsSettingsOpen(true);
+                  }}
+                >
                   <Settings size={18} className="mr-3" />
                   <span className="font-medium text-sm">Settings</span>
                 </Button>
@@ -101,19 +148,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </div>
               </div>
               <div className="flex items-center gap-6">
-                <Button variant="ghost" size="icon" className="text-slate-400 rounded-xl hover:bg-slate-50 relative">
-                  <Bell size={20} />
-                  <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
-                </Button>
-                <div className="h-8 w-px bg-slate-100" />
                 <div className="flex items-center gap-3 cursor-pointer group">
                   <div className="text-right">
                     <p className="text-sm font-bold text-slate-800 leading-none group-hover:text-primary transition-colors">{user?.displayName || "Admin User"}</p>
                     <p className="text-[10px] text-slate-400 mt-1">{user?.email}</p>
                   </div>
                   <Avatar className="h-10 w-10 border-2 border-slate-100 group-hover:border-primary/20 transition-all rounded-xl">
-                    <AvatarImage src={user?.photoURL || "https://picsum.photos/seed/admin/100/100"} />
-                    <AvatarFallback className="rounded-xl">AD</AvatarFallback>
+                    <AvatarFallback className="rounded-xl text-xs font-bold text-slate-500 bg-slate-50">
+                      {user?.displayName ? user.displayName.substring(0, 2).toUpperCase() : 'AD'}
+                    </AvatarFallback>
                   </Avatar>
                 </div>
               </div>
@@ -123,6 +166,49 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             </main>
           </SidebarInset>
         </div>
+
+        {/* Settings Dialog */}
+        <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+          <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-8">
+            <DialogHeader>
+              <div className="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-4">
+                <Shield size={24} />
+              </div>
+              <DialogTitle className="text-2xl font-bold">Admin Settings</DialogTitle>
+              <DialogDescription>Update your administrative profile and system preferences.</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleUpdateProfile} className="space-y-6 py-4">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="displayName" className="text-xs font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                    <User size={14} /> Full Name
+                  </Label>
+                  <Input 
+                    id="displayName" 
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="System Administrator" 
+                    className="h-12 rounded-xl bg-slate-50 border-none focus-visible:ring-1 focus-visible:ring-primary/20"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-widest text-slate-400">Account Access</Label>
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
+                    <p className="text-xs font-bold text-slate-700">{user?.email}</p>
+                    <p className="text-[10px] text-slate-400 font-medium">Verified Institutional Admin</p>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter className="pt-4">
+                <Button type="submit" className="w-full h-12 bg-primary rounded-xl font-bold shadow-lg shadow-primary/20 gap-2" disabled={isSaving}>
+                  {isSaving ? <Loader2 className="animate-spin" size={20} /> : <Save size={18} />}
+                  Save Changes
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </SidebarProvider>
     </AuthGuard>
   );
