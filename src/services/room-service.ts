@@ -50,6 +50,11 @@ export const RoomService = {
     return docRef.id;
   },
 
+  async updateRoomStatus(db: Firestore, roomId: string, status: Room['status']): Promise<void> {
+    const roomRef = doc(db, 'rooms', roomId);
+    await updateDoc(roomRef, { status });
+  },
+
   async updateRoomOccupancy(db: Firestore, roomNumber: string, occupied: boolean): Promise<void> {
     const roomsRef = collection(db, 'rooms');
     const q = query(roomsRef, where('number', '==', roomNumber));

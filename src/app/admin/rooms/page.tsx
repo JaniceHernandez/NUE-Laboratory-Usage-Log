@@ -41,6 +41,24 @@ export default function RoomsPage() {
     );
   }, [rooms, search]);
 
+  const handleUpdateStatus = async (roomId: string, newStatus: Room['status']) => {
+    if (!db) return;
+    try {
+      await RoomService.updateRoomStatus(db, roomId, newStatus);
+      toast({ 
+        title: "Status Updated", 
+        description: `Facility status changed to ${newStatus.toUpperCase()}.` 
+      });
+    } catch (error: any) {
+      const permissionError = new FirestorePermissionError({
+        path: `rooms/${roomId}`,
+        operation: "update",
+        requestResourceData: { status: newStatus },
+      });
+      errorEmitter.emit("permission-error", permissionError);
+    }
+  };
+
   const handleAddRoom = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!db) return;
@@ -165,16 +183,23 @@ export default function RoomsPage() {
                     )}
                   </TableCell>
                   <TableCell className="px-8 py-5">
-                    <Badge 
-                      variant="outline" 
-                      className={`text-[9px] font-bold uppercase tracking-widest px-2.5 py-1 border-none ${
+                    <Select 
+                      defaultValue={room.status} 
+                      onValueChange={(val: any) => handleUpdateStatus(room.id!, val)}
+                    >
+                      <SelectTrigger className={`h-8 w-32 text-[10px] font-bold uppercase tracking-widest rounded-lg border-none ${
                         room.status === 'available' 
                           ? 'bg-blue-50 text-blue-600' 
                           : 'bg-orange-50 text-orange-600'
-                      }`}
-                    >
-                      {room.status}
-                    </Badge>
+                      }`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="available" className="text-[10px] font-bold uppercase">Available</SelectItem>
+                        <SelectItem value="inactive" className="text-[10px] font-bold uppercase">Inactive</SelectItem>
+                        <SelectItem value="maintenance" className="text-[10px] font-bold uppercase">Maintenance</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell className="px-8 py-5 text-right">
                     <Button 
