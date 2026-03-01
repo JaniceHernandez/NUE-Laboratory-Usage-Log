@@ -7,6 +7,7 @@ import {
   QuerySnapshot,
   DocumentData,
   FirestoreError,
+  CollectionReference,
 } from 'firebase/firestore';
 import { errorEmitter } from '../error-emitter';
 import { FirestorePermissionError } from '../errors';
@@ -30,8 +31,10 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
       },
       async (err) => {
         if (err.code === 'permission-denied') {
+          // Attempt to extract path from query internal structure or fall back
+          const path = (query as any).path || (query as any)._query?.path?.toString() || 'unknown collection';
           const permissionError = new FirestorePermissionError({
-            path: (query as any)._query?.path?.toString() || 'unknown',
+            path,
             operation: 'list',
           });
           errorEmitter.emit('permission-error', permissionError);

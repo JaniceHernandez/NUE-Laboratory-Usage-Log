@@ -10,18 +10,15 @@ export function FirebaseErrorListener() {
 
   useEffect(() => {
     const handlePermissionError = (error: FirestorePermissionError) => {
-      // In development, we want to see the full contextual error.
-      // Next.js will pick up the uncaught error and show the overlay.
-      console.error('Firestore Permission Error:', error.context);
+      // In development, log the full context object clearly
+      console.error('Firestore Permission Error Context:', JSON.stringify(error.context, null, 2));
       
       toast({
         variant: "destructive",
         title: "Permission Denied",
-        description: `Operation ${error.context.operation} at ${error.context.path} failed.`,
+        description: `You don't have access to ${error.context.path} (${error.context.operation}).`,
       });
 
-      // Throwing here will trigger the Next.js error overlay in development
-      // which is what we want for agentic fixing loops.
       if (process.env.NODE_ENV === 'development') {
         throw error;
       }

@@ -1,4 +1,3 @@
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -7,7 +6,7 @@ service cloud.firestore {
       return request.auth != null;
     }
     
-    // Helper to get user data
+    // Helper to get user data from the users collection
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
@@ -24,25 +23,46 @@ service cloud.firestore {
 
     // Users collection rules
     match /users/{userId} {
+      // Allow any signed-in user to read their own profile or others (for basic display)
       allow read: if isSignedIn();
+      // Allow creation during signup or by admin
       allow create: if isSignedIn() && (request.auth.uid == userId || hasRole('admin'));
+      // Only admins or the owner (if active) can update
       allow update: if hasRole('admin') || (request.auth.uid == userId && isActive());
     }
     
     // Sessions collection rules
     match /sessions/{sessionId} {
-      allow read: if hasRole('admin') || (isSignedIn() && request.auth.token.email == resource.data.professorEmail);
-      allow create: if isSignedIn() && isActive() && request.resource.data.professorEmail == request.auth.token.email;
-      allow update: if isSignedIn() && isActive() && resource.data.professorEmail == request.auth.token.email;
+      // Admins can read everything; Professors can only read their own sessions
+      // Queries must be filtered by professorEmail if not admin
+      allow read: if isSignedIn() && (
+        hasRole('admin') || 
+        (request.auth.token.email == resource.data.professorEmail)
+      );
+      
+      // Professors can create sessions for themselves if active
+      allow create: if isSignedIn() && isActive() && (
+        request.resource.data.professorEmail == request.auth.token.email
+      );
+      
+      // Professors can update their own active sessions
+      allow update: if isSignedIn() && isActive() && (
+        resource.data.professorEmail == request.auth.token.email
+      );
+      
+      // Admins can manage sessions
+      allow delete: if hasRole('admin');
     }
 
     // Rooms collection rules
     match /rooms/{roomId} {
+      // All signed-in users can see room availability
       allow read: if isSignedIn();
+      // Only admins can manage the room list
       allow write: if hasRole('admin');
     }
 
-    // Default deny
+    // Default deny for everything else
     match /{document=**} {
       allow read, write: if false;
     }
