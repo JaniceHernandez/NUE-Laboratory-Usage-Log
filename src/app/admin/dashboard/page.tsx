@@ -131,13 +131,40 @@ export default function DashboardPage() {
   }, [sessions]);
 
   const recentActivityList = useMemo(() => {
-    return sessions.slice(0, 10).map(s => ({
-      professor: s.professorEmail || "Unknown",
-      room: s.roomNumber || "N/A",
-      time: s.startTime?.toDate ? format(s.startTime.toDate(), "MMM dd, hh:mm a") : "---",
-      action: s.status === 'active' ? 'Check-in' : 'Check-out',
-      initials: (s.professorEmail || "??").substring(0, 2).toUpperCase()
-    }));
+    const events: any[] = [];
+    
+    sessions.forEach(s => {
+      // Check-in Event
+      if (s.startTime?.toDate) {
+        events.push({
+          professor: s.professorEmail || "Unknown",
+          room: s.roomNumber || "N/A",
+          rawTime: s.startTime.toDate(),
+          action: 'Check-in',
+          initials: (s.professorEmail || "??").substring(0, 2).toUpperCase()
+        });
+      }
+      
+      // Check-out Event (if completed)
+      if (s.status === 'completed' && s.endTime?.toDate) {
+        events.push({
+          professor: s.professorEmail || "Unknown",
+          room: s.roomNumber || "N/A",
+          rawTime: s.endTime.toDate(),
+          action: 'Check-out',
+          initials: (s.professorEmail || "??").substring(0, 2).toUpperCase()
+        });
+      }
+    });
+
+    // Sort by absolute time descending and limit to 10
+    return events
+      .sort((a, b) => b.rawTime.getTime() - a.rawTime.getTime())
+      .slice(0, 10)
+      .map(e => ({
+        ...e,
+        time: format(e.rawTime, "MMM dd, hh:mm a")
+      }));
   }, [sessions]);
 
   if (sessionsLoading || roomsLoading) {
@@ -293,7 +320,7 @@ export default function DashboardPage() {
             <History className="text-primary" size={20} />
             Recent Activity
           </CardTitle>
-          <Badge variant="outline" className="text-[10px] text-slate-400">Activity Log</Badge>
+          <Badge variant="outline" className="text-[10px] text-slate-400">Audit Log</Badge>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
