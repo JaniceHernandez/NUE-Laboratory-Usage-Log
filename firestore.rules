@@ -24,15 +24,15 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || hasRole('admin'));
       allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if hasRole('admin') || (request.auth.uid == userId && isActive());
+      allow update: if hasRole('admin') || (request.auth.uid == userId);
     }
     
     // Sessions collection rules
     match /sessions/{sessionId} {
       allow read: if isSignedIn() && (
         hasRole('admin') || 
-        (resource != null && resource.data.professorEmail == request.auth.token.email) ||
-        (resource == null) // Allow query initiation
+        resource.data.professorEmail == request.auth.token.email ||
+        resource.data.status == 'active' // Allow seeing active sessions for room availability checks
       );
       
       allow create: if isSignedIn() && (
@@ -51,7 +51,13 @@ service cloud.firestore {
       // All signed-in users can see room availability
       allow read: if isSignedIn();
       // Only admins can manage the room list
-      allow write: if hasRole('admin');
+      allow create, delete: if hasRole('admin');
+      // Admins can update anything, Professors can only update occupancy and usage counts
+      allow update: if hasRole('admin') || (
+        isActive() && 
+        request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['currentlyOccupied', 'usageCount'])
+      );
     }
 
     // Default deny
