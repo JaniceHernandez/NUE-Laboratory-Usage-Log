@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -6,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Search, Loader2, Monitor, MapPin, Building, Activity } from "lucide-react";
+import { Plus, Trash2, Search, Loader2, Monitor, MapPin, Building, Activity, Edit2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useFirestore, useCollection } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
@@ -20,9 +19,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 export default function RoomsPage() {
   const [search, setSearch] = useState("");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [newRoom, setNewRoom] = useState({ number: "", location: "", status: "available" as const });
+  const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   
   const db = useFirestore();
   const { toast } = useToast();
@@ -41,24 +43,6 @@ export default function RoomsPage() {
     );
   }, [rooms, search]);
 
-  const handleUpdateStatus = async (roomId: string, newStatus: Room['status']) => {
-    if (!db) return;
-    try {
-      await RoomService.updateRoomStatus(db, roomId, newStatus);
-      toast({ 
-        title: "Status Updated", 
-        description: `Facility status changed to ${newStatus.toUpperCase()}.` 
-      });
-    } catch (error: any) {
-      const permissionError = new FirestorePermissionError({
-        path: `rooms/${roomId}`,
-        operation: "update",
-        requestResourceData: { status: newStatus },
-      });
-      errorEmitter.emit("permission-error", permissionError);
-    }
-  };
-
   const handleAddRoom = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!db) return;
@@ -70,7 +54,7 @@ export default function RoomsPage() {
         location: newRoom.location,
         status: newRoom.status,
       });
-      setIsDialogOpen(false);
+      setIsAddDialogOpen(false);
       setNewRoom({ number: "", location: "", status: "available" });
       toast({ title: "Success", description: "Laboratory facility registered successfully." });
     } catch (error: any) {
@@ -78,6 +62,29 @@ export default function RoomsPage() {
         path: "rooms",
         operation: "create",
         requestResourceData: newRoom,
+      });
+      errorEmitter.emit("permission-error", permissionError);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEditRoom = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!db || !editingRoom || !editingRoom.id) return;
+
+    setIsSubmitting(true);
+    try {
+      const { id, createdAt, ...updateData } = editingRoom;
+      await RoomService.updateRoom(db, id, updateData);
+      setIsEditDialogOpen(false);
+      setEditingRoom(null);
+      toast({ title: "Updated", description: "Facility metadata has been updated." });
+    } catch (error: any) {
+      const permissionError = new FirestorePermissionError({
+        path: `rooms/${editingRoom.id}`,
+        operation: "update",
+        requestResourceData: editingRoom,
       });
       errorEmitter.emit("permission-error", permissionError);
     } finally {
@@ -100,6 +107,11 @@ export default function RoomsPage() {
     }
   };
 
+  const openEditDialog = (room: Room) => {
+    setEditingRoom({ ...room });
+    setIsEditDialogOpen(true);
+  };
+
   if (loading) {
     return (
       <div className="h-96 w-full flex items-center justify-center">
@@ -116,7 +128,7 @@ export default function RoomsPage() {
           <h1 className="text-3xl font-extrabold text-slate-800">Laboratory Facilities</h1>
           <p className="text-sm text-slate-400 font-medium">Configure institutional rooms and monitor real-time occupancy.</p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)} className="bg-primary hover:bg-primary/90 rounded-xl px-6 h-12 shadow-lg shadow-primary/20 flex items-center gap-2 font-bold transition-all">
+        <Button onClick={() => setIsAddDialogOpen(true)} className="bg-primary hover:bg-primary/90 rounded-xl px-6 h-12 shadow-lg shadow-primary/20 flex items-center gap-2 font-bold transition-all">
           <Plus size={20} />
           Register Facility
         </Button>
@@ -183,33 +195,33 @@ export default function RoomsPage() {
                     )}
                   </TableCell>
                   <TableCell className="px-8 py-5">
-                    <Select 
-                      defaultValue={room.status} 
-                      onValueChange={(val: any) => handleUpdateStatus(room.id!, val)}
-                    >
-                      <SelectTrigger className={`h-8 w-32 text-[10px] font-bold uppercase tracking-widest rounded-lg border-none ${
-                        room.status === 'available' 
-                          ? 'bg-blue-50 text-blue-600' 
-                          : 'bg-orange-50 text-orange-600'
-                      }`}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="available" className="text-[10px] font-bold uppercase">Available</SelectItem>
-                        <SelectItem value="inactive" className="text-[10px] font-bold uppercase">Inactive</SelectItem>
-                        <SelectItem value="maintenance" className="text-[10px] font-bold uppercase">Maintenance</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <Badge variant="outline" className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1 border-none rounded-lg ${
+                      room.status === 'available' 
+                        ? 'bg-blue-50 text-blue-600' 
+                        : 'bg-orange-50 text-orange-600'
+                    }`}>
+                      {room.status}
+                    </Badge>
                   </TableCell>
                   <TableCell className="px-8 py-5 text-right">
-                    <Button 
-                      onClick={() => handleDeleteRoom(room.id!)} 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-9 w-9 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50"
-                    >
-                      <Trash2 size={16} />
-                    </Button>
+                    <div className="flex justify-end gap-2">
+                      <Button 
+                        onClick={() => openEditDialog(room)} 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-9 w-9 rounded-lg text-slate-400 hover:text-primary hover:bg-primary/5"
+                      >
+                        <Edit2 size={16} />
+                      </Button>
+                      <Button 
+                        onClick={() => handleDeleteRoom(room.id!)} 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-9 w-9 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50"
+                      >
+                        <Trash2 size={16} />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -223,7 +235,8 @@ export default function RoomsPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      {/* Register Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[425px] rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Register New Facility</DialogTitle>
@@ -255,6 +268,44 @@ export default function RoomsPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog (Action Session) */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Edit Facility Metadata</DialogTitle>
+            <DialogDescription>Update laboratory details and operational status.</DialogDescription>
+          </DialogHeader>
+          {editingRoom && (
+            <form onSubmit={handleEditRoom} className="space-y-6 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="editRoomNumber" className="text-xs font-bold uppercase text-slate-500">Room Number</Label>
+                <Input id="editRoomNumber" className="h-12 rounded-xl bg-slate-50" value={editingRoom.number} onChange={(e) => setEditingRoom({...editingRoom, number: e.target.value})} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editLocation" className="text-xs font-bold uppercase text-slate-500">Location / Building</Label>
+                <Input id="editLocation" className="h-12 rounded-xl bg-slate-50" value={editingRoom.location} onChange={(e) => setEditingRoom({...editingRoom, location: e.target.value})} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editStatus" className="text-xs font-bold uppercase text-slate-500">System Status</Label>
+                <Select value={editingRoom.status} onValueChange={(val: any) => setEditingRoom({...editingRoom, status: val})}>
+                  <SelectTrigger className="h-12 rounded-xl bg-slate-50"><SelectValue placeholder="Select status" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="available">Available</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="maintenance">Maintenance</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <DialogFooter>
+                <Button type="submit" className="w-full h-12 bg-primary rounded-xl font-bold shadow-lg shadow-primary/20" disabled={isSubmitting}>
+                  {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : "Save Changes"}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </div>

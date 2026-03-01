@@ -1,4 +1,3 @@
-
 'use client';
 
 import { 
@@ -48,6 +47,11 @@ export const RoomService = {
       createdAt: serverTimestamp()
     });
     return docRef.id;
+  },
+
+  async updateRoom(db: Firestore, roomId: string, data: Partial<Room>): Promise<void> {
+    const roomRef = doc(db, 'rooms', roomId);
+    await updateDoc(roomRef, data);
   },
 
   async updateRoomStatus(db: Firestore, roomId: string, status: Room['status']): Promise<void> {
