@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -30,7 +29,7 @@ import { Calendar } from "@/components/ui/calendar";
 export default function ReportsPage() {
   const db = useFirestore();
   const { toast } = useToast();
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = setSearch("");
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>({
     start: subDays(new Date(), 30),
     end: new Date()
@@ -167,21 +166,6 @@ export default function ReportsPage() {
                 </Popover>
               </div>
             </div>
-            <Separator orientation="vertical" className="h-8" />
-            <div className="flex gap-1">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 text-[10px] font-bold px-2 rounded-lg"
-                onClick={() => setDateRange({ start: subDays(new Date(), 7), end: new Date() })}
-              >7D</Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 text-[10px] font-bold px-2 rounded-lg"
-                onClick={() => setDateRange({ start: subDays(new Date(), 30), end: new Date() })}
-              >30D</Button>
-            </div>
           </div>
           <Button 
             onClick={handleExportCSV}
@@ -239,7 +223,8 @@ export default function ReportsPage() {
                   <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Facility</th>
                   <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Program / College</th>
                   <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Duration</th>
-                  <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Date</th>
+                  <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Start Time</th>
+                  <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">End Time</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -267,21 +252,26 @@ export default function ReportsPage() {
                     </td>
                     <td className="px-8 py-4 text-right">
                       <span className="text-xs text-slate-400">
-                        {session.startTime?.toDate ? format(session.startTime.toDate(), "MMM dd, yyyy") : "---"}
+                        {session.startTime?.toDate ? format(session.startTime.toDate(), "MMM dd, hh:mm a") : "---"}
+                      </span>
+                    </td>
+                    <td className="px-8 py-4 text-right">
+                      <span className="text-xs text-slate-400">
+                        {session.endTime?.toDate ? format(session.endTime.toDate(), "MMM dd, hh:mm a") : "---"}
                       </span>
                     </td>
                   </tr>
                 ))}
                 {filteredData.length > 20 && (
                   <tr>
-                    <td colSpan={5} className="px-8 py-6 text-center bg-slate-50/30">
+                    <td colSpan={6} className="px-8 py-6 text-center bg-slate-50/30">
                       <p className="text-xs text-slate-400 italic">Showing top 20 records. Use "Export CSV" for the full dataset.</p>
                     </td>
                   </tr>
                 )}
                 {filteredData.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-8 py-20 text-center text-slate-400 font-medium italic">
+                    <td colSpan={6} className="px-8 py-20 text-center text-slate-400 font-medium italic">
                       No matching records found for the selected criteria.
                     </td>
                   </tr>

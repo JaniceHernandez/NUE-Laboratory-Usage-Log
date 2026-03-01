@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -15,7 +14,7 @@ import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
 export default function LogsPage() {
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = setSearch("");
   const [dateFilter, setDateFilter] = useState<Date | null>(null);
   const [limitCount, setLimitCount] = useState(25);
   const db = useFirestore();
@@ -62,7 +61,7 @@ export default function LogsPage() {
   const handleExportCSV = () => {
     if (filteredSessions.length === 0) return;
 
-    const headers = ["ID", "Professor", "Room", "College", "Program", "Section", "Start Time", "Duration (Min)", "Status"];
+    const headers = ["ID", "Professor", "Room", "College", "Program", "Section", "Start Time", "End Time", "Duration (Min)", "Status"];
     const rows = filteredSessions.map(s => [
       s.id,
       s.professorEmail,
@@ -71,6 +70,7 @@ export default function LogsPage() {
       s.program,
       s.section,
       s.startTime?.toDate ? format(s.startTime.toDate(), "yyyy-MM-dd HH:mm:ss") : "N/A",
+      s.endTime?.toDate ? format(s.endTime.toDate(), "yyyy-MM-dd HH:mm:ss") : "N/A",
       s.duration || 0,
       s.status
     ]);
@@ -192,6 +192,7 @@ export default function LogsPage() {
                   <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">College</TableHead>
                   <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">Details</TableHead>
                   <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">Start Time</TableHead>
+                  <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">End Time</TableHead>
                   <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">Duration</TableHead>
                   <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">Status</TableHead>
                 </TableRow>
@@ -228,6 +229,11 @@ export default function LogsPage() {
                         {session.startTime?.toDate ? format(session.startTime.toDate(), "MMM dd, hh:mm a") : "---"}
                       </span>
                     </TableCell>
+                    <TableCell className="px-8 py-5 whitespace-nowrap">
+                      <span className="text-xs font-medium text-slate-400">
+                        {session.endTime?.toDate ? format(session.endTime.toDate(), "MMM dd, hh:mm a") : "---"}
+                      </span>
+                    </TableCell>
                     <TableCell className="px-8 py-5">
                       <span className="text-xs font-bold text-slate-600">
                         {session.duration ? `${session.duration}m` : '--'}
@@ -244,7 +250,7 @@ export default function LogsPage() {
                 ))}
                 {filteredSessions.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-48 text-center text-slate-400 font-medium italic">
+                    <TableCell colSpan={8} className="h-48 text-center text-slate-400 font-medium italic">
                       No matching utilization records found.
                     </TableCell>
                   </TableRow>
