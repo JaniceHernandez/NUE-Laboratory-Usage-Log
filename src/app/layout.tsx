@@ -1,12 +1,11 @@
-
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster"
 import { FirebaseClientProvider } from "@/firebase";
 
 export const metadata: Metadata = {
-  title: 'NEU LabTrack | Laboratory Usage Log',
-  description: 'Efficient resource management for New Era University laboratories.',
+  title: 'NEW ERA UNIVERSITY LABORATORY USAGE LOG',
+  description: 'Official laboratory resource management system for New Era University.',
 };
 
 export default function RootLayout({

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -16,6 +15,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import Image from "next/image";
 
 const navItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/admin/dashboard" },
@@ -50,10 +50,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     setIsSaving(true);
     try {
-      // Update Firebase Auth
       await updateProfile(auth.currentUser, { displayName });
-      
-      // Update Firestore
       const userRef = doc(db, "users", auth.currentUser.uid);
       await updateDoc(userRef, { name: displayName });
 
@@ -80,12 +77,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Sidebar className="border-r border-slate-100 bg-white">
             <SidebarHeader className="p-6">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
-                  <GraduationCap size={20} />
+                <div className="w-10 h-10 shrink-0 bg-white rounded-full flex items-center justify-center overflow-hidden border border-slate-100 shadow-sm">
+                  {/* Placeholder for the NEU Logo uploaded by the user */}
+                  <div className="w-full h-full relative">
+                    <div className="absolute inset-0 bg-primary/5 flex items-center justify-center text-primary">
+                      <GraduationCap size={20} />
+                    </div>
+                  </div>
                 </div>
                 <div className="flex flex-col">
-                  <h1 className="text-sm font-bold text-slate-900 leading-none">NEU Lab Management</h1>
-                  <p className="text-[10px] text-slate-400 font-medium mt-1">Laboratory Usage Log</p>
+                  <h1 className="text-[10px] font-black text-slate-900 leading-tight uppercase tracking-tight">NEW ERA UNIVERSITY</h1>
+                  <p className="text-[9px] text-primary font-bold mt-0.5 leading-none">LABORATORY USAGE LOG</p>
                 </div>
               </div>
             </SidebarHeader>
@@ -167,7 +169,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </SidebarInset>
         </div>
 
-        {/* Settings Dialog */}
         <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
           <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-8">
             <DialogHeader>

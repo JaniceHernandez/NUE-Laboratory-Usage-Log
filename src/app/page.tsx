@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { QrCode, ShieldCheck, Loader2 } from "lucide-react";
+import { QrCode, ShieldCheck, Loader2, GraduationCap } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { AuthService } from "@/services/auth-service";
+import Image from "next/image";
 
 import { 
   Tabs as TabsRoot, 
@@ -79,11 +80,22 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-blue-50 via-slate-50 to-slate-100">
-      <div className="mb-12 text-center space-y-2">
-        <h1 className="text-xl font-medium text-slate-500 uppercase tracking-widest">Laboratory Usage Management System</h1>
+      <div className="mb-12 text-center flex flex-col items-center gap-6">
+        <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center shadow-xl border border-slate-100 overflow-hidden">
+          {/* Placeholder for NEU Logo Seal */}
+          <div className="w-full h-full relative">
+            <div className="absolute inset-0 bg-primary/5 flex items-center justify-center text-primary">
+              <GraduationCap size={64} />
+            </div>
+          </div>
+        </div>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tighter sm:text-3xl">NEW ERA UNIVERSITY</h1>
+          <p className="text-sm font-bold text-primary uppercase tracking-[0.2em]">LABORATORY USAGE LOG</p>
+        </div>
       </div>
 
-      <Card className="w-full max-w-[480px] border-none shadow-2xl rounded-[24px] overflow-hidden">
+      <Card className="w-full max-w-[480px] border-none shadow-2xl rounded-[32px] overflow-hidden">
         <TabsRoot defaultValue="professor" className="w-full">
           <TList className="grid w-full grid-cols-2 h-16 bg-slate-100/50 p-1 rounded-none">
             <TTrigger value="professor" className="rounded-none h-full data-[state=active]:bg-white data-[state=active]:shadow-none data-[state=active]:text-primary font-semibold">
@@ -173,8 +185,8 @@ export default function LandingPage() {
         </TabsRoot>
       </Card>
 
-      <footer className="mt-12 text-slate-400 text-xs font-medium">
-        &copy; {new Date().getFullYear()} New Era University. All rights reserved.
+      <footer className="mt-12 text-slate-400 text-[10px] font-black uppercase tracking-widest">
+        &copy; {new Date().getFullYear()} NEW ERA UNIVERSITY
       </footer>
     </div>
   );

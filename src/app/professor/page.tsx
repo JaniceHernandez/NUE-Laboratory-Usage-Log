@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -23,6 +22,7 @@ import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 const COLLEGES = [
   { id: "CICS", name: "College of Informatics and Computing Studies (CICS)" },
@@ -239,7 +239,7 @@ export default function ProfessorPortal() {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50">
         <Loader2 className="animate-spin text-primary mb-4" size={40} />
-        <p className="text-sm font-medium text-slate-400">Syncing with NEU LabTrack...</p>
+        <p className="text-sm font-medium text-slate-400">Syncing institutional data...</p>
       </div>
     );
   }
@@ -250,9 +250,19 @@ export default function ProfessorPortal() {
     <AuthGuard allowedRoles={["professor", "admin"]}>
       <div className="min-h-screen bg-slate-50">
         <header className="bg-primary text-white py-4 px-6 flex justify-between items-center shadow-lg sticky top-0 z-50">
-          <div className="flex items-center gap-3">
-            <GraduationCap size={24} className="text-secondary" />
-            <h1 className="text-xl font-bold font-headline">NEU LabTrack</h1>
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden shrink-0 border border-white/20">
+              {/* Logo Placeholder */}
+              <div className="w-full h-full relative">
+                <div className="absolute inset-0 bg-primary/5 flex items-center justify-center text-primary">
+                  <GraduationCap size={20} />
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col">
+              <h1 className="text-sm font-black uppercase tracking-tight leading-none">NEW ERA UNIVERSITY</h1>
+              <p className="text-[10px] font-bold text-white/80 uppercase tracking-widest mt-1">LABORATORY USAGE LOG</p>
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-right hidden sm:block">
