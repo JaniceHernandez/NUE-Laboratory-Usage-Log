@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import { LayoutDashboard, FileText, Monitor, Users, Settings, LogOut, GraduationCap, BarChart3, Search, User, Shield, Save, Loader2 } from "lucide-react";
+import { LayoutDashboard, FileText, Monitor, Users, Settings, LogOut, GraduationCap, BarChart3, User, Shield, Save, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -86,7 +86,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     className="object-contain"
                   />
                 </div>
-                <div className="flex flex-col">
+                <div className="flex flex-col text-left">
                   <h1 className="text-[10px] font-black text-slate-900 leading-tight uppercase tracking-tight">NEW ERA UNIVERSITY</h1>
                   <p className="text-[9px] text-primary font-bold mt-0.5 leading-none">LABORATORY USAGE LOG</p>
                 </div>
@@ -114,6 +114,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </SidebarMenu>
             </SidebarContent>
             <SidebarFooter className="p-4 border-t border-slate-50 bg-slate-50/30">
+              <div className="flex items-center gap-3 px-3 py-4 mb-2">
+                <Avatar className="h-9 w-9 border border-slate-200 rounded-xl bg-white shadow-sm shrink-0">
+                  <AvatarFallback className="rounded-xl text-[10px] font-bold text-slate-500">
+                    {user?.displayName ? user.displayName.substring(0, 2).toUpperCase() : 'AD'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col overflow-hidden text-left">
+                  <p className="text-xs font-bold text-slate-800 truncate leading-none mb-1">
+                    {user?.displayName || "Admin User"}
+                  </p>
+                  <p className="text-[10px] text-slate-400 truncate leading-none">
+                    {user?.email}
+                  </p>
+                </div>
+              </div>
               <div className="space-y-1">
                 <Button 
                   variant="ghost" 
@@ -139,30 +154,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Sidebar>
           
           <SidebarInset className="flex-1 flex flex-col overflow-hidden bg-[#F8FAFC]">
-            <header className="h-20 bg-white border-b border-slate-100 flex items-center justify-between px-8 shrink-0">
-              <div className="flex items-center gap-6 flex-1 max-w-2xl">
-                <SidebarTrigger className="text-slate-400 hover:text-slate-900" />
-                <div className="relative flex-1 group">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={18} />
-                  <Input 
-                    placeholder="Search usage logs, rooms, or professors..." 
-                    className="pl-12 h-11 bg-slate-50 border-none rounded-xl focus-visible:ring-1 focus-visible:ring-primary/20 transition-all text-sm"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center gap-6">
-                <div className="flex items-center gap-3 cursor-pointer group">
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-slate-800 leading-none group-hover:text-primary transition-colors">{user?.displayName || "Admin User"}</p>
-                    <p className="text-[10px] text-slate-400 mt-1">{user?.email}</p>
-                  </div>
-                  <Avatar className="h-10 w-10 border-2 border-slate-100 group-hover:border-primary/20 transition-all rounded-xl">
-                    <AvatarFallback className="rounded-xl text-xs font-bold text-slate-500 bg-slate-50">
-                      {user?.displayName ? user.displayName.substring(0, 2).toUpperCase() : 'AD'}
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
-              </div>
+            <header className="h-16 bg-white border-b border-slate-100 flex items-center px-8 shrink-0">
+              <SidebarTrigger className="text-slate-400 hover:text-slate-900" />
             </header>
             <main className="flex-1 overflow-y-auto p-8">
               {children}
