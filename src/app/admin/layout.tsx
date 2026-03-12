@@ -114,21 +114,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </SidebarMenu>
             </SidebarContent>
             <SidebarFooter className="p-4 border-t border-slate-50 bg-slate-50/30">
-              <div className="flex items-center gap-3 px-3 py-4 mb-2">
-                <Avatar className="h-9 w-9 border border-slate-200 rounded-xl bg-white shadow-sm shrink-0">
-                  <AvatarFallback className="rounded-xl text-[10px] font-bold text-slate-500">
-                    {user?.displayName ? user.displayName.substring(0, 2).toUpperCase() : 'AD'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col overflow-hidden text-left">
-                  <p className="text-xs font-bold text-slate-800 truncate leading-none mb-1">
-                    {user?.displayName || "Admin User"}
-                  </p>
-                  <p className="text-[10px] text-slate-400 truncate leading-none">
-                    {user?.email}
-                  </p>
-                </div>
-              </div>
               <div className="space-y-1">
                 <Button 
                   variant="ghost" 
@@ -154,8 +139,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Sidebar>
           
           <SidebarInset className="flex-1 flex flex-col overflow-hidden bg-[#F8FAFC]">
-            <header className="h-16 bg-white border-b border-slate-100 flex items-center px-8 shrink-0">
+            <header className="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-8 shrink-0">
               <SidebarTrigger className="text-slate-400 hover:text-slate-900" />
+              <div className="flex items-center gap-3">
+                <div className="flex flex-col text-right hidden sm:flex">
+                  <p className="text-xs font-bold text-slate-800 leading-none mb-1">
+                    {user?.displayName || "Admin User"}
+                  </p>
+                  <p className="text-[10px] text-slate-400 leading-none">
+                    {user?.email}
+                  </p>
+                </div>
+                <Avatar className="h-9 w-9 border border-slate-200 rounded-xl bg-white shadow-sm shrink-0">
+                  <AvatarFallback className="rounded-xl text-[10px] font-bold text-slate-500">
+                    {user?.displayName ? user.displayName.substring(0, 2).toUpperCase() : 'AD'}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
             </header>
             <main className="flex-1 overflow-y-auto p-8">
               {children}
