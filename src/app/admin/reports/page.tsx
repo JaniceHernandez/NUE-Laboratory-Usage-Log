@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -30,17 +30,23 @@ import { Calendar } from "@/components/ui/calendar";
 export default function ReportsPage() {
   const db = useFirestore();
   const { toast } = useToast();
+  const [mounted, setMounted] = useState(false);
   const [search, setSearch] = useState("");
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>({
     start: subDays(new Date(), 30),
     end: new Date()
   });
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const { data: sessions, loading } = useCollection<any>(
     useMemo(() => db ? query(collection(db, "sessions"), orderBy("startTime", "desc")) : null, [db])
   );
 
   const filteredData = useMemo(() => {
+    if (!mounted) return [];
     return sessions.filter((s: any) => {
       const date = s.startTime?.toDate();
       const matchesDate = date ? isWithinInterval(date, {
@@ -56,7 +62,7 @@ export default function ReportsPage() {
 
       return matchesDate && matchesSearch;
     });
-  }, [sessions, dateRange, search]);
+  }, [sessions, dateRange, search, mounted]);
 
   const reportStats = useMemo(() => {
     const totalSessions = filteredData.length;
@@ -113,7 +119,7 @@ export default function ReportsPage() {
     });
   };
 
-  if (loading) {
+  if (loading || !mounted) {
     return (
       <div className="h-96 w-full flex items-center justify-center">
         <Loader2 className="animate-spin text-primary" size={40} />

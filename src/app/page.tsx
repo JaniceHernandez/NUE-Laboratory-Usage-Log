@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -82,11 +83,14 @@ export default function LandingPage() {
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-blue-50 via-slate-50 to-slate-100">
       <div className="mb-12 text-center flex flex-col items-center gap-6">
         <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center shadow-xl border border-slate-100 overflow-hidden">
-          {/* Placeholder for NEU Logo Seal */}
-          <div className="w-full h-full relative">
-            <div className="absolute inset-0 bg-primary/5 flex items-center justify-center text-primary">
-              <GraduationCap size={64} />
-            </div>
+          <div className="w-full h-full relative p-2">
+            <Image 
+              src="https://lxgw2qbdgc9uqivt.public.blob.vercel-storage.com/cics-logs/New_Era_University.svg" 
+              alt="NEU Logo" 
+              fill 
+              className="object-contain"
+              priority
+            />
           </div>
         </div>
         <div className="space-y-2">

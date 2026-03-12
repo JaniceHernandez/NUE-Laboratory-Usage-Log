@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -67,6 +68,11 @@ export default function ProfessorPortal() {
   const db = useFirestore();
   const { user, loading: authLoading } = useUser();
   const { toast } = useToast();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const userProfileRef = useMemo(() => (db && user) ? doc(db, "users", user.uid) : null, [db, user]);
   const { data: profile, loading: profileLoading } = useDoc<UserProfile>(userProfileRef);
@@ -85,7 +91,7 @@ export default function ProfessorPortal() {
   const [section, setSection] = useState("");
   
   const [isManualEntry, setIsManualEntry] = useState(false);
-  const [manualDate, setManualDate] = useState<Date | undefined>(new Date());
+  const [manualDate, setManualDate] = useState<Date | undefined>(undefined);
   const [manualStartTime, setManualStartTime] = useState("08:00");
   const [manualEndTime, setManualEndTime] = useState("10:00");
 
@@ -235,7 +241,7 @@ export default function ProfessorPortal() {
     }
   };
 
-  if (authLoading || roomsLoading || profileLoading) {
+  if (authLoading || roomsLoading || profileLoading || !mounted) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50">
         <Loader2 className="animate-spin text-primary mb-4" size={40} />
@@ -251,13 +257,13 @@ export default function ProfessorPortal() {
       <div className="min-h-screen bg-slate-50">
         <header className="bg-primary text-white py-4 px-6 flex justify-between items-center shadow-lg sticky top-0 z-50">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden shrink-0 border border-white/20">
-              {/* Logo Placeholder */}
-              <div className="w-full h-full relative">
-                <div className="absolute inset-0 bg-primary/5 flex items-center justify-center text-primary">
-                  <GraduationCap size={20} />
-                </div>
-              </div>
+            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center overflow-hidden shrink-0 border border-white/20 relative p-1">
+              <Image 
+                src="https://lxgw2qbdgc9uqivt.public.blob.vercel-storage.com/cics-logs/New_Era_University.svg" 
+                alt="NEU Logo" 
+                fill 
+                className="object-contain"
+              />
             </div>
             <div className="flex flex-col">
               <h1 className="text-sm font-black uppercase tracking-tight leading-none">NEW ERA UNIVERSITY</h1>

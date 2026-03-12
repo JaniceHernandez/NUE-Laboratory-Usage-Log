@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { 
   PieChart, Pie, Cell, 
@@ -37,7 +37,12 @@ const COLLEGE_MAP: Record<string, string> = {
 
 export default function DashboardPage() {
   const db = useFirestore();
+  const [mounted, setMounted] = useState(false);
   const [trendGranularity, setTrendGranularity] = useState<"daily" | "weekly" | "monthly">("daily");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { data: sessions, loading: sessionsLoading } = useCollection<any>(
     useMemo(() => db ? query(collection(db, "sessions"), orderBy("startTime", "desc")) : null, [db])
@@ -80,6 +85,7 @@ export default function DashboardPage() {
   }, [sessions, rooms]);
 
   const trendData = useMemo(() => {
+    if (!mounted) return [];
     const now = new Date();
     let intervals: Date[] = [];
     let formatStr = "MMM dd";
@@ -110,7 +116,7 @@ export default function DashboardPage() {
         sessions: count
       };
     });
-  }, [sessions, trendGranularity]);
+  }, [sessions, trendGranularity, mounted]);
 
   const collegeData = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -144,6 +150,7 @@ export default function DashboardPage() {
   }, [sessions]);
 
   const recentActivityList = useMemo(() => {
+    if (!mounted) return [];
     const events: any[] = [];
     
     sessions.forEach(s => {
@@ -179,9 +186,9 @@ export default function DashboardPage() {
         ...e,
         time: format(e.rawTime, "MMM dd, hh:mm a")
       }));
-  }, [sessions, userMap]);
+  }, [sessions, userMap, mounted]);
 
-  if (sessionsLoading || roomsLoading || usersLoading) {
+  if (sessionsLoading || roomsLoading || usersLoading || !mounted) {
     return (
       <div className="h-96 w-full flex items-center justify-center">
         <Loader2 className="animate-spin text-primary" size={40} />
@@ -289,7 +296,7 @@ export default function DashboardPage() {
             <CardTitle className="text-lg font-bold flex items-center gap-2">
               <BarChart3 className="text-purple-500" size={20} />
               Most Used Facilities
-            </CardTitle>
+            </BarChart3>
           </CardHeader>
           <CardContent className="h-[300px] p-6">
             <ResponsiveContainer width="100%" height="100%">
@@ -314,7 +321,7 @@ export default function DashboardPage() {
           <CardContent className="h-[300px] p-6">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={collegeData} cx="50%" cy="50%" innerRadius={70} outerRadius={100} paddingAngle={5} dataKey="value" stroke="none">
+                <Pie data={collegeData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
                   {collegeData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                 </Pie>
                 <Tooltip 

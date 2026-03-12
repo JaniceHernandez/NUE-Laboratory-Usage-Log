@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -77,13 +78,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <Sidebar className="border-r border-slate-100 bg-white">
             <SidebarHeader className="p-6">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 shrink-0 bg-white rounded-full flex items-center justify-center overflow-hidden border border-slate-100 shadow-sm">
-                  {/* Placeholder for the NEU Logo uploaded by the user */}
-                  <div className="w-full h-full relative">
-                    <div className="absolute inset-0 bg-primary/5 flex items-center justify-center text-primary">
-                      <GraduationCap size={20} />
-                    </div>
-                  </div>
+                <div className="w-10 h-10 shrink-0 bg-white rounded-full flex items-center justify-center overflow-hidden border border-slate-100 shadow-sm relative p-1">
+                  <Image 
+                    src="https://lxgw2qbdgc9uqivt.public.blob.vercel-storage.com/cics-logs/New_Era_University.svg" 
+                    alt="NEU Logo" 
+                    fill 
+                    className="object-contain"
+                  />
                 </div>
                 <div className="flex flex-col">
                   <h1 className="text-[10px] font-black text-slate-900 leading-tight uppercase tracking-tight">NEW ERA UNIVERSITY</h1>
