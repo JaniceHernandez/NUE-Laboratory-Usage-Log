@@ -163,7 +163,7 @@ export default function LandingPage() {
                 <Input 
                   id="email" 
                   type="email" 
-                  placeholder="admin@neu.edu.ph" 
+                  placeholder="" 
                   className="h-12 rounded-xl border-slate-200 bg-slate-50/50"
                   value={adminEmail}
                   onChange={(e) => setAdminEmail(e.target.value)}
