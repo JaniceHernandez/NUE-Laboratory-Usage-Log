@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
@@ -296,7 +295,7 @@ export default function DashboardPage() {
             <CardTitle className="text-lg font-bold flex items-center gap-2">
               <BarChart3 className="text-purple-500" size={20} />
               Most Used Facilities
-            </BarChart3>
+            </CardTitle>
           </CardHeader>
           <CardContent className="h-[300px] p-6">
             <ResponsiveContainer width="100%" height="100%">
@@ -321,7 +320,7 @@ export default function DashboardPage() {
           <CardContent className="h-[300px] p-6">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={collegeData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={5} dataKey="value" stroke="none">
+                <Pie data={collegeData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={5} dataKey="value" stroke="none">
                   {collegeData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                 </Pie>
                 <Tooltip 
