@@ -23,15 +23,15 @@ import {
   eachWeekOfInterval, eachMonthOfInterval, isSameDay,
   isSameWeek, isSameMonth
 } from "date-fns";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Link from "next/link";
 
 const COLLEGE_MAP: Record<string, string> = {
-  "CICS": "College of Informatics and Computing Studies (CICS)",
-  "CEA": "College of Engineering and Architecture (CEA)",
-  "COC": "College of Communication (COC)",
-  "CA": "College of Accountancy (CA)"
+  "CICS": "Informatics & Computing Studies",
+  "CEA": "Engineering & Architecture",
+  "COC": "College of Communication",
+  "CA": "College of Accountancy"
 };
 
 export default function DashboardPage() {
@@ -155,7 +155,6 @@ export default function DashboardPage() {
     sessions.forEach(s => {
       const profName = userMap[s.professorEmail] || s.professorEmail || "Unknown";
       
-      // Check-in Event
       if (s.startTime?.toDate) {
         events.push({
           professor: profName,
@@ -166,7 +165,6 @@ export default function DashboardPage() {
         });
       }
       
-      // Check-out Event (if completed)
       if (s.status === 'completed' && s.endTime?.toDate) {
         events.push({
           professor: profName,
@@ -196,42 +194,40 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="space-y-6 animate-in fade-in duration-700">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {analytics.map((stat) => (
           <Card key={stat.title} className="border-none shadow-sm rounded-2xl bg-white group hover:shadow-md transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div className={`p-3 rounded-xl ${stat.bgColor} ${stat.color}`}>
-                  <stat.icon size={22} strokeWidth={2.5} />
+            <CardContent className="p-5">
+              <div className="flex justify-between items-start mb-3">
+                <div className={`p-2.5 rounded-xl ${stat.bgColor} ${stat.color}`}>
+                  <stat.icon size={20} strokeWidth={2.5} />
                 </div>
-                <Badge variant="outline" className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-50 text-slate-400 border-none">
+                <Badge variant="outline" className="text-[8px] font-bold px-1.5 py-0 rounded-full bg-slate-50 text-slate-400 border-none">
                   {stat.trend}
                 </Badge>
               </div>
-              <div className="space-y-1">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{stat.title}</p>
-                <p className="text-3xl font-extrabold text-slate-800 tracking-tight">{stat.value}</p>
+              <div className="space-y-0.5">
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{stat.title}</p>
+                <p className="text-2xl font-extrabold text-slate-800 tracking-tight">{stat.value}</p>
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 border-none shadow-sm rounded-2xl bg-white overflow-hidden">
-          <CardHeader className="p-6 border-b border-slate-50 flex flex-row items-center justify-between">
-            <div className="space-y-1">
-              <CardTitle className="text-lg font-bold flex items-center gap-2">
-                <TrendingUp className="text-primary" size={20} />
+          <CardHeader className="p-5 border-b border-slate-50 flex flex-row items-center justify-between">
+            <div className="space-y-0.5">
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <TrendingUp className="text-primary" size={18} />
                 Utilization Trends
               </CardTitle>
-              <CardDescription>Laboratory session frequency over time.</CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <Calendar className="text-slate-400" size={16} />
               <Select value={trendGranularity} onValueChange={(v: any) => setTrendGranularity(v)}>
-                <SelectTrigger className="w-[120px] h-9 bg-slate-50 border-none rounded-lg text-xs font-bold">
+                <SelectTrigger className="w-[100px] h-8 bg-slate-50 border-none rounded-lg text-[10px] font-bold">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -242,92 +238,92 @@ export default function DashboardPage() {
               </Select>
             </div>
           </CardHeader>
-          <CardContent className="h-[350px] p-6">
+          <CardContent className="h-[280px] p-5">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={trendData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10 }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10 }} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9 }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 9 }} />
                 <Tooltip 
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                   labelStyle={{ fontWeight: 'bold', color: '#1e293b' }}
                 />
-                <Line type="monotone" dataKey="sessions" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ r: 4, fill: 'white', strokeWidth: 2, stroke: 'hsl(var(--primary))' }} />
+                <Line type="monotone" dataKey="sessions" stroke="hsl(var(--primary))" strokeWidth={3} dot={{ r: 3, fill: 'white', strokeWidth: 2, stroke: 'hsl(var(--primary))' }} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
         <Card className="border-none shadow-sm rounded-2xl bg-white overflow-hidden">
-          <CardHeader className="p-6 border-b border-slate-50">
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <Activity className="text-blue-500" size={20} />
+          <CardHeader className="p-5 border-b border-slate-50">
+            <CardTitle className="text-base font-bold flex items-center gap-2">
+              <Activity className="text-blue-500" size={18} />
               Active Facilities
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <div className="divide-y divide-slate-50">
               {rooms.filter(r => r.currentlyOccupied).map((room, i) => (
-                <div key={i} className="px-6 py-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-50 text-blue-500 rounded-xl flex items-center justify-center">
-                      <MapPin size={18} />
+                <div key={i} className="px-5 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 bg-blue-50 text-blue-500 rounded-lg flex items-center justify-center">
+                      <MapPin size={14} />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-slate-700">{room.number}</p>
-                      <p className="text-[10px] text-slate-400">{room.location}</p>
+                      <p className="text-xs font-bold text-slate-700">{room.number}</p>
+                      <p className="text-[9px] text-slate-400">{room.location}</p>
                     </div>
                   </div>
-                  <Badge className="bg-green-100 text-green-600 border-none font-bold text-[9px]">IN USE</Badge>
+                  <Badge className="bg-green-100 text-green-600 border-none font-bold text-[8px]">IN USE</Badge>
                 </div>
               ))}
               {rooms.filter(r => r.currentlyOccupied).length === 0 && (
-                <div className="p-12 text-center text-slate-400 text-sm italic">All facilities currently idle.</div>
+                <div className="p-10 text-center text-slate-400 text-xs italic">All facilities currently idle.</div>
               )}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="border-none shadow-sm rounded-2xl bg-white overflow-hidden">
-          <CardHeader className="p-6 border-b border-slate-50">
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <BarChart3 className="text-purple-500" size={20} />
+          <CardHeader className="p-5 border-b border-slate-50">
+            <CardTitle className="text-base font-bold flex items-center gap-2">
+              <BarChart3 className="text-purple-500" size={18} />
               Most Used Facilities
             </CardTitle>
           </CardHeader>
-          <CardContent className="h-[300px] p-6">
+          <CardContent className="h-[250px] p-5">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={roomUsageData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
                 <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={100} tick={{ fill: '#64748b', fontSize: 11, fontWeight: 'bold' }} />
+                <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={80} tick={{ fill: '#64748b', fontSize: 10, fontWeight: 'bold' }} />
                 <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
-                <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 10, 10, 0]} barSize={24} />
+                <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 8, 8, 0]} barSize={20} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
         <Card className="border-none shadow-sm rounded-2xl bg-white overflow-hidden">
-          <CardHeader className="p-6 border-b border-slate-50">
-            <CardTitle className="text-lg font-bold flex items-center gap-2">
-              <PieChartIcon className="text-orange-500" size={20} />
+          <CardHeader className="p-5 border-b border-slate-50">
+            <CardTitle className="text-base font-bold flex items-center gap-2">
+              <PieChartIcon className="text-orange-500" size={18} />
               Usage by College
             </CardTitle>
           </CardHeader>
-          <CardContent className="h-[300px] p-6">
+          <CardContent className="h-[250px] p-5">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={collegeData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={5} dataKey="value" stroke="none">
+                <Pie data={collegeData} cx="50%" cy="50%" innerRadius={35} outerRadius={55} paddingAngle={5} dataKey="value" stroke="none">
                   {collegeData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                 </Pie>
                 <Tooltip 
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                   formatter={(value, name) => [value, name]}
                 />
-                <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
+                <Legend iconType="circle" wrapperStyle={{ paddingTop: '15px', fontSize: '10px' }} />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
@@ -335,56 +331,56 @@ export default function DashboardPage() {
       </div>
 
       <Card className="border-none shadow-sm rounded-2xl bg-white overflow-hidden">
-        <CardHeader className="p-6 border-b border-slate-50 flex flex-row items-center justify-between">
-          <CardTitle className="text-lg font-bold flex items-center gap-2">
-            <History className="text-primary" size={20} />
+        <CardHeader className="p-5 border-b border-slate-50 flex flex-row items-center justify-between">
+          <CardTitle className="text-base font-bold flex items-center gap-2">
+            <History className="text-primary" size={18} />
             Recent Activity
           </CardTitle>
-          <Link href="/admin/logs" className="text-xs font-bold text-primary hover:underline flex items-center gap-1">
-            View All <ArrowRight size={14} />
+          <Link href="/admin/logs" className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1">
+            View All <ArrowRight size={12} />
           </Link>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader className="bg-slate-50/50">
               <TableRow className="border-none">
-                <TableHead className="px-6 h-12 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Professor</TableHead>
-                <TableHead className="px-6 h-12 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Facility</TableHead>
-                <TableHead className="px-6 h-12 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Action</TableHead>
-                <TableHead className="px-6 h-12 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Timestamp</TableHead>
+                <TableHead className="px-5 h-10 text-[9px] font-bold text-slate-400 uppercase tracking-widest">Professor</TableHead>
+                <TableHead className="px-5 h-10 text-[9px] font-bold text-slate-400 uppercase tracking-widest text-center">Facility</TableHead>
+                <TableHead className="px-5 h-10 text-[9px] font-bold text-slate-400 uppercase tracking-widest text-center">Action</TableHead>
+                <TableHead className="px-5 h-10 text-[9px] font-bold text-slate-400 uppercase tracking-widest text-right">Timestamp</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {recentActivityList.map((activity, i) => (
                 <TableRow key={i} className="hover:bg-slate-50/50 transition-colors border-slate-50">
-                  <TableCell className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-8 w-8 rounded-lg bg-slate-100 border border-slate-200">
-                        <AvatarFallback className="rounded-lg text-[10px] font-bold text-slate-500">
+                  <TableCell className="px-5 py-3">
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-7 w-7 rounded-lg bg-slate-100 border border-slate-200">
+                        <AvatarFallback className="rounded-lg text-[9px] font-bold text-slate-500">
                           {activity.initials}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="text-sm font-bold text-slate-700">{activity.professor}</span>
+                      <span className="text-xs font-bold text-slate-700">{activity.professor}</span>
                     </div>
                   </TableCell>
-                  <TableCell className="px-6 py-4 text-center">
-                    <Badge variant="outline" className="bg-primary/5 text-primary border-none font-bold text-[10px]">
+                  <TableCell className="px-5 py-3 text-center">
+                    <Badge variant="outline" className="bg-primary/5 text-primary border-none font-bold text-[9px]">
                       {activity.room}
                     </Badge>
                   </TableCell>
-                  <TableCell className="px-6 py-4 text-center">
-                    <Badge className={`text-[9px] font-bold px-2.5 py-1 rounded-full ${activity.action === 'Check-in' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'}`}>
+                  <TableCell className="px-5 py-3 text-center">
+                    <Badge className={`text-[8px] font-bold px-2 py-0.5 rounded-full ${activity.action === 'Check-in' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'}`}>
                       {activity.action}
                     </Badge>
                   </TableCell>
-                  <TableCell className="px-6 py-4 text-right">
-                    <span className="text-[11px] font-medium text-slate-400">{activity.time}</span>
+                  <TableCell className="px-5 py-3 text-right">
+                    <span className="text-[10px] font-medium text-slate-400">{activity.time}</span>
                   </TableCell>
                 </TableRow>
               ))}
               {recentActivityList.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-40 text-center text-slate-400 font-medium italic">
+                  <TableCell colSpan={4} className="h-24 text-center text-slate-400 text-xs italic">
                     No recent activity found.
                   </TableCell>
                 </TableRow>

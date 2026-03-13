@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
@@ -6,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/select";
 import { Switch } from "@/components/ui/switch";
-import { LogOut, Play, Square, CheckCircle2, Clock, MapPin, GraduationCap, Loader2, CalendarClock, ShieldCheck, Sparkles, AlertTriangle } from "lucide-react";
+import { LogOut, Play, Square, CheckCircle2, Clock, MapPin, Loader2, CalendarClock, ShieldCheck, Sparkles, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AuthGuard } from "@/components/auth-guard";
@@ -26,28 +25,24 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 
 const COLLEGES = [
-  { id: "CICS", name: "College of Informatics and Computing Studies (CICS)" },
-  { id: "CEA", name: "College of Engineering and Architecture (CEA)" },
+  { id: "CICS", name: "Informatics & Computing Studies (CICS)" },
+  { id: "CEA", name: "Engineering & Architecture (CEA)" },
   { id: "COC", name: "College of Communication (COC)" },
   { id: "CA", name: "College of Accountancy (CA)" },
 ];
 
 const PROGRAMS: Record<string, string[]> = {
   CICS: [
-    "Bachelor of Library and Information Science",
     "Bachelor of Science in Computer Science",
-    "Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Digital Animation Technology",
-    "Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Game Development",
     "Bachelor of Science in Information Technology",
-    "Bachelor of Science in Information System"
+    "Bachelor of Science in Information System",
+    "Bachelor of Science in Entertainment and Multimedia Computing"
   ],
   CEA: [
     "Bachelor of Science in Architecture",
-    "Bachelor of Science in Astronomy",
     "Bachelor of Science in Civil Engineering",
     "Bachelor of Science in Electrical Engineering",
     "Bachelor of Science in Electronics Engineering",
-    "Bachelor of Science in Industrial Engineering",
     "Bachelor of Science in Mechanical Engineering"
   ],
   COC: [
@@ -145,6 +140,7 @@ export default function ProfessorPortal() {
         setElapsedTime(`${h}:${m}:${s}`);
       }, 1000);
     } else {
+      setElapsedTime("00:00:00");
       setShowThresholdWarning(false);
     }
     return () => clearInterval(interval);
@@ -168,7 +164,6 @@ export default function ProfessorPortal() {
     if (!db || !user?.email) return;
 
     setIsActionLoading(true);
-    setLastEndedRoom(null);
     setShowThankYou(false);
 
     try {
@@ -281,21 +276,21 @@ export default function ProfessorPortal() {
           </div>
         </header>
 
-        <main className="max-w-2xl mx-auto p-6 mt-8 pb-20">
+        <main className="max-w-xl mx-auto p-4 mt-6 pb-20">
           {needsOnboarding ? (
-            <Card className="shadow-2xl border-none rounded-[32px] overflow-hidden bg-white animate-in fade-in zoom-in-95 duration-500">
-              <CardHeader className="text-center pt-10">
-                <div className="mx-auto w-16 h-16 bg-blue-50 text-primary rounded-2xl flex items-center justify-center mb-4">
-                  <ShieldCheck size={32} />
+            <Card className="shadow-xl border-none rounded-[2rem] overflow-hidden bg-white">
+              <CardHeader className="text-center pt-8">
+                <div className="mx-auto w-14 h-14 bg-blue-50 text-primary rounded-2xl flex items-center justify-center mb-4">
+                  <ShieldCheck size={28} />
                 </div>
-                <CardTitle className="text-2xl font-bold">First-Time Setup</CardTitle>
-                <CardDescription>Select your primary college to complete your institutional profile.</CardDescription>
+                <CardTitle className="text-xl font-bold">First-Time Setup</CardTitle>
+                <CardDescription className="text-sm">Select your primary college to complete your institutional profile.</CardDescription>
               </CardHeader>
-              <CardContent className="px-10 py-6 space-y-6">
+              <CardContent className="px-8 py-4 space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase tracking-widest text-slate-400">Institutional College</Label>
+                  <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Institutional College</Label>
                   <Select onValueChange={setOnboardingCollege}>
-                    <SelectTrigger className="h-14 rounded-2xl bg-slate-50 border-none shadow-inner">
+                    <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-none shadow-inner text-sm">
                       <SelectValue placeholder="Choose your college" />
                     </SelectTrigger>
                     <SelectContent>
@@ -304,9 +299,9 @@ export default function ProfessorPortal() {
                   </Select>
                 </div>
               </CardContent>
-              <CardFooter className="px-10 pb-10">
+              <CardFooter className="px-8 pb-8">
                 <Button 
-                  className="w-full h-14 bg-primary hover:bg-primary/90 rounded-2xl font-bold shadow-lg shadow-primary/20"
+                  className="w-full h-12 bg-primary hover:bg-primary/90 rounded-xl font-bold shadow-lg shadow-primary/20"
                   disabled={!onboardingCollege || isActionLoading}
                   onClick={handleOnboarding}
                 >
@@ -317,49 +312,49 @@ export default function ProfessorPortal() {
           ) : (
             <>
               {showThresholdWarning && (
-                <Alert className="mb-6 bg-orange-50 text-orange-700 border-orange-200 shadow-sm animate-bounce rounded-2xl">
+                <Alert className="mb-4 bg-orange-50 text-orange-700 border-orange-200 shadow-sm animate-bounce rounded-xl p-3">
                   <AlertTriangle className="h-4 w-4 text-orange-600" />
-                  <AlertTitle className="font-bold">Extended Session Warning</AlertTitle>
-                  <AlertDescription>
+                  <AlertTitle className="font-bold text-xs">Extended Session Warning</AlertTitle>
+                  <AlertDescription className="text-[10px]">
                     Your session has exceeded 4 hours. Please check-out if your activities are complete.
                   </AlertDescription>
                 </Alert>
               )}
 
               {showThankYou && lastEndedRoom && (
-                <Alert className="mb-6 bg-green-50 text-green-700 border-green-200 shadow-sm animate-in fade-in slide-in-from-top-4 rounded-2xl">
+                <Alert className="mb-4 bg-green-50 text-green-700 border-green-200 shadow-sm rounded-xl p-3">
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <AlertTitle className="font-bold">Check-out Successful</AlertTitle>
-                  <AlertDescription>
+                  <AlertTitle className="font-bold text-xs">Check-out Successful</AlertTitle>
+                  <AlertDescription className="text-[10px]">
                     Thank you for using Room <span className="font-bold">{lastEndedRoom}</span>.
                   </AlertDescription>
                 </Alert>
               )}
 
               {!activeSession ? (
-                <Card className="shadow-xl border-none rounded-[32px] overflow-hidden bg-white">
-                  <CardHeader className="bg-white border-b border-slate-50 pb-6 px-8">
+                <Card className="shadow-lg border-none rounded-[2rem] overflow-hidden bg-white">
+                  <CardHeader className="bg-white border-b border-slate-50 pb-4 px-6">
                     <div className="flex justify-between items-center">
-                      <div className="space-y-1">
-                        <CardTitle className="flex items-center gap-2 text-xl font-bold text-slate-800">
-                          {isManualEntry ? <CalendarClock size={22} className="text-primary" /> : <Play size={22} className="text-primary" />}
-                          {isManualEntry ? "Log Manual Usage" : "Laboratory Check-in"}
+                      <div className="space-y-0.5">
+                        <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-800">
+                          {isManualEntry ? <CalendarClock size={20} className="text-primary" /> : <Play size={20} className="text-primary" />}
+                          {isManualEntry ? "Log Manual Usage" : "Check-in"}
                         </CardTitle>
-                        <CardDescription className="text-slate-400">Facility availability is updated in real-time.</CardDescription>
+                        <CardDescription className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Facility availability updated in real-time</CardDescription>
                       </div>
-                      <div className="flex flex-col items-end gap-2">
-                        <Label htmlFor="manual-mode" className="text-[10px] font-bold uppercase text-slate-400">Manual</Label>
+                      <div className="flex flex-col items-end gap-1">
+                        <Label htmlFor="manual-mode" className="text-[9px] font-bold uppercase text-slate-400">Manual</Label>
                         <Switch id="manual-mode" checked={isManualEntry} onCheckedChange={setIsManualEntry} />
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="pt-8 px-8">
-                    <form id="session-form" onSubmit={handleSubmitSession} className="space-y-6">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <Label htmlFor="room" className="text-xs font-bold uppercase tracking-widest text-slate-400">Laboratory Facility</Label>
+                  <CardContent className="pt-6 px-6">
+                    <form id="session-form" onSubmit={handleSubmitSession} className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="room" className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Laboratory Facility</Label>
                           <Select onValueChange={setRoom} required>
-                            <SelectTrigger id="room" className="h-12 rounded-xl bg-slate-50 border-none">
+                            <SelectTrigger id="room" className="h-11 rounded-xl bg-slate-50 border-none text-xs">
                               <SelectValue placeholder="Select facility" />
                             </SelectTrigger>
                             <SelectContent>
@@ -377,10 +372,10 @@ export default function ProfessorPortal() {
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="college" className="text-xs font-bold uppercase tracking-widest text-slate-400">Target College</Label>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="college" className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Target College</Label>
                           <Select onValueChange={(val) => { setCollege(val); setProgram(""); }} required>
-                            <SelectTrigger id="college" className="h-12 rounded-xl bg-slate-50 border-none">
+                            <SelectTrigger id="college" className="h-11 rounded-xl bg-slate-50 border-none text-xs">
                               <SelectValue placeholder="Select college" />
                             </SelectTrigger>
                             <SelectContent>
@@ -390,11 +385,11 @@ export default function ProfessorPortal() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <Label htmlFor="program" className="text-xs font-bold uppercase tracking-widest text-slate-400">Degree Program</Label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <Label htmlFor="program" className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Degree Program</Label>
                           <Select onValueChange={setProgram} disabled={!college} required>
-                            <SelectTrigger id="program" className="h-12 rounded-xl bg-slate-50 border-none">
+                            <SelectTrigger id="program" className="h-11 rounded-xl bg-slate-50 border-none text-xs">
                               <SelectValue placeholder={college ? "Select program" : "Select college first"} />
                             </SelectTrigger>
                             <SelectContent>
@@ -404,19 +399,19 @@ export default function ProfessorPortal() {
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="section" className="text-xs font-bold uppercase tracking-widest text-slate-400">Section</Label>
-                          <Input id="section" placeholder="e.g., 4B" className="h-12 rounded-xl bg-slate-50 border-none" onChange={(e) => setSection(e.target.value)} required />
+                        <div className="space-y-1.5">
+                          <Label htmlFor="section" className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Section</Label>
+                          <Input id="section" placeholder="e.g., 4B" className="h-11 rounded-xl bg-slate-50 border-none text-xs" onChange={(e) => setSection(e.target.value)} required />
                         </div>
                       </div>
 
                       {isManualEntry && (
-                        <div className="p-6 bg-slate-50/50 border border-slate-100 rounded-2xl space-y-6 animate-in slide-in-from-top-4 duration-500">
-                          <div className="space-y-3">
-                            <Label className="text-[10px] font-bold uppercase text-slate-400">Session Date</Label>
+                        <div className="p-4 bg-slate-50/50 border border-slate-100 rounded-xl space-y-4 animate-in slide-in-from-top-4 duration-500">
+                          <div className="space-y-2">
+                            <Label className="text-[9px] font-bold uppercase text-slate-400">Session Date</Label>
                             <Popover>
                               <PopoverTrigger asChild>
-                                <Button variant={"outline"} className={cn("w-full h-12 justify-start rounded-xl bg-white", !manualDate && "text-muted-foreground")}>
+                                <Button variant={"outline"} className={cn("w-full h-10 justify-start rounded-xl bg-white text-xs", !manualDate && "text-muted-foreground")}>
                                   <Clock className="mr-2 h-4 w-4" />
                                   {manualDate ? format(manualDate, "PPP") : <span>Pick session date</span>}
                                 </Button>
@@ -426,70 +421,70 @@ export default function ProfessorPortal() {
                               </PopoverContent>
                             </Popover>
                           </div>
-                          <div className="grid grid-cols-2 gap-6">
-                            <div className="space-y-3">
-                              <Label className="text-[10px] font-bold uppercase text-slate-400">Start Time</Label>
-                              <Input type="time" className="h-12 rounded-xl bg-white" value={manualStartTime} onChange={(e) => setManualStartTime(e.target.value)} />
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label className="text-[9px] font-bold uppercase text-slate-400">Start Time</Label>
+                              <Input type="time" className="h-10 rounded-xl bg-white text-xs" value={manualStartTime} onChange={(e) => setManualStartTime(e.target.value)} />
                             </div>
-                            <div className="space-y-3">
-                              <Label className="text-[10px] font-bold uppercase text-slate-400">End Time</Label>
-                              <Input type="time" className="h-12 rounded-xl bg-white" value={manualEndTime} onChange={(e) => setManualEndTime(e.target.value)} />
+                            <div className="space-y-2">
+                              <Label className="text-[9px] font-bold uppercase text-slate-400">End Time</Label>
+                              <Input type="time" className="h-10 rounded-xl bg-white text-xs" value={manualEndTime} onChange={(e) => setManualEndTime(e.target.value)} />
                             </div>
                           </div>
                         </div>
                       )}
                     </form>
                   </CardContent>
-                  <CardFooter className="px-8 pb-10">
+                  <CardFooter className="px-6 pb-8">
                     <Button 
                       form="session-form" 
-                      className="w-full h-16 bg-primary hover:bg-primary/90 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20 transition-all hover:scale-[1.01] active:scale-[0.98]"
+                      className="w-full h-14 bg-primary hover:bg-primary/90 rounded-2xl text-base font-bold shadow-xl shadow-primary/20 transition-all active:scale-[0.98]"
                       disabled={isActionLoading || (availableRooms && availableRooms.length === 0)}
                     >
-                      {isActionLoading ? <Loader2 className="animate-spin mr-2" /> : (isManualEntry ? <CalendarClock className="mr-2" size={20} /> : <Play className="mr-2" size={20} />)}
+                      {isActionLoading ? <Loader2 className="animate-spin mr-2" /> : (isManualEntry ? <CalendarClock className="mr-2" size={18} /> : <Play className="mr-2" size={18} />)}
                       {isManualEntry ? "Save Log" : "Check-in Facility"}
                     </Button>
                   </CardFooter>
                 </Card>
               ) : (
-                <Card className="shadow-2xl border-none rounded-[40px] overflow-hidden bg-white animate-in zoom-in-95 duration-500">
-                  <CardHeader className="text-center pb-2 pt-10">
-                    <div className="mx-auto w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-4 shadow-inner relative">
-                      <Clock size={48} className="animate-pulse" />
+                <Card className="shadow-2xl border-none rounded-[2.5rem] overflow-hidden bg-white animate-in zoom-in-95 duration-500">
+                  <CardHeader className="text-center pb-2 pt-8">
+                    <div className="mx-auto w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-4 relative">
+                      <Clock size={40} className="animate-pulse" />
                       <div className="absolute inset-0 bg-primary/5 rounded-full animate-ping opacity-20" />
                     </div>
-                    <CardTitle className="text-3xl font-extrabold text-slate-800">Session in Progress</CardTitle>
-                    <CardDescription className="text-slate-400 font-bold flex items-center justify-center gap-1">
-                      <MapPin size={14} /> Laboratory {activeSession.roomNumber}
+                    <CardTitle className="text-2xl font-extrabold text-slate-800">Session Active</CardTitle>
+                    <CardDescription className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center justify-center gap-1">
+                      <MapPin size={12} /> Facility {activeSession.roomNumber}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-8 px-10 pb-10">
-                    <div className="bg-slate-50 rounded-[48px] p-12 border border-slate-100 text-center shadow-inner relative overflow-hidden">
-                      <div className="absolute top-0 right-0 p-4"><Sparkles className="text-primary/20" size={32} /></div>
-                      <p className="text-xs text-slate-400 uppercase tracking-[0.3em] font-bold mb-4">Usage Duration</p>
-                      <p className="text-7xl font-mono font-bold text-primary tabular-nums tracking-tighter">{elapsedTime}</p>
+                  <CardContent className="space-y-6 px-8 pb-8">
+                    <div className="bg-slate-50 rounded-[2.5rem] p-8 border border-slate-100 text-center shadow-inner relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-3"><Sparkles className="text-primary/20" size={24} /></div>
+                      <p className="text-[9px] text-slate-400 uppercase tracking-[0.3em] font-bold mb-2">Duration</p>
+                      <p className="text-5xl font-mono font-bold text-primary tabular-nums tracking-tighter">{elapsedTime}</p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="flex flex-col p-5 bg-white rounded-3xl border border-slate-100 shadow-sm">
-                        <span className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">College</span>
-                        <p className="text-sm font-extrabold text-slate-700">{activeSession.college}</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="flex flex-col p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                        <span className="text-[9px] text-slate-400 uppercase font-bold tracking-widest mb-1">College</span>
+                        <p className="text-xs font-extrabold text-slate-700">{activeSession.college}</p>
                       </div>
-                      <div className="flex flex-col p-5 bg-white rounded-3xl border border-slate-100 shadow-sm">
-                        <span className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Target</span>
-                        <p className="text-sm font-extrabold text-slate-700 truncate">{activeSession.program}</p>
+                      <div className="flex flex-col p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                        <span className="text-[9px] text-slate-400 uppercase font-bold tracking-widest mb-1">Program</span>
+                        <p className="text-xs font-extrabold text-slate-700 truncate">{activeSession.program}</p>
                       </div>
                     </div>
                   </CardContent>
-                  <CardFooter className="px-10 pb-12">
+                  <CardFooter className="px-8 pb-10">
                     <Button 
                       variant="destructive" 
-                      className="w-full h-20 rounded-3xl text-2xl font-black shadow-2xl shadow-red-100 hover:scale-[1.02] transition-all active:scale-[0.95]" 
+                      className="w-full h-16 rounded-[1.5rem] text-xl font-black shadow-2xl shadow-red-100 transition-all active:scale-[0.95]" 
                       onClick={handleEndSession}
                       disabled={isActionLoading}
                     >
-                      {isActionLoading ? <Loader2 className="animate-spin mr-2" /> : <Square className="mr-3" size={28} />}
-                      Check-out Facility
+                      {isActionLoading ? <Loader2 className="animate-spin mr-2" /> : <Square className="mr-3" size={24} />}
+                      Check-out
                     </Button>
                   </CardFooter>
                 </Card>
