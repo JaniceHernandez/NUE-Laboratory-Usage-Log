@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "export": "next export",
-    "deploy-build": "next build"
+    "deploy-build": "next build",
+    "deploy": "next build && firebase deploy"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.28.0",
