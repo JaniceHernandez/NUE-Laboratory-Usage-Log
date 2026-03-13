@@ -17,7 +17,7 @@ import { SessionService, LabSession } from "@/services/session-service";
 import { Room } from "@/services/room-service";
 import { UserService, UserProfile } from "@/services/user-service";
 import { useToast } from "@/hooks/use-toast";
-import { Timestamp, collection, query, where, doc, onSnapshot, limit } from "firebase/firestore";
+import { Timestamp, collection, query, where, doc, onSnapshot, limit, DocumentReference } from "firebase/firestore";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -69,7 +69,10 @@ export default function ProfessorPortal() {
     setMounted(true);
   }, []);
 
-  const userProfileRef = useMemo(() => (db && user) ? doc(db, "users", user.uid) : null, [db, user]);
+  const userProfileRef = useMemo(() => 
+    (db && user) ? (doc(db, "users", user.uid) as DocumentReference<UserProfile>) : null, 
+    [db, user]
+  );
   const { data: profile, loading: profileLoading } = useDoc<UserProfile>(userProfileRef);
 
   const [activeSession, setActiveSession] = useState<LabSession | null>(null);
