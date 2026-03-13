@@ -17,7 +17,7 @@ import { SessionService, LabSession } from "@/services/session-service";
 import { Room } from "@/services/room-service";
 import { UserService, UserProfile } from "@/services/user-service";
 import { useToast } from "@/hooks/use-toast";
-import { Timestamp, collection, query, where, doc, onSnapshot, limit, DocumentReference } from "firebase/firestore";
+import { Timestamp, collection, query, where, doc, onSnapshot, limit, DocumentReference, Query } from "firebase/firestore";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -97,7 +97,7 @@ export default function ProfessorPortal() {
 
   const roomsQuery = useMemo(() => {
     if (!db || !user) return null;
-    return query(collection(db, "rooms"), where("status", "==", "available"));
+    return query(collection(db, "rooms"), where("status", "==", "available")) as Query<Room>;
   }, [db, user]);
   const { data: availableRooms, loading: roomsLoading } = useCollection<Room>(roomsQuery);
 
