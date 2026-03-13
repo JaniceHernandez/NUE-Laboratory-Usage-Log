@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -14,9 +15,14 @@ import { FirestorePermissionError } from "@/firebase/errors";
 import { useToast } from "@/hooks/use-toast";
 
 export default function ProfessorsPage() {
+  const [mounted, setMounted] = useState(false);
   const [search, setSearch] = useState("");
   const db = useFirestore();
   const { toast } = useToast();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const professorsQuery = useMemo(() => {
     if (!db) return null;
@@ -55,10 +61,11 @@ export default function ProfessorsPage() {
       });
   };
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
-      <div className="h-96 w-full flex items-center justify-center">
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50">
         <Loader2 className="animate-spin text-primary" size={40} />
+        <p className="mt-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Loading Faculty Registry...</p>
       </div>
     );
   }

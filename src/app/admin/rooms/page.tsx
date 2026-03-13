@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Search, Loader2, Monitor, MapPin, Building, Activity, Edit2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useFirestore, useCollection } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
+import { collection, query, orderBy, Query } from "firebase/firestore";
 import { RoomService, Room } from "@/services/room-service";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function RoomsPage() {
+  const [mounted, setMounted] = useState(false);
   const [search, setSearch] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -30,9 +31,13 @@ export default function RoomsPage() {
   const db = useFirestore();
   const { toast } = useToast();
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const roomsQuery = useMemo(() => {
     if (!db) return null;
-    return query(collection(db, "rooms"), orderBy("number", "asc"));
+    return query(collection(db, "rooms"), orderBy("number", "asc")) as Query<Room>;
   }, [db]);
 
   const sessionsQuery = useMemo(() => {
@@ -129,10 +134,11 @@ export default function RoomsPage() {
     setIsEditDialogOpen(true);
   };
 
-  if (roomsLoading || sessionsLoading) {
+  if (!mounted || roomsLoading || sessionsLoading) {
     return (
-      <div className="h-96 w-full flex items-center justify-center">
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50">
         <Loader2 className="animate-spin text-primary" size={40} />
+        <p className="mt-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Loading Facilities...</p>
       </div>
     );
   }
@@ -142,7 +148,7 @@ export default function RoomsPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <p className="text-[10px] text-primary uppercase font-bold tracking-[0.2em] mb-1">Admin / Facility Management</p>
-          <h1 className="text-3xl font-extrabold text-slate-800">Laboratory Facilities</h1>
+          <h1 className="text-3xl font-extrabold text-slate-800 tracking-tight">Laboratory Facilities</h1>
           <p className="text-sm text-slate-400 font-medium">Configure institutional rooms and monitor real-time occupancy.</p>
         </div>
         <Button onClick={() => setIsAddDialogOpen(true)} className="bg-primary hover:bg-primary/90 rounded-xl px-6 h-12 shadow-lg shadow-primary/20 flex items-center gap-2 font-bold transition-all">
@@ -173,8 +179,8 @@ export default function RoomsPage() {
 
       <Card className="border-none shadow-sm rounded-2xl bg-white overflow-hidden">
         <CardHeader className="p-6 border-b border-slate-50 flex flex-row items-center justify-between">
-          <div className="relative w-full max-w-md">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <div className="relative w-full max-w-md group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={18} />
             <Input 
               placeholder="Search by ID or location..." 
               className="pl-12 h-12 bg-slate-50 border-none rounded-xl focus-visible:ring-1 focus-visible:ring-primary/20 transition-all text-sm"
@@ -256,9 +262,8 @@ export default function RoomsPage() {
         </CardContent>
       </Card>
 
-      {/* Register Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-2xl">
+        <DialogContent className="sm:max-w-[425px] rounded-3xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Register New Facility</DialogTitle>
             <DialogDescription>Add a laboratory room for institutional tracking.</DialogDescription>
@@ -266,16 +271,16 @@ export default function RoomsPage() {
           <form onSubmit={handleAddRoom} className="space-y-6 py-4">
             <div className="space-y-2">
               <Label htmlFor="roomNumber" className="text-xs font-bold uppercase text-slate-500">Room Number</Label>
-              <Input id="roomNumber" placeholder="e.g., COM LAB 402" className="h-12 rounded-xl bg-slate-50" value={newRoom.number} onChange={(e) => setNewRoom({...newRoom, number: e.target.value})} required />
+              <Input id="roomNumber" placeholder="e.g., COM LAB 402" className="h-12 rounded-xl bg-slate-50 border-none" value={newRoom.number} onChange={(e) => setNewRoom({...newRoom, number: e.target.value})} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="location" className="text-xs font-bold uppercase text-slate-500">Location / Building</Label>
-              <Input id="location" placeholder="e.g., Engineering Hall" className="h-12 rounded-xl bg-slate-50" value={newRoom.location} onChange={(e) => setNewRoom({...newRoom, location: e.target.value})} required />
+              <Input id="location" placeholder="e.g., Engineering Hall" className="h-12 rounded-xl bg-slate-50 border-none" value={newRoom.location} onChange={(e) => setNewRoom({...newRoom, location: e.target.value})} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="status" className="text-xs font-bold uppercase text-slate-500">System Status</Label>
               <Select value={newRoom.status} onValueChange={(val: any) => setNewRoom({...newRoom, status: val})}>
-                <SelectTrigger className="h-12 rounded-xl bg-slate-50"><SelectValue placeholder="Select status" /></SelectTrigger>
+                <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-none"><SelectValue placeholder="Select status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="available">Available</SelectItem>
                   <SelectItem value="inactive">Inactive</SelectItem>
@@ -292,9 +297,8 @@ export default function RoomsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-2xl">
+        <DialogContent className="sm:max-w-[425px] rounded-3xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Edit Facility Metadata</DialogTitle>
             <DialogDescription>Update laboratory details and operational status.</DialogDescription>
@@ -303,16 +307,16 @@ export default function RoomsPage() {
             <form onSubmit={handleEditRoom} className="space-y-6 py-4">
               <div className="space-y-2">
                 <Label htmlFor="editRoomNumber" className="text-xs font-bold uppercase text-slate-500">Room Number</Label>
-                <Input id="editRoomNumber" className="h-12 rounded-xl bg-slate-50" value={editingRoom.number} onChange={(e) => setEditingRoom({...editingRoom, number: e.target.value})} required />
+                <Input id="editRoomNumber" className="h-12 rounded-xl bg-slate-50 border-none" value={editingRoom.number} onChange={(e) => setEditingRoom({...editingRoom, number: e.target.value})} required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="editLocation" className="text-xs font-bold uppercase text-slate-500">Location / Building</Label>
-                <Input id="editLocation" className="h-12 rounded-xl bg-slate-50" value={editingRoom.location} onChange={(e) => setEditingRoom({...editingRoom, location: e.target.value})} required />
+                <Input id="editLocation" className="h-12 rounded-xl bg-slate-50 border-none" value={editingRoom.location} onChange={(e) => setEditingRoom({...editingRoom, location: e.target.value})} required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="editStatus" className="text-xs font-bold uppercase text-slate-500">System Status</Label>
                 <Select value={editingRoom.status} onValueChange={(val: any) => setEditingRoom({...editingRoom, status: val})}>
-                  <SelectTrigger className="h-12 rounded-xl bg-slate-50"><SelectValue placeholder="Select status" /></SelectTrigger>
+                  <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-none"><SelectValue placeholder="Select status" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="available">Available</SelectItem>
                     <SelectItem value="inactive">Inactive</SelectItem>

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/tabs";
 
 export default function LandingPage() {
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [adminEmail, setAdminEmail] = useState("");
@@ -29,6 +30,10 @@ export default function LandingPage() {
   const auth = useAuth();
   const db = useFirestore();
   const { toast } = useToast();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleGoogleLogin = async () => {
     if (!auth || !db) return;
@@ -44,6 +49,10 @@ export default function LandingPage() {
 
       router.push(profile.role === "admin" ? "/admin/dashboard" : "/professor");
     } catch (error: any) {
+      if (error.code === 'auth/popup-closed-by-user') {
+        setIsLoading(false);
+        return;
+      }
       toast({
         variant: "destructive",
         title: "Login Failed",
@@ -78,6 +87,10 @@ export default function LandingPage() {
       setIsLoading(false);
     }
   };
+
+  if (!mounted) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-blue-50 via-slate-50 to-slate-100">

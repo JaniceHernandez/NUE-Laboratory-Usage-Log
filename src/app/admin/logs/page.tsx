@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,11 +15,16 @@ import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
 export default function LogsPage() {
+  const [mounted, setMounted] = useState(false);
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState<Date | null>(null);
   const [limitCount, setLimitCount] = useState(25);
   const db = useFirestore();
   const { toast } = useToast();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const sessionsQuery = useMemo(() => {
     if (!db) return null;
@@ -92,10 +98,11 @@ export default function LogsPage() {
     });
   };
 
-  if (loading && sessions.length === 0) {
+  if (!mounted || (loading && sessions.length === 0)) {
     return (
-      <div className="h-96 w-full flex items-center justify-center">
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50">
         <Loader2 className="animate-spin text-primary" size={40} />
+        <p className="mt-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Loading Audit Logs...</p>
       </div>
     );
   }
