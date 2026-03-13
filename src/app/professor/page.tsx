@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { LogOut, Play, Square, CheckCircle2, Clock, MapPin, Loader2, CalendarClock, ShieldCheck, Sparkles, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -14,7 +14,7 @@ import { AuthGuard } from "@/components/auth-guard";
 import { useAuth, useUser, useFirestore, useCollection, useDoc } from "@/firebase";
 import { signOut } from "firebase/auth";
 import { SessionService, LabSession } from "@/services/session-service";
-import { RoomService, Room } from "@/services/room-service";
+import { Room } from "@/services/room-service";
 import { UserService, UserProfile } from "@/services/user-service";
 import { useToast } from "@/hooks/use-toast";
 import { Timestamp, collection, query, where, doc, onSnapshot, limit } from "firebase/firestore";
@@ -124,7 +124,7 @@ export default function ProfessorPortal() {
 
   useEffect(() => {
     let interval: any;
-    if (activeSession?.startTime) {
+    if (activeSession?.startTime && mounted) {
       interval = setInterval(() => {
         const start = activeSession.startTime.toMillis();
         const now = Date.now();
@@ -144,7 +144,7 @@ export default function ProfessorPortal() {
       setShowThresholdWarning(false);
     }
     return () => clearInterval(interval);
-  }, [activeSession]);
+  }, [activeSession, mounted]);
 
   const handleOnboarding = async () => {
     if (!db || !user?.uid || !onboardingCollege) return;
