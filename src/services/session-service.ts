@@ -109,15 +109,16 @@ export const SessionService = {
 
   async endSession(db: Firestore, sessionId: string, startTime: Timestamp, roomNumber: string): Promise<void> {
     const sessionRef = doc(db, 'sessions', sessionId);
+    const now = Timestamp.now();
     const startMs = startTime.toMillis();
-    const endMs = Date.now();
+    const endMs = now.toMillis();
     
     // Convert to Minutes (rounded up)
     const durationMinutes = Math.ceil((endMs - startMs) / 60000);
 
     await updateDoc(sessionRef, {
       status: 'completed',
-      endTime: serverTimestamp(),
+      endTime: now,
       duration: durationMinutes
     });
 

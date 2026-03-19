@@ -242,6 +242,7 @@ export default function ProfessorPortal() {
       const roomName = activeSession.roomNumber;
       const startMs = activeSession.startTime.toMillis();
       const endMs = Date.now();
+      // Calculate minutes for UI (consistent with service)
       const durationMinutes = Math.ceil((endMs - startMs) / 60000);
 
       setSummaryData({
