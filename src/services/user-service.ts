@@ -3,7 +3,7 @@
 import { 
   doc, getDoc, setDoc, updateDoc, deleteDoc, 
   serverTimestamp, Firestore, query, collection, 
-  where, getDocs, addDoc 
+  where, getDocs, addDoc, DocumentData
 } from 'firebase/firestore';
 
 export interface UserProfile {
@@ -35,20 +35,29 @@ export const UserService = {
   /**
    * Finds a user by email (useful for linking pre-authorized admins)
    */
-  async findUserByEmail(db: Firestore, email: string): Promise<UserProfile | null> {
+  async findUserByEmail(db: Firestore, email: string): Promise<{ id: string; data: UserProfile } | null> {
     const normalizedEmail = email.toLowerCase();
+    
+    // First check if there is a document with the email as the ID (pre-auth placeholder)
+    const directDocRef = doc(db, 'users', normalizedEmail);
+    const directSnap = await getDoc(directDocRef);
+    if (directSnap.exists()) {
+      return { id: directSnap.id, data: { ...directSnap.data(), email: normalizedEmail } as UserProfile };
+    }
+
+    // Otherwise search the collection
     const usersRef = collection(db, 'users');
     const q = query(usersRef, where('email', '==', normalizedEmail));
     const snapshot = await getDocs(q);
     if (!snapshot.empty) {
       const docData = snapshot.docs[0];
-      return { ...docData.data(), uid: docData.id } as UserProfile;
+      return { id: docData.id, data: { ...docData.data(), uid: docData.id } as UserProfile };
     }
     return null;
   },
 
   /**
-   * Creates a new user profile in Firestore
+   * Creates or rewrites a user profile in Firestore
    */
   async createUserProfile(db: Firestore, profile: Partial<UserProfile>): Promise<void> {
     if (!profile.uid) throw new Error('UID is required to create a profile');
@@ -58,26 +67,29 @@ export const UserService = {
       ...profile,
       status: 'active',
       createdAt: serverTimestamp(),
-    });
+    }, { merge: true });
   },
 
   /**
-   * Pre-authorizes an admin email
+   * Pre-authorizes an admin email without duplicating
    */
   async authorizeAdminEmail(db: Firestore, email: string): Promise<void> {
     const normalizedEmail = email.toLowerCase();
     const existing = await this.findUserByEmail(db, normalizedEmail);
-    if (existing && existing.role === 'admin') {
-      throw new Error('Email is already an administrator.');
+    
+    if (existing && existing.data.role === 'admin') {
+      throw new Error('Email is already an authorized administrator.');
     }
 
     if (existing) {
-      // Upgrade existing professor to admin
-      await this.updateUserRole(db, (existing as any).uid || existing.uid!, 'admin');
+      // If user exists (either UID or email-placeholder), upgrade the role
+      const userRef = doc(db, 'users', existing.id);
+      await updateDoc(userRef, { role: 'admin' });
     } else {
-      // Create a new "pending" admin record
-      const usersRef = collection(db, 'users');
-      await addDoc(usersRef, {
+      // Create a pre-authorization record using EMAIL as the document ID
+      // This will be "claimed" and rewritten with UID upon first login
+      const userRef = doc(db, 'users', normalizedEmail);
+      await setDoc(userRef, {
         email: normalizedEmail,
         role: 'admin',
         status: 'active',

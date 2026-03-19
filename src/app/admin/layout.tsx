@@ -2,12 +2,11 @@
 
 import { useState, useMemo } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import { LayoutDashboard, Monitor, Users, Settings, LogOut, BarChart3, User, Shield, Save, Loader2, ShieldCheck, Fingerprint } from "lucide-react";
+import { LayoutDashboard, Monitor, Settings, LogOut, BarChart3, User, Shield, Save, Loader2, ShieldCheck, Fingerprint } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
 import { AuthGuard } from "@/components/auth-guard";
 import { useAuth, useUser, useFirestore, useDoc } from "@/firebase";
 import { signOut, updateProfile } from "firebase/auth";
@@ -15,6 +14,7 @@ import { doc, updateDoc, DocumentReference } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import Image from "next/image";
 import { UserService, UserProfile } from "@/services/user-service";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/admin/dashboard" },
   { title: "Room Management", icon: Monitor, href: "/admin/rooms" },
-  { title: "Identity & Access", icon: Fingerprint, href: "/admin/professors" },
+  { title: "Identity & Access Management", icon: Fingerprint, href: "/admin/professors" },
   { title: "Reports", icon: BarChart3, href: "/admin/reports" },
 ];
 
@@ -118,7 +118,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       >
                         <Link href={item.href} className="flex items-center gap-3">
                           <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} />
-                          <span className="font-semibold">{item.title}</span>
+                          <span className="font-semibold text-xs leading-tight">{item.title}</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>

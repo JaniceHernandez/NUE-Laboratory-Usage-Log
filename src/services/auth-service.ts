@@ -29,37 +29,39 @@ export const AuthService = {
       throw new Error(`Access restricted. Please use your ${INSTITUTIONAL_DOMAIN} institutional email.`);
     }
 
-    // 2. Profile Check
+    // 2. Profile Check & "Claim" Logic
     let profile = await UserService.getUserProfile(db, user.uid);
     
-    // 3. Handle First-time Login or Pre-authorized Linking
     if (!profile) {
-      // Check if this email was pre-authorized as an admin
+      // Check if this email was pre-authorized (search by email or check email-doc-id)
       const preAuthorized = await UserService.findUserByEmail(db, userEmail!);
       
-      if (preAuthorized && preAuthorized.role === 'admin') {
-        // "Claim" the pre-authorized profile: Link it to the UID
-        const oldDocId = (preAuthorized as any).uid;
+      if (preAuthorized) {
+        // "Claim" the pre-authorized profile: Rewrite it using the permanent UID
+        const oldDocId = preAuthorized.id;
         const newProfile: UserProfile = {
-          ...preAuthorized,
+          ...preAuthorized.data,
           uid: user.uid,
-          name: user.displayName || 'Authorized Admin',
-          photoURL: user.photoURL,
-          status: 'active',
-          createdAt: preAuthorized.createdAt || serverTimestamp(),
+          name: user.displayName || preAuthorized.data.name || 'Authorized User',
+          photoURL: user.photoURL || preAuthorized.data.photoURL,
+          status: preAuthorized.data.status || 'active',
+          createdAt: preAuthorized.data.createdAt || serverTimestamp(),
         };
 
-        // Create new doc with UID and delete the placeholder
+        // Write the permanent UID document
         await setDoc(doc(db, 'users', user.uid), newProfile);
-        if (oldDocId && oldDocId !== user.uid) {
+        
+        // If the old doc was email-based (different from UID), delete it to avoid duplicates
+        if (oldDocId !== user.uid) {
           await deleteDoc(doc(db, 'users', oldDocId));
         }
+        
         profile = newProfile;
       } else {
-        // Not pre-authorized as admin. Check if they are trying to log in as admin.
+        // Completely new user. Check if they are trying to log in as admin.
         if (intendedRole === 'admin' && userEmail !== ADMIN_EMAIL) {
           await signOut(auth);
-          throw new Error('You are not an authorized administrator. Please contact the system admin.');
+          throw new Error('You are not an authorized administrator.');
         }
 
         // New professor profile
@@ -77,7 +79,7 @@ export const AuthService = {
         profile = await UserService.getUserProfile(db, user.uid);
       }
     } else {
-      // Profile exists, update metadata
+      // Profile exists, update institutional metadata
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, {
         name: user.displayName || profile.name,
@@ -87,14 +89,13 @@ export const AuthService = {
       profile.name = user.displayName || profile.name;
     }
 
-    // 4. Blocked Check
+    // 3. Status Verification
     if (profile && UserService.isBlocked(profile)) {
       await signOut(auth);
       throw new Error('Your institutional account has been deactivated.');
     }
 
-    // 5. Final Role Authorization Check
-    // If the user intended to login as admin, they MUST have the admin role.
+    // 4. Intent-Based Authorization Check
     if (intendedRole === 'admin' && profile?.role !== 'admin') {
       await signOut(auth);
       throw new Error('You do not have administrative privileges.');

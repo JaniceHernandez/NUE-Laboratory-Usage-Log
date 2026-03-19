@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { 
   UserX, UserCheck, Search, ShieldAlert, 
   Mail, Loader2, Users, ShieldCheck, 
-  Trash2, Plus, UserPlus, Fingerprint
+  Trash2, UserPlus, Fingerprint
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useFirestore, useCollection, useUser, useDoc } from "@/firebase";
@@ -45,8 +45,24 @@ export default function ProfessorsPage() {
     useMemo(() => db ? collection(db, "users") : null, [db])
   );
 
+  // Group users by role, and deduplicate placeholder emails if they have a real UID profile
   const professors = useMemo(() => allUsers.filter(u => u.role === 'professor'), [allUsers]);
-  const administrators = useMemo(() => allUsers.filter(u => u.role === 'admin'), [allUsers]);
+  
+  const administrators = useMemo(() => {
+    const admins = allUsers.filter(u => u.role === 'admin');
+    const seenEmails = new Set<string>();
+    
+    // Prioritize actual user profiles (UIDs) over email-placeholders
+    return admins.filter(a => {
+      const email = a.email.toLowerCase();
+      // If doc ID is email, and we have a UID version, skip this placeholder
+      const isPlaceholder = a.id === a.email;
+      const hasRealProfile = admins.some(other => other.id !== other.email && other.email.toLowerCase() === email);
+      
+      if (isPlaceholder && hasRealProfile) return false;
+      return true;
+    });
+  }, [allUsers]);
 
   const filteredProfessors = useMemo(() => {
     return professors.filter(p => 
