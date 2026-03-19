@@ -45,6 +45,7 @@ const PROGRAMS: Record<string, string[]> = {
   ],
   "College of Engineering and Architecture": [
     "Bachelor of Science in Architecture",
+    "Bachelor of Science in Astronomy",
     "Bachelor of Science in Civil Engineering",
     "Bachelor of Science in Electrical Engineering",
     "Bachelor of Science in Electronics Engineering",
@@ -478,40 +479,40 @@ export default function ProfessorPortal() {
                 </Card>
               ) : (
                 <Card className="shadow-2xl border-none rounded-[3.5rem] overflow-hidden bg-white animate-in zoom-in-95 duration-500">
-                  <CardHeader className="text-center pt-16 pb-4">
-                    <div className="mx-auto w-20 h-20 bg-primary/5 text-primary rounded-[2rem] flex items-center justify-center mb-6">
-                      <Clock size={40} className="animate-pulse" />
+                  <CardHeader className="text-center pt-12 pb-2">
+                    <div className="mx-auto w-14 h-14 bg-primary/5 text-primary rounded-2xl flex items-center justify-center mb-4">
+                      <Clock size={28} className="animate-pulse" />
                     </div>
-                    <CardTitle className="text-3xl font-black text-slate-800 tracking-tight">Session Active</CardTitle>
-                    <CardDescription className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] flex items-center justify-center gap-2 mt-2">
-                      <MapPin size={14} className="text-primary" /> Room {activeSession.roomNumber}
+                    <CardTitle className="text-2xl font-black text-slate-800 tracking-tight">Session Active</CardTitle>
+                    <CardDescription className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] flex items-center justify-center gap-2 mt-1">
+                      <MapPin size={12} className="text-primary" /> Room {activeSession.roomNumber}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-8 px-12 pb-12">
-                    <div className="bg-slate-50/50 rounded-[2.5rem] p-10 border border-slate-50 text-center shadow-inner">
-                      <p className="text-[10px] text-slate-400 uppercase tracking-[0.4em] font-black mb-2">Duration</p>
-                      <p className="text-6xl font-mono font-black text-slate-900 tabular-nums tracking-tighter">{elapsedTime}</p>
+                  <CardContent className="space-y-6 px-12 pb-8">
+                    <div className="bg-slate-50/50 rounded-2xl p-6 border border-slate-50 text-center shadow-inner">
+                      <p className="text-[9px] text-slate-400 uppercase tracking-[0.2em] font-black mb-1">Duration</p>
+                      <p className="text-3xl font-mono font-black text-slate-900 tabular-nums tracking-tighter">{elapsedTime}</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
-                        <span className="text-[9px] text-slate-400 uppercase font-black tracking-widest mb-1 block">College</span>
-                        <p className="text-sm font-bold text-slate-700">{activeSession.college}</p>
+                      <div className="p-4 bg-white rounded-xl border border-slate-100 shadow-sm">
+                        <span className="text-[8px] text-slate-400 uppercase font-black tracking-widest mb-1 block">College</span>
+                        <p className="text-xs font-bold text-slate-700">{activeSession.college}</p>
                       </div>
-                      <div className="p-5 bg-white rounded-2xl border border-slate-100 shadow-sm">
-                        <span className="text-[9px] text-slate-400 uppercase font-black tracking-widest mb-1 block">Program</span>
-                        <p className="text-sm font-bold text-slate-700 truncate">{activeSession.program}</p>
+                      <div className="p-4 bg-white rounded-xl border border-slate-100 shadow-sm">
+                        <span className="text-[8px] text-slate-400 uppercase font-black tracking-widest mb-1 block">Program</span>
+                        <p className="text-xs font-bold text-slate-700 truncate">{activeSession.program}</p>
                       </div>
                     </div>
                   </CardContent>
-                  <CardFooter className="px-12 pb-16">
+                  <CardFooter className="px-12 pb-12">
                     <Button 
                       variant="destructive" 
-                      className="w-full h-16 rounded-2xl text-xl font-black shadow-lg shadow-destructive/20 transition-all active:scale-[0.98]" 
+                      className="w-full h-14 rounded-2xl text-lg font-black shadow-lg shadow-destructive/20 transition-all active:scale-[0.98]" 
                       onClick={handleEndSession}
                       disabled={isActionLoading}
                     >
-                      {isActionLoading ? <Loader2 className="animate-spin mr-3" size={24} /> : <Square className="mr-3" size={24} />}
+                      {isActionLoading ? <Loader2 className="animate-spin mr-3" size={20} /> : <Square className="mr-3" size={20} />}
                       Check-out Room
                     </Button>
                   </CardFooter>
