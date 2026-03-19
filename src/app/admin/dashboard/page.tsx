@@ -25,6 +25,18 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
+
+const COLLEGE_MAP: Record<string, string> = {
+  "College of Informatics and Computing Studies": "College of Informatics and Computing Studies (CICS)",
+  "College of Engineering and Architecture": "College of Engineering and Architecture (CEA)",
+  "College of Communication": "College of Communication (COC)",
+  "College of Accountancy": "College of Accountancy (CA)",
+  "CICS": "College of Informatics and Computing Studies (CICS)",
+  "CEA": "College of Engineering and Architecture (CEA)",
+  "COC": "College of Communication (COC)",
+  "CA": "College of Accountancy (CA)"
+};
 
 export default function DashboardPage() {
   const db = useFirestore();
@@ -55,7 +67,6 @@ export default function DashboardPage() {
 
   const analytics = useMemo(() => {
     const totalSessions = sessions.length;
-    // Duration is in minutes from SessionService
     const totalMinutes = sessions.reduce((acc, s) => acc + (s.duration || 0), 0);
     const occupiedRoomsCount = rooms.filter(r => r.currentlyOccupied).length;
     
@@ -114,7 +125,8 @@ export default function DashboardPage() {
     const counts: Record<string, number> = {};
     sessions.forEach(s => {
       if (s.college) {
-        counts[s.college] = (counts[s.college] || 0) + 1;
+        const fullLabel = COLLEGE_MAP[s.college] || s.college;
+        counts[fullLabel] = (counts[fullLabel] || 0) + 1;
       }
     });
     
@@ -300,15 +312,15 @@ export default function DashboardPage() {
               Usage by College
             </CardTitle>
           </CardHeader>
-          <CardContent className="h-[250px] p-4">
+          <CardContent className="h-[300px] p-4">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie 
                   data={collegeData} 
-                  cx="35%" 
-                  cy="50%" 
-                  innerRadius={45} 
-                  outerRadius={70} 
+                  cx="50%" 
+                  cy="40%" 
+                  innerRadius={50} 
+                  outerRadius={80} 
                   paddingAngle={5} 
                   dataKey="value" 
                   stroke="none"
@@ -316,18 +328,17 @@ export default function DashboardPage() {
                   {collegeData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                 </Pie>
                 <Tooltip 
-                  contentStyle={{ borderRadius: '10px', border: 'none', fontSize: '12px', fontWeight: 'bold' }}
+                  contentStyle={{ borderRadius: '10px', border: 'none', fontSize: '10px', fontWeight: 'bold' }}
                 />
                 <Legend 
                   iconType="circle" 
                   layout="vertical"
-                  verticalAlign="middle"
-                  align="right"
+                  verticalAlign="bottom"
+                  align="center"
                   wrapperStyle={{ 
-                    paddingLeft: '20px', 
-                    fontSize: '10px', 
+                    paddingTop: '20px', 
+                    fontSize: '9px', 
                     fontWeight: '700',
-                    maxWidth: '60%'
                   }}
                 />
               </PieChart>
@@ -342,7 +353,7 @@ export default function DashboardPage() {
             <History className="text-primary" size={16} />
             Recent Activity
           </CardTitle>
-          <Link href="/admin/logs" className="text-[9px] font-bold text-primary hover:underline flex items-center gap-1">
+          <Link href="/admin/reports" className="text-[9px] font-bold text-primary hover:underline flex items-center gap-1">
             View All <ArrowRight size={10} />
           </Link>
         </CardHeader>

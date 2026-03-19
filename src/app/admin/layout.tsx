@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from "react";
@@ -112,14 +113,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         className={cn(
                           "h-11 px-4 rounded-xl transition-all duration-200",
                           isActive 
-                            ? "bg-primary text-white shadow-lg shadow-primary/20 hover:bg-primary/90 hover:text-white ring-1 ring-white/10" 
+                            ? "bg-slate-50 text-primary border-l-4 border-primary rounded-l-none font-bold" 
                             : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                         )}
                       >
                         <Link href={item.href} className="flex items-center gap-3">
                           <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} />
                           <span className="font-semibold">{item.title}</span>
-                          {isActive && <div className="ml-auto w-1.5 h-1.5 bg-white rounded-full shadow-sm" />}
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
