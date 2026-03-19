@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
@@ -323,8 +322,8 @@ export default function DashboardPage() {
                   data={collegeData} 
                   cx="35%" 
                   cy="50%" 
-                  innerRadius={60} 
-                  outerRadius={90} 
+                  innerRadius={50} 
+                  outerRadius={75} 
                   paddingAngle={5} 
                   dataKey="value" 
                   stroke="none"
