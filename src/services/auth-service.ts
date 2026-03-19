@@ -34,12 +34,13 @@ export const AuthService = {
       throw new Error(`Access restricted. Please use your ${INSTITUTIONAL_DOMAIN} institutional email.`);
     }
 
-    // Immediate check for Super Admin or Authorized Admin status
+    // Immediate check for Super Admin or Authorized Admin status via registry
     const isSuper = userEmail === SUPER_ADMIN_EMAIL;
     const isAuthorized = await isAuthorizedAdmin(db, userEmail!);
     
     let existingProfile = await getUserProfile(db, user.uid);
     
+    // Determine role based on institutional clearance
     const finalRole = (isSuper || isAuthorized || existingProfile?.role === 'admin') ? 'admin' : 'professor';
 
     if (intendedRole === 'admin' && finalRole !== 'admin') {

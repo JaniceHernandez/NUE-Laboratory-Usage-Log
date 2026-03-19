@@ -19,7 +19,7 @@ import { useAuth, useUser, useFirestore, useCollection, useDoc } from "@/firebas
 import { signOut } from "firebase/auth";
 import { SessionService, LabSession } from "@/services/session-service";
 import { Room } from "@/services/room-service";
-import { UserService, UserProfile } from "@/services/user-service";
+import { updateUserCollege, UserProfile } from "@/services/user-service";
 import { useToast } from "@/hooks/use-toast";
 import { Timestamp, collection, query, where, doc, onSnapshot, limit, DocumentReference, Query } from "firebase/firestore";
 import { format } from "date-fns";
@@ -168,7 +168,7 @@ export default function ProfessorPortal() {
     if (!db || !user?.uid || !onboardingCollege) return;
     setIsActionLoading(true);
     try {
-      await UserService.updateUserCollege(db, user.uid, onboardingCollege);
+      await updateUserCollege(db, user.uid, onboardingCollege);
       toast({ title: "Profile Completed", description: "Institutional profile updated." });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Error", description: e.message });

@@ -14,7 +14,7 @@ import { useFirestore, useCollection, useUser, useDoc } from "@/firebase";
 import { Query, collection, doc, updateDoc, DocumentReference } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  isSuperAdmin as checkSuperAdmin, 
+  isSuperAdmin, 
   authorizeAdminEmail, 
   deleteAuthorizedAdmin, 
   UserProfile, 
@@ -46,25 +46,22 @@ export default function IdentityManagementPage() {
   );
   const { data: currentAdminProfile } = useDoc<UserProfile>(adminProfileRef);
 
-  const usersCollectionRef = useMemo(() => 
-    db ? (collection(db, "users") as unknown as Query<UserProfile & { id: string }>) : null, 
-    [db]
+  const { data: allUsers, loading: usersLoading } = useCollection<UserProfile & { id: string }>(
+    useMemo(() => db ? (collection(db, "users") as Query<UserProfile & { id: string }>) : null, [db])
   );
-  const { data: allUsers, loading: usersLoading } = useCollection<UserProfile & { id: string }>(usersCollectionRef);
 
-  const authAdminsCollectionRef = useMemo(() => 
-    db ? (collection(db, "authorizedAdmins") as unknown as Query<AuthorizedAdmin & { id: string }>) : null, 
-    [db]
+  const { data: authAdmins, loading: authAdminsLoading } = useCollection<AuthorizedAdmin & { id: string }>(
+    useMemo(() => db ? (collection(db, "authorizedAdmins") as Query<AuthorizedAdmin & { id: string }>) : null, [db])
   );
-  const { data: authAdmins, loading: authAdminsLoading } = useCollection<AuthorizedAdmin & { id: string }>(authAdminsCollectionRef);
 
   const professors = useMemo(() => allUsers.filter(u => u.role === 'professor'), [allUsers]);
   
   const administrators = useMemo(() => {
     const activeAdmins = allUsers.filter(u => u.role === 'admin');
     
+    // Find pre-authorized admins who haven't logged in yet
     const pendingAdmins = authAdmins
-      .filter(auth => !activeAdmins.some(active => active.email.toLowerCase() === auth.email.toLowerCase()))
+      .filter(auth => !activeAdmins.some(active => active.email?.toLowerCase() === auth.email?.toLowerCase()))
       .map(p => ({
         id: p.email,
         email: p.email,
@@ -95,10 +92,10 @@ export default function IdentityManagementPage() {
     );
   }, [administrators, search]);
 
-  const isSuperAdmin = useMemo(() => checkSuperAdmin(currentAdminProfile || { email: authUser?.email || '' } as UserProfile), [currentAdminProfile, authUser]);
+  const superAdminFlag = useMemo(() => isSuperAdmin(currentAdminProfile), [currentAdminProfile]);
 
   const handleUpdateStatus = async (targetUser: UserProfile & { id: string }) => {
-    if (!db || (!isSuperAdmin && targetUser.role === 'admin')) {
+    if (!db || (!superAdminFlag && targetUser.role === 'admin')) {
       toast({ variant: "destructive", title: "Access Denied", description: "Insufficient privileges." });
       return;
     }
@@ -113,7 +110,7 @@ export default function IdentityManagementPage() {
   };
 
   const handleRevokeAdmin = async (email: string) => {
-    if (!db || !isSuperAdmin) return;
+    if (!db || !superAdminFlag) return;
     if (!confirm(`Revoke administrative access for ${email}?`)) return;
 
     try {
@@ -130,7 +127,7 @@ export default function IdentityManagementPage() {
 
   const handleAuthorizeAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!db || !adminEmail || !isSuperAdmin) return;
+    if (!db || !adminEmail || !superAdminFlag) return;
 
     setIsSubmitting(true);
     try {
@@ -160,8 +157,8 @@ export default function IdentityManagementPage() {
         <div>
           <p className="text-[10px] text-primary uppercase font-bold tracking-[0.2em] mb-1">Admin / Identify & Access Management</p>
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-extrabold text-slate-800 leading-none tracking-tight">Access Registry</h1>
-            {isSuperAdmin && (
+            <h1 className="text-3xl font-extrabold text-slate-800 leading-none tracking-tight">Identity Registry</h1>
+            {superAdminFlag && (
               <Badge className="bg-primary/10 text-primary border-none font-bold text-[10px] uppercase tracking-widest px-2.5 py-1">
                 <ShieldCheck size={12} className="mr-1" /> Super Admin
               </Badge>
@@ -169,7 +166,7 @@ export default function IdentityManagementPage() {
           </div>
           <p className="text-sm text-slate-400 font-medium mt-2">Oversee institutional faculty access and administrative roles.</p>
         </div>
-        {isSuperAdmin && (
+        {superAdminFlag && (
           <Button 
             onClick={() => setIsAdminDialogOpen(true)} 
             className="bg-primary hover:bg-primary/90 rounded-xl px-6 h-12 shadow-lg shadow-primary/20 flex items-center gap-2 font-bold transition-all"
@@ -285,7 +282,7 @@ export default function IdentityManagementPage() {
                           <Badge variant="outline" className="bg-orange-50 text-orange-600 border-none font-bold text-[8px] uppercase tracking-widest px-2.5 py-1">
                             <Clock size={10} className="mr-1" /> Pending
                           </Badge>
-                        ) : checkSuperAdmin(admin) ? (
+                        ) : isSuperAdmin(admin) ? (
                           <Badge className="bg-primary text-white border-none font-bold text-[8px] uppercase tracking-widest px-2.5 py-1">Super Admin</Badge>
                         ) : (
                           <Badge variant="outline" className="bg-blue-50 text-blue-600 border-none font-bold text-[8px] uppercase tracking-widest px-2.5 py-1">Management</Badge>
@@ -295,7 +292,7 @@ export default function IdentityManagementPage() {
                         {admin.email}
                       </TableCell>
                       <TableCell className="px-8 py-5 text-right">
-                        {isSuperAdmin && !checkSuperAdmin(admin) && (
+                        {superAdminFlag && !isSuperAdmin(admin) && (
                           <div className="flex justify-end gap-2">
                              {admin.type !== 'pending' && (
                                <Button 

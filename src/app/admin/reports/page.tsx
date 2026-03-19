@@ -54,9 +54,14 @@ export default function ReportsPage() {
   );
 
   const userMap = useMemo(() => {
-    const map: Record<string, string> = {};
+    const map: Record<string, { name: string, email: string }> = {};
     users.forEach(u => {
-      if (u.email) map[u.email.toLowerCase()] = u.name || u.email;
+      if (u.email) {
+        map[u.email.toLowerCase()] = {
+          name: u.name || "Authorized Professor",
+          email: u.email
+        };
+      }
     });
     return map;
   }, [users]);
@@ -70,11 +75,12 @@ export default function ReportsPage() {
         end: endOfDay(dateRange.end)
       }) : false;
 
+      const profile = userMap[s.professorEmail?.toLowerCase()];
       const matchesSearch = 
         !search || 
         s.professorEmail?.toLowerCase().includes(search.toLowerCase()) ||
         s.roomNumber?.toLowerCase().includes(search.toLowerCase()) ||
-        (userMap[s.professorEmail?.toLowerCase()]?.toLowerCase().includes(search.toLowerCase()));
+        (profile?.name?.toLowerCase().includes(search.toLowerCase()));
 
       const matchesRoom = roomFilter === "all" || s.roomNumber === roomFilter;
       const matchesCollege = collegeFilter === "all" || s.college === collegeFilter;
@@ -87,15 +93,18 @@ export default function ReportsPage() {
     if (filteredData.length === 0) return;
 
     const headers = ["Professor", "Email", "Room", "College", "Program", "Start Time", "Duration (Min)"];
-    const rows = filteredData.map(s => [
-      userMap[s.professorEmail?.toLowerCase()] || "Unknown",
-      s.professorEmail,
-      s.roomNumber,
-      s.college,
-      s.program,
-      s.startTime?.toDate ? format(s.startTime.toDate(), "yyyy-MM-dd HH:mm") : "N/A",
-      s.duration || 0
-    ]);
+    const rows = filteredData.map(s => {
+      const profile = userMap[s.professorEmail?.toLowerCase()];
+      return [
+        profile?.name || "Unknown",
+        s.professorEmail,
+        s.roomNumber,
+        s.college,
+        s.program,
+        s.startTime?.toDate ? format(s.startTime.toDate(), "yyyy-MM-dd HH:mm") : "N/A",
+        s.duration || 0
+      ];
+    });
 
     const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -191,28 +200,31 @@ export default function ReportsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {filteredData.map((session) => (
-                <tr key={session.id} className="hover:bg-slate-50/50">
-                  <td className="px-8 py-4">
-                    <div className="flex flex-col">
-                      <span className="font-bold text-slate-700">
-                        {userMap[session.professorEmail?.toLowerCase()] || session.professorEmail}
-                      </span>
-                      {userMap[session.professorEmail?.toLowerCase()] && (
-                        <span className="text-[10px] text-slate-400">{session.professorEmail}</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-8 py-4">
-                    <Badge variant="outline" className="bg-slate-50 border-none font-bold text-[10px]">{session.roomNumber}</Badge>
-                  </td>
-                  <td className="px-8 py-4 text-xs font-medium text-slate-600">{session.program}</td>
-                  <td className="px-8 py-4 text-center font-bold text-primary">{session.duration || 0}m</td>
-                  <td className="px-8 py-4 text-right text-xs text-slate-400">
-                    {session.startTime?.toDate ? format(session.startTime.toDate(), "MMM dd, hh:mm a") : "---"}
-                  </td>
-                </tr>
-              ))}
+              {filteredData.map((session) => {
+                const profile = userMap[session.professorEmail?.toLowerCase()];
+                return (
+                  <tr key={session.id} className="hover:bg-slate-50/50">
+                    <td className="px-8 py-4">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-slate-700">
+                          {profile?.name || session.professorEmail}
+                        </span>
+                        {profile?.name && (
+                          <span className="text-[10px] text-slate-400">{session.professorEmail}</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-8 py-4">
+                      <Badge variant="outline" className="bg-slate-50 border-none font-bold text-[10px]">{session.roomNumber}</Badge>
+                    </td>
+                    <td className="px-8 py-4 text-xs font-medium text-slate-600">{session.program}</td>
+                    <td className="px-8 py-4 text-center font-bold text-primary">{session.duration || 0}m</td>
+                    <td className="px-8 py-4 text-right text-xs text-slate-400">
+                      {session.startTime?.toDate ? format(session.startTime.toDate(), "MMM dd, hh:mm a") : "---"}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </CardContent>

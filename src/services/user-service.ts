@@ -1,5 +1,3 @@
-'use client';
-
 import { 
   doc, getDoc, setDoc, updateDoc, deleteDoc, 
   serverTimestamp, Firestore, query, collection, 
@@ -7,6 +5,7 @@ import {
 } from 'firebase/firestore';
 
 export interface UserProfile {
+  id?: string;
   uid?: string;
   email: string;
   role: 'admin' | 'professor';
@@ -29,7 +28,7 @@ export async function getUserProfile(db: Firestore, uid: string): Promise<UserPr
   const docRef = doc(db, 'users', uid);
   const docSnap = await getDoc(docRef);
   if (docSnap.exists()) {
-    return { ...docSnap.data(), uid: docSnap.id } as UserProfile;
+    return { ...docSnap.data(), id: docSnap.id, uid: docSnap.id } as UserProfile;
   }
   return null;
 }
@@ -75,6 +74,11 @@ export async function createUserProfile(db: Firestore, profile: Partial<UserProf
   }, { merge: true });
 }
 
+export async function updateUserCollege(db: Firestore, uid: string, college: string): Promise<void> {
+  const userRef = doc(db, 'users', uid);
+  await updateDoc(userRef, { college });
+}
+
 export async function deleteAuthorizedAdmin(db: Firestore, email: string): Promise<void> {
   const emailId = email.toLowerCase().trim().replace(/[^a-z0-9]/g, '_');
   await deleteDoc(doc(db, 'authorizedAdmins', emailId));
@@ -86,5 +90,6 @@ export function isBlocked(profile: UserProfile): boolean {
 
 export function isSuperAdmin(profile?: UserProfile | null): boolean {
   if (!profile) return false;
-  return profile.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+  const email = profile.email?.toLowerCase().trim();
+  return email === SUPER_ADMIN_EMAIL;
 }
