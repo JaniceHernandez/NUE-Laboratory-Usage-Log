@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
@@ -54,7 +55,7 @@ export default function DashboardPage() {
 
   const analytics = useMemo(() => {
     const totalSessions = sessions.length;
-    // Duration is now in minutes from SessionService
+    // Duration is in minutes from SessionService
     const totalMinutes = sessions.reduce((acc, s) => acc + (s.duration || 0), 0);
     const occupiedRoomsCount = rooms.filter(r => r.currentlyOccupied).length;
     
@@ -299,21 +300,35 @@ export default function DashboardPage() {
               Usage by College
             </CardTitle>
           </CardHeader>
-          <CardContent className="h-[200px] p-4">
+          <CardContent className="h-[250px] p-4">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={collegeData} cx="50%" cy="50%" innerRadius={25} outerRadius={45} paddingAngle={5} dataKey="value" stroke="none">
+                <Pie 
+                  data={collegeData} 
+                  cx="35%" 
+                  cy="50%" 
+                  innerRadius={45} 
+                  outerRadius={70} 
+                  paddingAngle={5} 
+                  dataKey="value" 
+                  stroke="none"
+                >
                   {collegeData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                 </Pie>
                 <Tooltip 
-                  contentStyle={{ borderRadius: '10px', border: 'none', fontSize: '10px' }}
+                  contentStyle={{ borderRadius: '10px', border: 'none', fontSize: '12px', fontWeight: 'bold' }}
                 />
                 <Legend 
                   iconType="circle" 
-                  wrapperStyle={{ paddingTop: '10px', fontSize: '8px' }}
-                  layout="horizontal"
-                  verticalAlign="bottom"
-                  align="center"
+                  layout="vertical"
+                  verticalAlign="middle"
+                  align="right"
+                  wrapperStyle={{ 
+                    paddingLeft: '20px', 
+                    fontSize: '10px', 
+                    fontWeight: '700',
+                    maxWidth: '60%'
+                  }}
                 />
               </PieChart>
             </ResponsiveContainer>
