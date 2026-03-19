@@ -86,6 +86,18 @@ export default function ReportsPage() {
     useMemo(() => db ? query(collection(db, "rooms"), orderBy("number", "asc")) : null, [db])
   );
 
+  const { data: users, loading: usersLoading } = useCollection<any>(
+    useMemo(() => db ? collection(db, "users") : null, [db])
+  );
+
+  const userMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    users.forEach(u => {
+      if (u.email) map[u.email.toLowerCase()] = u.name || u.email;
+    });
+    return map;
+  }, [users]);
+
   const filteredData = useMemo(() => {
     if (!mounted) return [];
     return sessions.filter((s: any) => {
@@ -179,7 +191,7 @@ export default function ReportsPage() {
     });
   };
 
-  if (sessionsLoading || roomsLoading || !mounted) {
+  if (sessionsLoading || roomsLoading || usersLoading || !mounted) {
     return (
       <div className="h-96 w-full flex items-center justify-center">
         <Loader2 className="animate-spin text-primary" size={40} />
@@ -356,7 +368,9 @@ export default function ReportsPage() {
                   <tr key={session.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-8 py-4">
                       <div className="flex flex-col">
-                        <span className="font-bold text-slate-700">{session.professorEmail?.split('@')[0]}</span>
+                        <span className="font-bold text-slate-700">
+                          {userMap[session.professorEmail?.toLowerCase()] || session.professorEmail?.split('@')[0]}
+                        </span>
                         <span className="text-[10px] text-slate-400">{session.professorEmail}</span>
                       </div>
                     </td>
