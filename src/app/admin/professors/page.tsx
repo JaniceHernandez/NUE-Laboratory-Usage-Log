@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useFirestore, useCollection, useUser, useDoc } from "@/firebase";
-import { collection, doc, updateDoc, deleteDoc, DocumentReference } from "firebase/firestore";
+import { Query, collection, doc, updateDoc, deleteDoc, DocumentReference } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { UserService, UserProfile } from "@/services/user-service";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -42,22 +42,23 @@ export default function ProfessorsPage() {
   const { data: currentAdminProfile } = useDoc<UserProfile>(adminProfileRef);
 
   const { data: allUsers, loading } = useCollection<UserProfile & { id: string }>(
-    useMemo(() => db ? collection(db, "users") : null, [db])
+    useMemo(() => {
+      if (!db) return null;
+      return collection(db, "users") as unknown as Query<UserProfile & { id: string }>;
+    }, [db])
   );
 
-  // Group users by role, and deduplicate placeholder emails if they have a real UID profile
   const professors = useMemo(() => allUsers.filter(u => u.role === 'professor'), [allUsers]);
   
   const administrators = useMemo(() => {
     const admins = allUsers.filter(u => u.role === 'admin');
     const seenEmails = new Set<string>();
     
-    // Prioritize actual user profiles (UIDs) over email-placeholders
     return admins.filter(a => {
+      if (!a.email) return false;
       const email = a.email.toLowerCase();
-      // If doc ID is email, and we have a UID version, skip this placeholder
       const isPlaceholder = a.id === a.email;
-      const hasRealProfile = admins.some(other => other.id !== other.email && other.email.toLowerCase() === email);
+      const hasRealProfile = admins.some(other => other.id !== other.email && other.email?.toLowerCase() === email);
       
       if (isPlaceholder && hasRealProfile) return false;
       return true;
@@ -219,7 +220,7 @@ export default function ProfessorsPage() {
                           <Avatar className="h-10 w-10 rounded-xl border border-slate-100 shadow-sm">
                             <AvatarImage src={prof.photoURL || undefined} />
                             <AvatarFallback className="rounded-xl bg-slate-50 text-primary text-[10px] font-black">
-                              {(prof.name || prof.email).substring(0, 2).toUpperCase()}
+                              {(prof.name || prof.email || "AP").substring(0, 2).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <span className="text-sm font-bold text-slate-700">{prof.name || "Authorized Professor"}</span>
@@ -291,7 +292,7 @@ export default function ProfessorsPage() {
                           <Avatar className="h-10 w-10 rounded-xl border border-slate-100 shadow-sm">
                             <AvatarImage src={admin.photoURL || undefined} />
                             <AvatarFallback className="rounded-xl bg-primary/5 text-primary text-[10px] font-black">
-                              {(admin.name || admin.email).substring(0, 2).toUpperCase()}
+                              {(admin.name || admin.email || "AA").substring(0, 2).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <span className="text-sm font-bold text-slate-700">{admin.name || "Authorized Admin"}</span>

@@ -102,7 +102,7 @@ export default function ReportsPage() {
     if (!mounted) return [];
     return sessions.filter((s: any) => {
       // Date Filter
-      const date = s.startTime?.toDate();
+      const date = s.startTime?.toDate ? s.startTime.toDate() : (s.startTime instanceof Date ? s.startTime : null);
       const matchesDate = date ? isWithinInterval(date, {
         start: startOfDay(dateRange.start),
         end: endOfDay(dateRange.end)
@@ -366,7 +366,7 @@ export default function ReportsPage() {
               <tbody className="divide-y divide-slate-50">
                 {filteredData.slice(0, 50).map((session) => {
                   const facultyEmail = session.professorEmail?.toLowerCase();
-                  const facultyName = userMap[facultyEmail];
+                  const facultyName = facultyEmail ? userMap[facultyEmail] : null;
                   
                   return (
                     <tr key={session.id} className="hover:bg-slate-50/50 transition-colors">

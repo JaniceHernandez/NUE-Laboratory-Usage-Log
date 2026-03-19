@@ -59,7 +59,7 @@ export default function DashboardPage() {
   const userMap = useMemo(() => {
     const map: Record<string, string> = {};
     users.forEach(u => {
-      if (u.email) map[u.email] = u.name || u.email;
+      if (u.email) map[u.email.toLowerCase()] = u.name || u.email;
     });
     return map;
   }, [users]);
@@ -105,7 +105,7 @@ export default function DashboardPage() {
 
     return intervals.map(date => {
       const count = sessions.filter(s => {
-        const sDate = s.startTime?.toDate();
+        const sDate = s.startTime?.toDate ? s.startTime.toDate() : (s.startTime instanceof Date ? s.startTime : null);
         if (!sDate) return false;
         if (trendGranularity === "daily") return isSameDay(sDate, date);
         if (trendGranularity === "weekly") return isSameWeek(sDate, date);
@@ -156,7 +156,8 @@ export default function DashboardPage() {
     const events: any[] = [];
     
     sessions.forEach(s => {
-      const profName = userMap[s.professorEmail] || s.professorEmail || "Unknown";
+      const email = s.professorEmail?.toLowerCase();
+      const profName = email ? (userMap[email] || s.professorEmail) : "Unknown";
       
       if (s.startTime?.toDate) {
         events.push({
@@ -322,8 +323,8 @@ export default function DashboardPage() {
                   data={collegeData} 
                   cx="35%" 
                   cy="50%" 
-                  innerRadius={50} 
-                  outerRadius={75} 
+                  innerRadius={40} 
+                  outerRadius={65} 
                   paddingAngle={5} 
                   dataKey="value" 
                   stroke="none"
