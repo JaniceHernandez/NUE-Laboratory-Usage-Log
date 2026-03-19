@@ -10,8 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { 
   LogOut, Play, Square, CheckCircle2, 
   Clock, MapPin, Loader2, CalendarClock, 
-  ShieldCheck, AlertTriangle,
-  History, GraduationCap, Building2
+  AlertTriangle
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -242,7 +241,6 @@ export default function ProfessorPortal() {
       const roomName = activeSession.roomNumber;
       const startMs = activeSession.startTime.toMillis();
       const endMs = Date.now();
-      // Calculate minutes for UI (consistent with service)
       const durationMinutes = Math.ceil((endMs - startMs) / 60000);
 
       setSummaryData({
@@ -524,25 +522,29 @@ export default function ProfessorPortal() {
         </main>
 
         <Dialog open={isThankYouOpen} onOpenChange={setIsThankYouOpen}>
-          <DialogContent className="sm:max-w-md rounded-[2.5rem] p-10 border-none shadow-2xl overflow-hidden">
-            <DialogHeader className="text-center">
-              <div className="mx-auto w-16 h-16 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mb-6 shadow-sm">
-                <CheckCircle2 size={32} />
+          <DialogContent className="sm:max-w-2xl rounded-[2.5rem] p-8 border-none shadow-2xl overflow-hidden">
+            <DialogHeader>
+              <div className="flex items-center gap-6 mb-2">
+                <div className="w-16 h-16 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center shadow-sm shrink-0">
+                  <CheckCircle2 size={32} />
+                </div>
+                <div className="text-left">
+                  <DialogTitle className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-1">Session Complete</DialogTitle>
+                  <DialogDescription className="text-base font-bold text-slate-500">
+                    Thank you for using Room {summaryData?.roomNumber}
+                  </DialogDescription>
+                </div>
               </div>
-              <DialogTitle className="text-3xl text-center font-black text-slate-900 tracking-tight">Session Complete</DialogTitle>
-              <DialogDescription className="text-base text-center font-bold text-slate-500 mt-1">
-                Thank you for using Room {summaryData?.roomNumber}
-              </DialogDescription>
             </DialogHeader>
-            <div className="py-8 space-y-4 text-center">
+            <div className="py-2 space-y-4">
               <div className="bg-slate-50 rounded-[2rem] p-8 border border-slate-100 shadow-inner">
-                <div className="space-y-6">
+                <div className="space-y-4">
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">FACULTY MEMBER</p>
                     <p className="text-xl font-black text-slate-800">Prof. {summaryData?.professorName}</p>
                   </div>
                   
-                  <div className="pt-6 border-t border-slate-200/50 space-y-6">
+                  <div className="pt-4 border-t border-slate-200/50 space-y-4">
                     <div>
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">USAGE DURATION</p>
                       <p className="text-xl font-black text-primary">
