@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import { LayoutDashboard, FileText, Monitor, Users, Settings, LogOut, GraduationCap, BarChart3, User, Shield, Save, Loader2, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Monitor, Users, Settings, LogOut, BarChart3, User, Shield, Save, Loader2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,6 @@ import { cn } from "@/lib/utils";
 
 const navItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/admin/dashboard" },
-  { title: "Usage Logs", icon: FileText, href: "/admin/logs" },
   { title: "Room Management", icon: Monitor, href: "/admin/rooms" },
   { title: "Professor Management", icon: Users, href: "/admin/professors" },
   { title: "Reports", icon: BarChart3, href: "/admin/reports" },

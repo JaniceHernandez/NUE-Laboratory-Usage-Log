@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -5,8 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { 
   FileDown, 
-  Calendar as CalendarIcon, 
-  Filter, 
   Loader2, 
   BarChart, 
   Clock, 
@@ -14,23 +13,60 @@ import {
   Database,
   ArrowRight,
   Search,
-  X
+  FilterX
 } from "lucide-react";
 import { useFirestore, useCollection } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
 import { format, isWithinInterval, startOfDay, endOfDay, subDays } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const COLLEGES = [
+  "College of Informatics and Computing Studies",
+  "College of Engineering and Architecture",
+  "College of Communication",
+  "College of Accountancy",
+];
+
+const PROGRAMS: Record<string, string[]> = {
+  "College of Informatics and Computing Studies": [
+    "Bachelor of Science in Computer Science",
+    "Bachelor of Science in Information Technology",
+    "Bachelor of Science in Information System",
+    "Bachelor of Science in Entertainment and Multimedia Computing"
+  ],
+  "College of Engineering and Architecture": [
+    "Bachelor of Science in Architecture",
+    "Bachelor of Science in Civil Engineering",
+    "Bachelor of Science in Electrical Engineering",
+    "Bachelor of Science in Electronics Engineering",
+    "Bachelor of Science in Mechanical Engineering"
+  ],
+  "College of Communication": [
+    "Bachelor of Arts in Broadcasting",
+    "Bachelor of Arts in Communication",
+    "Bachelor of Arts in Journalism"
+  ],
+  "College of Accountancy": [
+    "Bachelor of Science in Accounting Information System"
+  ]
+};
 
 export default function ReportsPage() {
   const db = useFirestore();
   const { toast } = useToast();
   const [mounted, setMounted] = useState(false);
+  
+  // Filters
   const [search, setSearch] = useState("");
+  const [roomFilter, setRoomFilter] = useState("");
+  const [collegeFilter, setCollegeFilter] = useState("all");
+  const [programFilter, setProgramFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>({
     start: subDays(new Date(), 30),
     end: new Date()
@@ -47,25 +83,33 @@ export default function ReportsPage() {
   const filteredData = useMemo(() => {
     if (!mounted) return [];
     return sessions.filter((s: any) => {
+      // Date Filter
       const date = s.startTime?.toDate();
       const matchesDate = date ? isWithinInterval(date, {
         start: startOfDay(dateRange.start),
         end: endOfDay(dateRange.end)
       }) : false;
 
+      // Global Search Filter
       const matchesSearch = 
+        !search || 
         s.professorEmail?.toLowerCase().includes(search.toLowerCase()) ||
         s.roomNumber?.toLowerCase().includes(search.toLowerCase()) ||
         s.college?.toLowerCase().includes(search.toLowerCase()) ||
         s.program?.toLowerCase().includes(search.toLowerCase());
 
-      return matchesDate && matchesSearch;
+      // Specific Filters
+      const matchesRoom = !roomFilter || s.roomNumber?.toLowerCase().includes(roomFilter.toLowerCase());
+      const matchesCollege = collegeFilter === "all" || s.college === collegeFilter;
+      const matchesProgram = programFilter === "all" || s.program === programFilter;
+      const matchesStatus = statusFilter === "all" || s.status === statusFilter;
+
+      return matchesDate && matchesSearch && matchesRoom && matchesCollege && matchesProgram && matchesStatus;
     });
-  }, [sessions, dateRange, search, mounted]);
+  }, [sessions, dateRange, search, roomFilter, collegeFilter, programFilter, statusFilter, mounted]);
 
   const reportStats = useMemo(() => {
     const totalSessions = filteredData.length;
-    // Duration is in minutes from SessionService
     const totalMinutes = filteredData.reduce((acc, s) => acc + (s.duration || 0), 0);
     const uniqueProfessors = new Set(filteredData.map(s => s.professorEmail)).size;
     const uniqueRooms = new Set(filteredData.map(s => s.roomNumber)).size;
@@ -77,6 +121,18 @@ export default function ReportsPage() {
       rooms: uniqueRooms
     };
   }, [filteredData]);
+
+  const resetFilters = () => {
+    setSearch("");
+    setRoomFilter("");
+    setCollegeFilter("all");
+    setProgramFilter("all");
+    setStatusFilter("all");
+    setDateRange({
+      start: subDays(new Date(), 30),
+      end: new Date()
+    });
+  };
 
   const handleExportCSV = () => {
     if (filteredData.length === 0) {
@@ -128,7 +184,7 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
           <p className="text-[10px] text-primary uppercase font-bold tracking-[0.2em] mb-1">Admin / Audit & Analytics</p>
@@ -204,20 +260,88 @@ export default function ReportsPage() {
       </div>
 
       <Card className="border-none shadow-sm rounded-2xl bg-white overflow-hidden">
-        <CardHeader className="p-8 border-b border-slate-50 bg-slate-50/20">
+        <CardHeader className="p-8 border-b border-slate-50 bg-slate-50/20 space-y-6">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <div className="space-y-1">
               <CardTitle className="text-xl font-bold">Consolidated Log Explorer</CardTitle>
-              <CardDescription>Detailed session records for the active date range and filter.</CardDescription>
+              <CardDescription>Detailed session records with advanced multi-criteria filtering.</CardDescription>
             </div>
-            <div className="relative w-full lg:w-96 group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={18} />
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-xs font-bold text-slate-400 hover:text-red-500 hover:bg-red-50 gap-2"
+                onClick={resetFilters}
+              >
+                <FilterX size={14} /> Clear All Filters
+              </Button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Global Search</span>
+              <div className="relative group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={14} />
+                <Input 
+                  placeholder="Professor, Room, etc..." 
+                  className="pl-9 h-10 bg-white border-slate-200 rounded-xl focus-visible:ring-1 focus-visible:ring-primary/20 text-xs"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Room Number</span>
               <Input 
-                placeholder="Search by faculty, room, or program..." 
-                className="pl-12 h-11 bg-white border-slate-200 rounded-xl focus-visible:ring-1 focus-visible:ring-primary/20 transition-all text-sm"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                placeholder="e.g., COM LAB 402" 
+                className="h-10 bg-white border-slate-200 rounded-xl focus-visible:ring-1 focus-visible:ring-primary/20 text-xs"
+                value={roomFilter}
+                onChange={(e) => setRoomFilter(e.target.value)}
               />
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">College</span>
+              <Select value={collegeFilter} onValueChange={(val) => { setCollegeFilter(val); setProgramFilter("all"); }}>
+                <SelectTrigger className="h-10 bg-white border-slate-200 rounded-xl text-xs">
+                  <SelectValue placeholder="All Colleges" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="all">All Colleges</SelectItem>
+                  {COLLEGES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Program</span>
+              <Select value={programFilter} onValueChange={setProgramFilter} disabled={collegeFilter === "all"}>
+                <SelectTrigger className="h-10 bg-white border-slate-200 rounded-xl text-xs">
+                  <SelectValue placeholder={collegeFilter === "all" ? "Select College First" : "All Programs"} />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="all">All Programs</SelectItem>
+                  {collegeFilter !== "all" && PROGRAMS[collegeFilter]?.map(p => (
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Session Status</span>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-10 bg-white border-slate-200 rounded-xl text-xs">
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardHeader>
@@ -230,12 +354,12 @@ export default function ReportsPage() {
                   <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Facility</th>
                   <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Program / College</th>
                   <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Duration</th>
+                  <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Status</th>
                   <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Start Time</th>
-                  <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">End Time</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {filteredData.slice(0, 20).map((session) => (
+                {filteredData.slice(0, 50).map((session) => (
                   <tr key={session.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-8 py-4">
                       <div className="flex flex-col">
@@ -249,30 +373,32 @@ export default function ReportsPage() {
                       </Badge>
                     </td>
                     <td className="px-8 py-4">
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-col">
                         <span className="text-xs font-bold text-slate-600">{session.program}</span>
-                        <span className="text-[10px] text-slate-400">({session.college})</span>
+                        <span className="text-[10px] text-slate-400">{session.college}</span>
                       </div>
                     </td>
                     <td className="px-8 py-4 text-center">
                       <span className="text-xs font-mono font-bold text-primary">{session.duration || 0}m</span>
+                    </td>
+                    <td className="px-8 py-4 text-center">
+                      <Badge variant="outline" className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 border-none ${
+                        session.status === 'active' ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-400'
+                      }`}>
+                        {session.status}
+                      </Badge>
                     </td>
                     <td className="px-8 py-4 text-right">
                       <span className="text-xs text-slate-400">
                         {session.startTime?.toDate ? format(session.startTime.toDate(), "MMM dd, hh:mm a") : "---"}
                       </span>
                     </td>
-                    <td className="px-8 py-4 text-right">
-                      <span className="text-xs text-slate-400">
-                        {session.endTime?.toDate ? format(session.endTime.toDate(), "MMM dd, hh:mm a") : "---"}
-                      </span>
-                    </td>
                   </tr>
                 ))}
-                {filteredData.length > 20 && (
+                {filteredData.length > 50 && (
                   <tr>
                     <td colSpan={6} className="px-8 py-6 text-center bg-slate-50/30">
-                      <p className="text-xs text-slate-400 italic">Showing top 20 records. Use "Export CSV" for the full dataset.</p>
+                      <p className="text-xs text-slate-400 italic">Showing top 50 records. Use "Export CSV" for the full dataset.</p>
                     </td>
                   </tr>
                 )}
