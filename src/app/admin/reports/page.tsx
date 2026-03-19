@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -176,18 +175,33 @@ export default function ReportsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Date Range (Start)</span>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="h-10 w-full rounded-xl text-xs justify-start">
-                    {format(dateRange.start, "MMM dd, yyyy")}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={dateRange.start} onSelect={(d) => d && setDateRange(prev => ({...prev, start: d}))} />
-                </PopoverContent>
-              </Popover>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">From</span>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="h-10 w-full rounded-xl text-[10px] px-2 justify-start truncate">
+                      {format(dateRange.start, "MMM dd, yyyy")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={dateRange.start} onSelect={(d) => d && setDateRange(prev => ({...prev, start: d}))} />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">To</span>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="h-10 w-full rounded-xl text-[10px] px-2 justify-start truncate">
+                      {format(dateRange.end, "MMM dd, yyyy")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={dateRange.end} onSelect={(d) => d && setDateRange(prev => ({...prev, end: d}))} />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
           </div>
         </CardHeader>
