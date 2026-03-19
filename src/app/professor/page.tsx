@@ -536,7 +536,7 @@ export default function ProfessorPortal() {
                 <div className="space-y-6">
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">FACULTY MEMBER</p>
-                    <p className="text-l font-black text-slate-800">Prof. {summaryData?.professorName}</p>
+                    <p className="text-xl font-black text-slate-800">Prof. {summaryData?.professorName}</p>
                   </div>
                   
                   <div className="pt-6 border-t border-slate-200/50 space-y-6">
@@ -549,11 +549,11 @@ export default function ProfessorPortal() {
                     </div>
                     <div>
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">COLLEGE</p>
-                      <p className="text-l font-black text-slate-700 leading-tight">{summaryData?.college}</p>
+                      <p className="text-xl font-black text-slate-700 leading-tight">{summaryData?.college}</p>
                     </div>
                     <div>
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">ACADEMIC PROGRAM</p>
-                      <p className="text-l font-black text-slate-700 leading-tight">{summaryData?.program}</p>
+                      <p className="text-xl font-black text-slate-700 leading-tight">{summaryData?.program}</p>
                     </div>
                   </div>
                 </div>

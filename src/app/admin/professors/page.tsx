@@ -36,7 +36,7 @@ export default function ProfessorsPage() {
   );
   const { data: currentAdminProfile } = useDoc<UserProfile>(adminProfileRef);
 
-  const { data: allUsers, loading } = useCollection<UserProfile>(
+  const { data: allUsers, loading } = useCollection<UserProfile & { id: string }>(
     useMemo(() => db ? collection(db, "users") : null, [db])
   );
 
@@ -60,7 +60,7 @@ export default function ProfessorsPage() {
 
   const isSuperAdmin = useMemo(() => UserService.isSuperAdmin(currentAdminProfile), [currentAdminProfile]);
 
-  const handleUpdateStatus = async (targetUser: UserProfile) => {
+  const handleUpdateStatus = async (targetUser: UserProfile & { id: string }) => {
     if (!db || !currentAdminProfile) return;
 
     const canManage = isSuperAdmin || targetUser.role === 'professor';
@@ -71,7 +71,8 @@ export default function ProfessorsPage() {
     }
 
     const newStatus = targetUser.status === "blocked" ? "active" : "blocked";
-    const userRef = doc(db, "users", targetUser.uid!);
+    // targetUser.id is the Firestore document ID provided by useCollection
+    const userRef = doc(db, "users", targetUser.id);
 
     try {
       await updateDoc(userRef, { status: newStatus });
@@ -81,7 +82,7 @@ export default function ProfessorsPage() {
     }
   };
 
-  const handleDeleteUser = async (targetUser: UserProfile) => {
+  const handleDeleteUser = async (targetUser: UserProfile & { id: string }) => {
     if (!db || !isSuperAdmin) {
       toast({ variant: "destructive", title: "Access Denied", description: "Only the Super Admin can permanently revoke access." });
       return;
@@ -90,7 +91,7 @@ export default function ProfessorsPage() {
     if (!confirm(`Permanently revoke access for ${targetUser.email}? This cannot be undone.`)) return;
 
     try {
-      await deleteDoc(doc(db, "users", targetUser.uid!));
+      await deleteDoc(doc(db, "users", targetUser.id));
       toast({ title: "Access Revoked", description: `${targetUser.email} has been removed from the institutional database.` });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Error", description: "Failed to revoke account access." });
@@ -157,7 +158,7 @@ export default function ProfessorsPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredProfessors.map((prof) => (
-                    <TableRow key={prof.uid} className="hover:bg-slate-50/50 transition-colors border-slate-50">
+                    <TableRow key={prof.id} className="hover:bg-slate-50/50 transition-colors border-slate-50">
                       <TableCell className="px-8 py-5">
                         <div className="flex items-center gap-3">
                           <Avatar className="h-10 w-10 rounded-xl border border-slate-100 shadow-sm">
@@ -229,7 +230,7 @@ export default function ProfessorsPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredAdmins.map((admin) => (
-                    <TableRow key={admin.uid} className="hover:bg-slate-50/50 transition-colors border-slate-50">
+                    <TableRow key={admin.id} className="hover:bg-slate-50/50 transition-colors border-slate-50">
                       <TableCell className="px-8 py-5">
                         <div className="flex items-center gap-3">
                           <Avatar className="h-10 w-10 rounded-xl border border-slate-100 shadow-sm">
