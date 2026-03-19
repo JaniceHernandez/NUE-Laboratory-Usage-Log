@@ -511,7 +511,7 @@ export default function ProfessorPortal() {
                       disabled={isActionLoading}
                     >
                       {isActionLoading ? <Loader2 className="animate-spin mr-3" size={24} /> : <Square className="mr-3" size={24} />}
-                      Check-out Facility
+                      Check-out Room
                     </Button>
                   </CardFooter>
                 </Card>
@@ -526,8 +526,8 @@ export default function ProfessorPortal() {
               <div className="mx-auto w-16 h-16 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mb-6 shadow-sm">
                 <CheckCircle2 size={32} />
               </div>
-              <DialogTitle className="text-3xl font-black text-slate-900 tracking-tight">Session Complete</DialogTitle>
-              <DialogDescription className="text-base font-bold text-slate-500 mt-1">
+              <DialogTitle className="text-3xl text-center font-black text-slate-900 tracking-tight">Session Complete</DialogTitle>
+              <DialogDescription className="text-base text-center font-bold text-slate-500 mt-1">
                 Thank you for using Room {summaryData?.roomNumber}
               </DialogDescription>
             </DialogHeader>
@@ -536,7 +536,7 @@ export default function ProfessorPortal() {
                 <div className="space-y-6">
                   <div>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">FACULTY MEMBER</p>
-                    <p className="text-xl font-black text-slate-800">Prof. {summaryData?.professorName}</p>
+                    <p className="text-l font-black text-slate-800">Prof. {summaryData?.professorName}</p>
                   </div>
                   
                   <div className="pt-6 border-t border-slate-200/50 space-y-6">
