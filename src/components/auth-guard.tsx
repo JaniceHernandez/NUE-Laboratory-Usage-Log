@@ -27,7 +27,6 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
   useEffect(() => {
     if (authLoading) return;
 
-    // Public routes that don't need auth
     const publicRoutes = ["/", "/login"];
     const isPublicRoute = publicRoutes.includes(pathname);
 
@@ -41,13 +40,11 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
 
     if (!db || !auth) return;
 
-    // Real-time check of user profile and role
     const userRef = doc(db, "users", user.uid);
     const unsubscribe = onSnapshot(userRef, (snapshot) => {
       if (snapshot.exists()) {
         const userData = { uid: snapshot.id, ...snapshot.data() } as UserProfile;
         
-        // Blocked status check
         if (UserService.isBlocked(userData)) {
           AuthService.logout(auth).then(() => {
             toast({
@@ -60,7 +57,6 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
           return;
         }
 
-        // Role authorization check
         if (allowedRoles && !allowedRoles.includes(userData.role)) {
           toast({
             variant: "destructive",
@@ -73,9 +69,7 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
 
         setAuthorized(true);
       } else {
-        // If profile doesn't exist yet, we might be in the middle of a login flow.
-        // We'll wait briefly for profile creation before deciding.
-        setAuthorized(false);
+        setAuthorized(true);
       }
       setRoleLoading(false);
     }, (error) => {
@@ -95,7 +89,6 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
     );
   }
 
-  // Allow children if authorized or if on a public route without a user
   if (authorized || (!user && ["/", "/login"].includes(pathname))) {
     return <>{children}</>;
   }

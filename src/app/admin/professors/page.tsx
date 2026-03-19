@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { 
   UserX, UserCheck, Search, ShieldAlert, 
   Mail, Loader2, Users, ShieldCheck, 
-  Lock, ShieldMinus, UserPlus, Trash2 
+  Trash2 
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useFirestore, useCollection, useUser, useDoc } from "@/firebase";
@@ -16,19 +16,11 @@ import { collection, doc, updateDoc, deleteDoc, DocumentReference } from "fireba
 import { useToast } from "@/hooks/use-toast";
 import { UserService, UserProfile } from "@/services/user-service";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Dialog, DialogContent, DialogHeader, 
-  DialogTitle, DialogDescription, DialogFooter 
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function ProfessorsPage() {
   const [mounted, setMounted] = useState(false);
   const [search, setSearch] = useState("");
-  const [isAddAdminOpen, setIsAddAdminOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const db = useFirestore();
   const { user: authUser } = useUser();
@@ -42,7 +34,7 @@ export default function ProfessorsPage() {
     (db && authUser) ? (doc(db, "users", authUser.uid) as DocumentReference<UserProfile>) : null, 
     [db, authUser]
   );
-  const { data: adminProfile } = useDoc<UserProfile>(adminProfileRef);
+  const { data: currentAdminProfile } = useDoc<UserProfile>(adminProfileRef);
 
   const { data: allUsers, loading } = useCollection<UserProfile>(
     useMemo(() => db ? collection(db, "users") : null, [db])
@@ -66,18 +58,15 @@ export default function ProfessorsPage() {
     );
   }, [administrators, search]);
 
-  const isSuperAdmin = useMemo(() => UserService.isSuperAdmin(adminProfile), [adminProfile]);
+  const isSuperAdmin = useMemo(() => UserService.isSuperAdmin(currentAdminProfile), [currentAdminProfile]);
 
   const handleUpdateStatus = async (targetUser: UserProfile) => {
-    if (!db || !adminProfile) return;
+    if (!db || !currentAdminProfile) return;
 
-    // Permissions check: 
-    // Super admin can block anyone. 
-    // Admins can only block professors.
     const canManage = isSuperAdmin || targetUser.role === 'professor';
 
     if (!canManage) {
-      toast({ variant: "destructive", title: "Access Denied", description: "You do not have permission to manage this account." });
+      toast({ variant: "destructive", title: "Access Denied", description: "You do not have permission to manage this administrative account." });
       return;
     }
 
@@ -94,39 +83,17 @@ export default function ProfessorsPage() {
 
   const handleDeleteUser = async (targetUser: UserProfile) => {
     if (!db || !isSuperAdmin) {
-      toast({ variant: "destructive", title: "Access Denied", description: "Only the Super Admin can delete/revoke accounts." });
+      toast({ variant: "destructive", title: "Access Denied", description: "Only the Super Admin can permanently revoke access." });
       return;
     }
 
-    if (!confirm(`Are you sure you want to permanently delete/revoke ${targetUser.email}? This action cannot be undone.`)) return;
+    if (!confirm(`Permanently revoke access for ${targetUser.email}? This cannot be undone.`)) return;
 
     try {
-      await UserService.deleteUser(db, targetUser.uid!);
-      toast({ title: "Account Revoked", description: `${targetUser.email} has been removed from the system.` });
+      await deleteDoc(doc(db, "users", targetUser.uid!));
+      toast({ title: "Access Revoked", description: `${targetUser.email} has been removed from the institutional database.` });
     } catch (e: any) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to delete account." });
-    }
-  };
-
-  const handleAddAdmin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!db || !inviteEmail) return;
-
-    if (!inviteEmail.endsWith("@neu.edu.ph")) {
-      toast({ variant: "destructive", title: "Invalid Domain", description: "Only @neu.edu.ph emails are authorized." });
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      await UserService.authorizeAdminEmail(db, inviteEmail);
-      toast({ title: "Authorization Added", description: `${inviteEmail} is now an authorized administrator.` });
-      setIsAddAdminOpen(false);
-      setInviteEmail("");
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Failed to Authorize", description: error.message });
-    } finally {
-      setIsSubmitting(false);
+      toast({ variant: "destructive", title: "Error", description: "Failed to revoke account access." });
     }
   };
 
@@ -141,38 +108,27 @@ export default function ProfessorsPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-        <div>
-          <p className="text-[10px] text-primary uppercase font-bold tracking-[0.2em] mb-1">Admin / Institutional Access</p>
-          <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-extrabold text-slate-800 leading-none">Management Portal</h1>
-            {isSuperAdmin && (
-              <Badge className="bg-primary/10 text-primary border-none font-bold text-[10px] uppercase tracking-widest px-2.5 py-1">
-                <ShieldCheck size={12} className="mr-1" /> Super Admin
-              </Badge>
-            )}
-          </div>
-          <p className="text-sm text-slate-400 font-medium mt-2">Oversee faculty authorization and system administrators.</p>
+      <div>
+        <p className="text-[10px] text-primary uppercase font-bold tracking-[0.2em] mb-1">Admin / Institutional Access</p>
+        <div className="flex items-center gap-3">
+          <h1 className="text-3xl font-extrabold text-slate-800 leading-none">Management Portal</h1>
+          {isSuperAdmin && (
+            <Badge className="bg-primary/10 text-primary border-none font-bold text-[10px] uppercase tracking-widest px-2.5 py-1">
+              <ShieldCheck size={12} className="mr-1" /> Super Admin
+            </Badge>
+          )}
         </div>
-        {isSuperAdmin && (
-          <Button 
-            onClick={() => setIsAddAdminOpen(true)}
-            className="bg-primary hover:bg-primary/90 rounded-xl px-6 h-12 shadow-lg shadow-primary/20 flex items-center gap-2 font-bold transition-all"
-          >
-            <UserPlus size={20} />
-            Authorize New Admin
-          </Button>
-        )}
+        <p className="text-sm text-slate-400 font-medium mt-2">Oversee faculty authorization and system administrators.</p>
       </div>
 
       <Tabs defaultValue="professors" className="space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <TabsList className="bg-white p-1 h-12 rounded-2xl shadow-sm border border-slate-100">
             <TabsTrigger value="professors" className="rounded-xl px-6 font-bold data-[state=active]:bg-primary data-[state=active]:text-white">
-              <Users size={16} className="mr-2" /> Professors ({professors.length})
+              Professors ({professors.length})
             </TabsTrigger>
             <TabsTrigger value="admins" className="rounded-xl px-6 font-bold data-[state=active]:bg-primary data-[state=active]:text-white">
-              <ShieldCheck size={16} className="mr-2" /> Admins ({administrators.length})
+              Admins ({administrators.length})
             </TabsTrigger>
           </TabsList>
 
@@ -195,7 +151,6 @@ export default function ProfessorsPage() {
                   <TableRow className="border-none">
                     <TableHead className="px-8 h-14 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Faculty Name</TableHead>
                     <TableHead className="px-8 h-14 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Institutional Email</TableHead>
-                    <TableHead className="px-8 h-14 text-[10px] font-bold text-slate-400 uppercase tracking-widest">College</TableHead>
                     <TableHead className="px-8 h-14 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</TableHead>
                     <TableHead className="px-8 h-14 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Actions</TableHead>
                   </TableRow>
@@ -208,10 +163,10 @@ export default function ProfessorsPage() {
                           <Avatar className="h-10 w-10 rounded-xl border border-slate-100 shadow-sm">
                             <AvatarImage src={prof.photoURL || undefined} />
                             <AvatarFallback className="rounded-xl bg-slate-50 text-primary text-[10px] font-black">
-                              {(prof.name || prof.email).split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
+                              {(prof.name || prof.email).substring(0, 2).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="text-sm font-bold text-slate-700">{prof.name || "No Name"}</span>
+                          <span className="text-sm font-bold text-slate-700">{prof.name || "Authorized Professor"}</span>
                         </div>
                       </TableCell>
                       <TableCell className="px-8 py-5">
@@ -219,11 +174,6 @@ export default function ProfessorsPage() {
                           <Mail size={14} className="text-slate-300" />
                           {prof.email}
                         </div>
-                      </TableCell>
-                      <TableCell className="px-8 py-5">
-                        <Badge variant="outline" className="bg-slate-50 text-slate-500 border-none font-bold text-[10px] px-3 py-1">
-                          {prof.college || "Not Affiliated"}
-                        </Badge>
                       </TableCell>
                       <TableCell className="px-8 py-5">
                         {prof.status === 'blocked' ? (
@@ -279,19 +229,16 @@ export default function ProfessorsPage() {
                 </TableHeader>
                 <TableBody>
                   {filteredAdmins.map((admin) => (
-                    <TableRow key={admin.uid || admin.email} className="hover:bg-slate-50/50 transition-colors border-slate-50">
+                    <TableRow key={admin.uid} className="hover:bg-slate-50/50 transition-colors border-slate-50">
                       <TableCell className="px-8 py-5">
                         <div className="flex items-center gap-3">
                           <Avatar className="h-10 w-10 rounded-xl border border-slate-100 shadow-sm">
                             <AvatarImage src={admin.photoURL || undefined} />
                             <AvatarFallback className="rounded-xl bg-primary/5 text-primary text-[10px] font-black">
-                              {(admin.name || admin.email).split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
+                              {(admin.name || admin.email).substring(0, 2).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="text-sm font-bold text-slate-700">
-                            {admin.name || "Authorized Admin"} 
-                            {!admin.uid && <span className="ml-2 text-[8px] text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded font-black uppercase tracking-widest">Invited</span>}
-                          </span>
+                          <span className="text-sm font-bold text-slate-700">{admin.name || "Authorized Admin"}</span>
                         </div>
                       </TableCell>
                       <TableCell className="px-8 py-5">
@@ -341,39 +288,6 @@ export default function ProfessorsPage() {
           </Card>
         </TabsContent>
       </Tabs>
-
-      <Dialog open={isAddAdminOpen} onOpenChange={setIsAddAdminOpen}>
-        <DialogContent className="sm:max-w-[425px] rounded-[2.5rem] p-8">
-          <DialogHeader>
-            <div className="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-4">
-              <UserPlus size={24} />
-            </div>
-            <DialogTitle className="text-2xl font-bold">Authorize Admin</DialogTitle>
-            <DialogDescription>
-              Authorize an institutional email to access the administrative dashboard.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleAddAdmin} className="space-y-6 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="admin-email" className="text-xs font-bold uppercase tracking-widest text-slate-400">Institutional Email (@neu.edu.ph)</Label>
-              <Input 
-                id="admin-email"
-                type="email"
-                placeholder="colleague@neu.edu.ph"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                required
-                className="h-12 rounded-xl bg-slate-50 border-none focus-visible:ring-1 focus-visible:ring-primary/20"
-              />
-            </div>
-            <DialogFooter>
-              <Button type="submit" className="w-full h-12 bg-primary rounded-xl font-bold shadow-lg shadow-primary/20" disabled={isSubmitting}>
-                {isSubmitting ? <Loader2 className="animate-spin" /> : "Authorize Email"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

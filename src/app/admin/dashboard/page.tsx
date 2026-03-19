@@ -61,7 +61,7 @@ export default function DashboardPage() {
 
   const analytics = useMemo(() => {
     const totalSessions = sessions.length;
-    const totalMinutes = sessions.reduce((acc, s) => acc + (s.duration || 0), 0);
+    const totalSeconds = sessions.reduce((acc, s) => acc + (s.duration || 0), 0);
     const occupiedRoomsCount = rooms.filter(r => r.currentlyOccupied).length;
     
     const roomCounts: Record<string, number> = {};
@@ -75,7 +75,7 @@ export default function DashboardPage() {
 
     return [
       { title: "Total Logs", value: totalSessions, icon: Monitor, trend: "Cumulative", color: "text-blue-500", bgColor: "bg-blue-50" },
-      { title: "Usage Hours", value: `${(totalMinutes / 60).toFixed(1)}h`, icon: Clock, trend: "Overall", color: "text-orange-500", bgColor: "bg-orange-50" },
+      { title: "Usage Hours", value: `${(totalSeconds / 3600).toFixed(1)}h`, icon: Clock, trend: "Overall", color: "text-orange-500", bgColor: "bg-orange-50" },
       { title: "Busiest Lab", value: mostUsedRoom, icon: MapPin, trend: "Most Active", color: "text-green-500", bgColor: "bg-green-50" },
       { title: "Live Units", value: `${occupiedRoomsCount}/${rooms.length}`, icon: Activity, trend: "Real-time", color: "text-primary", bgColor: "bg-primary/5" },
     ];

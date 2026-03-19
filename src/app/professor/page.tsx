@@ -239,7 +239,9 @@ export default function ProfessorPortal() {
     }
   };
 
-  if (authLoading || roomsLoading || profileLoading || !mounted) {
+  const isActuallyLoading = authLoading || roomsLoading || profileLoading || !mounted;
+
+  if (isActuallyLoading) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50">
         <Loader2 className="animate-spin text-primary mb-4" size={40} />

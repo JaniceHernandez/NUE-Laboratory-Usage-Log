@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -66,13 +65,13 @@ export default function ReportsPage() {
 
   const reportStats = useMemo(() => {
     const totalSessions = filteredData.length;
-    const totalMinutes = filteredData.reduce((acc, s) => acc + (s.duration || 0), 0);
+    const totalSeconds = filteredData.reduce((acc, s) => acc + (s.duration || 0), 0);
     const uniqueProfessors = new Set(filteredData.map(s => s.professorEmail)).size;
     const uniqueRooms = new Set(filteredData.map(s => s.roomNumber)).size;
 
     return {
       sessions: totalSessions,
-      hours: (totalMinutes / 60).toFixed(1),
+      hours: (totalSeconds / 3600).toFixed(1),
       professors: uniqueProfessors,
       rooms: uniqueRooms
     };
@@ -88,7 +87,7 @@ export default function ReportsPage() {
       return;
     }
 
-    const headers = ["ID", "Professor", "Room", "College", "Program", "Section", "Start Time", "End Time", "Duration (Min)", "Status"];
+    const headers = ["ID", "Professor", "Room", "College", "Program", "Section", "Start Time", "End Time", "Duration (Sec)", "Status"];
     const rows = filteredData.map(s => [
       s.id,
       s.professorEmail,
@@ -255,7 +254,7 @@ export default function ReportsPage() {
                       </div>
                     </td>
                     <td className="px-8 py-4 text-center">
-                      <span className="text-xs font-mono font-bold text-primary">{session.duration || 0}m</span>
+                      <span className="text-xs font-mono font-bold text-primary">{session.duration || 0}s</span>
                     </td>
                     <td className="px-8 py-4 text-right">
                       <span className="text-xs text-slate-400">

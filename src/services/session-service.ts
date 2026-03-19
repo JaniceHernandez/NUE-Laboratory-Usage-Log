@@ -60,13 +60,11 @@ export const SessionService = {
   },
 
   async startSession(db: Firestore, data: Omit<LabSession, 'id' | 'startTime' | 'status' | 'createdAt'>): Promise<string> {
-    // Check if the current user already has an active session
     const active = await this.getActiveSession(db, data.professorEmail);
     if (active) {
       throw new Error('You already have an active session.');
     }
 
-    // Check if the selected room is already occupied
     const occupied = await this.isRoomOccupied(db, data.roomNumber);
     if (occupied) {
       throw new Error(`Room ${data.roomNumber} is currently occupied by another session.`);
@@ -74,7 +72,6 @@ export const SessionService = {
 
     const sessionsRef = collection(db, 'sessions');
     
-    // 1. Create the session document
     const docRef = await addDoc(sessionsRef, {
       ...data,
       status: 'active',
@@ -82,8 +79,6 @@ export const SessionService = {
       createdAt: serverTimestamp()
     });
     
-    // 2. Update room occupancy state in the rooms collection
-    // Note: Security rules have been updated to allow professors to update these specific fields
     await RoomService.updateRoomOccupancy(db, data.roomNumber, true);
     await RoomService.incrementUsage(db, data.roomNumber);
     
@@ -98,13 +93,13 @@ export const SessionService = {
       throw new Error('End time must be after start time.');
     }
 
-    const durationMinutes = Math.floor((endMs - startMs) / 60000);
+    const durationSeconds = Math.floor((endMs - startMs) / 1000);
     const sessionsRef = collection(db, 'sessions');
     
     const docRef = await addDoc(sessionsRef, {
       ...data,
       status: 'completed',
-      duration: durationMinutes,
+      duration: durationSeconds,
       createdAt: serverTimestamp()
     });
 
@@ -115,16 +110,14 @@ export const SessionService = {
     const sessionRef = doc(db, 'sessions', sessionId);
     const startMs = startTime.toMillis();
     const endMs = Date.now();
-    const durationMinutes = Math.floor((endMs - startMs) / 60000);
+    const durationSeconds = Math.floor((endMs - startMs) / 1000);
 
-    // 1. Mark session as completed
     await updateDoc(sessionRef, {
       status: 'completed',
       endTime: serverTimestamp(),
-      duration: durationMinutes
+      duration: durationSeconds
     });
 
-    // 2. Mark room as vacant
     await RoomService.updateRoomOccupancy(db, roomNumber, false);
   }
 };
