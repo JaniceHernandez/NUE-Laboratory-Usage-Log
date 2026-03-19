@@ -83,7 +83,7 @@ export default function DashboardPage() {
       { title: "Total Logs", value: totalSessions, icon: Monitor, trend: "Cumulative", color: "text-blue-500", bgColor: "bg-blue-50" },
       { title: "Usage Minutes", value: `${totalMinutes}m`, icon: Clock, trend: "Overall", color: "text-orange-500", bgColor: "bg-orange-50" },
       { title: "Busiest Lab", value: mostUsedRoom, icon: MapPin, trend: "Most Active", color: "text-green-500", bgColor: "bg-green-50" },
-      { title: "Live Units", value: `${occupiedRoomsCount}/${rooms.length}`, icon: Activity, trend: "Real-time", color: "text-primary", bgColor: "bg-primary/5" },
+      { title: "Live Units", value: `${occupiedRoomsCount}/${rooms.length}`, icon: Activity, trend: "Real-time", color: "text-[#266AFF]", bgColor: "bg-blue-50" },
     ];
   }, [sessions, rooms]);
 
@@ -130,7 +130,7 @@ export default function DashboardPage() {
       }
     });
     
-    const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+    const colors = ['#266AFF', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
     return Object.entries(counts).map(([name, value], idx) => ({
       name,
       value,
@@ -224,19 +224,23 @@ export default function DashboardPage() {
         <Card className="lg:col-span-2 border-none shadow-sm rounded-xl bg-white overflow-hidden">
           <CardHeader className="p-4 border-b border-slate-50 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <TrendingUp className="text-primary" size={16} />
+              <TrendingUp className="text-[#266AFF]" size={16} />
               Utilization Trends
             </CardTitle>
-            <Select value={trendGranularity} onValueChange={(v: any) => setTrendGranularity(v)}>
-              <SelectTrigger className="w-[80px] h-7 bg-slate-50 border-none rounded-lg text-[9px] font-bold">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="daily">Daily</SelectItem>
-                <SelectItem value="weekly">Weekly</SelectItem>
-                <SelectItem value="monthly">Monthly</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex bg-slate-50 p-1 rounded-lg">
+              {["daily", "weekly", "monthly"].map((g) => (
+                <button
+                  key={g}
+                  onClick={() => setTrendGranularity(g as any)}
+                  className={cn(
+                    "px-2 py-1 text-[8px] font-black uppercase rounded-md transition-all",
+                    trendGranularity === g ? "bg-white text-[#266AFF] shadow-sm" : "text-slate-400 hover:text-slate-600"
+                  )}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
           </CardHeader>
           <CardContent className="h-[220px] p-4">
             <ResponsiveContainer width="100%" height="100%">
@@ -247,7 +251,7 @@ export default function DashboardPage() {
                 <Tooltip 
                   contentStyle={{ borderRadius: '10px', border: 'none', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', fontSize: '10px' }}
                 />
-                <Line type="monotone" dataKey="sessions" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 2, fill: 'white', strokeWidth: 1.5, stroke: 'hsl(var(--primary))' }} />
+                <Line type="monotone" dataKey="sessions" stroke="#266AFF" strokeWidth={2.5} dot={{ r: 2, fill: 'white', strokeWidth: 1.5, stroke: '#266AFF' }} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -292,14 +296,14 @@ export default function DashboardPage() {
               Most Used Facilities
             </CardTitle>
           </CardHeader>
-          <CardContent className="h-[200px] p-4">
+          <CardContent className="h-[240px] p-4">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={roomUsageData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
                 <XAxis type="number" hide />
                 <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} width={60} tick={{ fill: '#64748b', fontSize: 8, fontWeight: 'bold' }} />
                 <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '10px', border: 'none', fontSize: '10px' }} />
-                <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} barSize={14} />
+                <Bar dataKey="value" fill="#266AFF" radius={[0, 4, 4, 0]} barSize={14} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -312,15 +316,15 @@ export default function DashboardPage() {
               Usage by College
             </CardTitle>
           </CardHeader>
-          <CardContent className="h-[300px] p-4">
+          <CardContent className="h-[240px] p-4">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie 
                   data={collegeData} 
-                  cx="50%" 
-                  cy="40%" 
-                  innerRadius={50} 
-                  outerRadius={80} 
+                  cx="35%" 
+                  cy="50%" 
+                  innerRadius={60} 
+                  outerRadius={90} 
                   paddingAngle={5} 
                   dataKey="value" 
                   stroke="none"
@@ -333,12 +337,13 @@ export default function DashboardPage() {
                 <Legend 
                   iconType="circle" 
                   layout="vertical"
-                  verticalAlign="bottom"
-                  align="center"
+                  verticalAlign="middle"
+                  align="right"
                   wrapperStyle={{ 
-                    paddingTop: '20px', 
-                    fontSize: '9px', 
+                    paddingLeft: '20px', 
+                    fontSize: '10px', 
                     fontWeight: '700',
+                    width: '55%'
                   }}
                 />
               </PieChart>
@@ -350,10 +355,10 @@ export default function DashboardPage() {
       <Card className="border-none shadow-sm rounded-xl bg-white overflow-hidden">
         <CardHeader className="p-4 border-b border-slate-50 flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-bold flex items-center gap-2">
-            <History className="text-primary" size={16} />
+            <History className="text-[#266AFF]" size={16} />
             Recent Activity
           </CardTitle>
-          <Link href="/admin/reports" className="text-[9px] font-bold text-primary hover:underline flex items-center gap-1">
+          <Link href="/admin/reports" className="text-[9px] font-bold text-[#266AFF] hover:underline flex items-center gap-1">
             View All <ArrowRight size={10} />
           </Link>
         </CardHeader>
@@ -381,7 +386,7 @@ export default function DashboardPage() {
                     </div>
                   </TableCell>
                   <TableCell className="px-4 py-2 text-center">
-                    <Badge variant="outline" className="bg-primary/5 text-primary border-none font-bold text-[8px] px-1.5 py-0">
+                    <Badge variant="outline" className="bg-[#266AFF]/5 text-[#266AFF] border-none font-bold text-[8px] px-1.5 py-0">
                       {activity.room}
                     </Badge>
                   </TableCell>
