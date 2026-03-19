@@ -121,7 +121,7 @@ export const AuthService = {
         uid: user.uid,
         email: user.email!,
         role: 'admin',
-        name: 'System Admin',
+        name: 'Authorized Admin',
         photoURL: null,
       };
       await UserService.createUserProfile(db, newProfile);

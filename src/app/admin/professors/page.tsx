@@ -289,7 +289,7 @@ export default function ProfessorsPage() {
                             </AvatarFallback>
                           </Avatar>
                           <span className="text-sm font-bold text-slate-700">
-                            {admin.name || "System Admin"} 
+                            {admin.name || "Authorized Admin"} 
                             {!admin.uid && <span className="ml-2 text-[8px] text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded font-black uppercase tracking-widest">Invited</span>}
                           </span>
                         </div>
