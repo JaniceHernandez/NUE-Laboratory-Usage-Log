@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { 
   UserX, UserCheck, Search, ShieldAlert, 
   Mail, Loader2, Users, ShieldCheck, 
-  Trash2 
+  Trash2, Plus, UserPlus
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useFirestore, useCollection, useUser, useDoc } from "@/firebase";
@@ -17,10 +17,15 @@ import { useToast } from "@/hooks/use-toast";
 import { UserService, UserProfile } from "@/services/user-service";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 export default function ProfessorsPage() {
   const [mounted, setMounted] = useState(false);
   const [search, setSearch] = useState("");
+  const [isAdminDialogOpen, setIsAdminDialogOpen] = useState(false);
+  const [adminEmail, setAdminEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const db = useFirestore();
   const { user: authUser } = useUser();
@@ -97,6 +102,30 @@ export default function ProfessorsPage() {
     }
   };
 
+  const handleAuthorizeAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!db || !adminEmail || !isSuperAdmin) return;
+
+    setIsSubmitting(true);
+    try {
+      await UserService.authorizeAdminEmail(db, adminEmail);
+      toast({
+        title: "Admin Authorized",
+        description: `${adminEmail} has been added to the administrative registry.`,
+      });
+      setIsAdminDialogOpen(false);
+      setAdminEmail("");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Authorization Failed",
+        description: error.message || "Could not authorize this email.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (!mounted || loading) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50">
@@ -108,17 +137,28 @@ export default function ProfessorsPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div>
-        <p className="text-[10px] text-primary uppercase font-bold tracking-[0.2em] mb-1">Admin / Institutional Access</p>
-        <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-extrabold text-slate-800 leading-none">Management Portal</h1>
-          {isSuperAdmin && (
-            <Badge className="bg-primary/10 text-primary border-none font-bold text-[10px] uppercase tracking-widest px-2.5 py-1">
-              <ShieldCheck size={12} className="mr-1" /> Super Admin
-            </Badge>
-          )}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+        <div>
+          <p className="text-[10px] text-primary uppercase font-bold tracking-[0.2em] mb-1">Admin / Institutional Access</p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-extrabold text-slate-800 leading-none">Management Portal</h1>
+            {isSuperAdmin && (
+              <Badge className="bg-primary/10 text-primary border-none font-bold text-[10px] uppercase tracking-widest px-2.5 py-1">
+                <ShieldCheck size={12} className="mr-1" /> Super Admin
+              </Badge>
+            )}
+          </div>
+          <p className="text-sm text-slate-400 font-medium mt-2">Oversee faculty authorization and system administrators.</p>
         </div>
-        <p className="text-sm text-slate-400 font-medium mt-2">Oversee faculty authorization and system administrators.</p>
+        {isSuperAdmin && (
+          <Button 
+            onClick={() => setIsAdminDialogOpen(true)} 
+            className="bg-primary hover:bg-primary/90 rounded-xl px-6 h-12 shadow-lg shadow-primary/20 flex items-center gap-2 font-bold transition-all"
+          >
+            <UserPlus size={20} />
+            Authorize Admin
+          </Button>
+        )}
       </div>
 
       <Tabs defaultValue="professors" className="space-y-6">
@@ -288,6 +328,38 @@ export default function ProfessorsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={isAdminDialogOpen} onOpenChange={setIsAdminDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-8">
+          <DialogHeader>
+            <div className="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-4">
+              <UserPlus size={24} />
+            </div>
+            <DialogTitle className="text-2xl font-bold">Authorize Admin</DialogTitle>
+            <DialogDescription>Add a verified institutional email to the administrative registry.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleAuthorizeAdmin} className="space-y-6 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="adminEmail" className="text-xs font-bold uppercase tracking-widest text-slate-400">Institutional Email</Label>
+              <Input 
+                id="adminEmail" 
+                type="email" 
+                placeholder="example@neu.edu.ph" 
+                className="h-12 rounded-xl bg-slate-50 border-none focus-visible:ring-1 focus-visible:ring-primary/20"
+                value={adminEmail}
+                onChange={(e) => setAdminEmail(e.target.value)}
+                required
+              />
+              <p className="text-[10px] text-slate-400 font-medium italic">User must use this email with Google Sign-in to access administrative tools.</p>
+            </div>
+            <DialogFooter className="pt-4">
+              <Button type="submit" className="w-full h-12 bg-primary rounded-xl font-bold shadow-lg shadow-primary/20" disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : "Grant Authorization"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
