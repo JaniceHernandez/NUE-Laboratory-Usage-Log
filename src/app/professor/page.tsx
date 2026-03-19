@@ -31,32 +31,32 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 
 const COLLEGES = [
-  { id: "CICS", name: "Informatics & Computing Studies (CICS)" },
-  { id: "CEA", name: "Engineering & Architecture (CEA)" },
-  { id: "COC", name: "College of Communication (COC)" },
-  { id: "CA", name: "College of Accountancy (CA)" },
+  { id: "College of Informatics and Computing Studies", name: "College of Informatics and Computing Studies" },
+  { id: "College of Engineering and Architecture", name: "College of Engineering and Architecture" },
+  { id: "College of Communication", name: "College of Communication" },
+  { id: "College of Accountancy", name: "College of Accountancy" },
 ];
 
 const PROGRAMS: Record<string, string[]> = {
-  CICS: [
+  "College of Informatics and Computing Studies": [
     "Bachelor of Science in Computer Science",
     "Bachelor of Science in Information Technology",
     "Bachelor of Science in Information System",
     "Bachelor of Science in Entertainment and Multimedia Computing"
   ],
-  CEA: [
+  "College of Engineering and Architecture": [
     "Bachelor of Science in Architecture",
     "Bachelor of Science in Civil Engineering",
     "Bachelor of Science in Electrical Engineering",
     "Bachelor of Science in Electronics Engineering",
     "Bachelor of Science in Mechanical Engineering"
   ],
-  COC: [
+  "College of Communication": [
     "Bachelor of Arts in Broadcasting",
     "Bachelor of Arts in Communication",
     "Bachelor of Arts in Journalism"
   ],
-  CA: [
+  "College of Accountancy": [
     "Bachelor of Science in Accounting Information System"
   ]
 };
@@ -522,7 +522,7 @@ export default function ProfessorPortal() {
         </main>
 
         <Dialog open={isThankYouOpen} onOpenChange={setIsThankYouOpen}>
-          <DialogContent className="sm:max-w-xl rounded-[2.5rem] p-10 border-none shadow-2xl overflow-hidden">
+          <DialogContent className="sm:max-w-md rounded-[2.5rem] p-10 border-none shadow-2xl overflow-hidden">
             <DialogHeader className="text-center">
               <div className="mx-auto w-16 h-16 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mb-6 shadow-sm">
                 <CheckCircle2 size={32} />
@@ -534,28 +534,28 @@ export default function ProfessorPortal() {
             </DialogHeader>
             <div className="py-8 space-y-4">
               <div className="bg-slate-50 rounded-[2rem] p-8 border border-slate-100 space-y-6 shadow-inner">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Usage Duration</p>
-                    <p className="text-2xl font-black text-slate-800">
+                <div className="flex flex-col items-center text-center space-y-6">
+                  <div className="w-full">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Usage Duration</p>
+                    <p className="text-3xl font-black text-slate-800">
                       {summaryData ? Math.ceil(summaryData.durationSeconds / 60) : 0} 
-                      <span className="text-xs font-bold text-slate-400 ml-1">Minutes</span>
+                      <span className="text-sm font-bold text-slate-400 ml-1">Minutes</span>
                     </p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Facility</p>
-                    <p className="text-2xl font-black text-primary">{summaryData?.roomNumber}</p>
-                  </div>
-                </div>
-                
-                <div className="space-y-4 pt-4 border-t border-slate-200/50">
-                  <div className="flex flex-col">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">College Affiliation</p>
-                    <p className="text-sm font-bold text-slate-700">{summaryData?.college}</p>
-                  </div>
-                  <div className="flex flex-col">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Academic Program</p>
-                    <p className="text-sm font-bold text-slate-700">{summaryData?.program}</p>
+                  
+                  <div className="w-full pt-6 border-t border-slate-200/50 space-y-4">
+                    <div>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Facility Number</p>
+                      <p className="text-lg font-black text-primary">{summaryData?.roomNumber}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">College</p>
+                      <p className="text-sm font-bold text-slate-700 leading-tight">{summaryData?.college}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Academic Program</p>
+                      <p className="text-sm font-bold text-slate-700 leading-tight">{summaryData?.program}</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -565,7 +565,7 @@ export default function ProfessorPortal() {
                 onClick={() => setIsThankYouOpen(false)} 
                 className="w-full h-14 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-base font-bold transition-all shadow-lg shadow-slate-200"
               >
-                Close Session Summary
+                Close Summary
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -25,13 +25,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Link from "next/link";
 
-const COLLEGE_MAP: Record<string, string> = {
-  "CICS": "Informatics & Computing Studies",
-  "CEA": "Engineering & Architecture",
-  "COC": "College of Communication",
-  "CA": "College of Accountancy"
-};
-
 export default function DashboardPage() {
   const db = useFirestore();
   const [mounted, setMounted] = useState(false);
@@ -119,8 +112,7 @@ export default function DashboardPage() {
     const counts: Record<string, number> = {};
     sessions.forEach(s => {
       if (s.college) {
-        const fullName = COLLEGE_MAP[s.college] || s.college;
-        counts[fullName] = (counts[fullName] || 0) + 1;
+        counts[s.college] = (counts[s.college] || 0) + 1;
       }
     });
     
