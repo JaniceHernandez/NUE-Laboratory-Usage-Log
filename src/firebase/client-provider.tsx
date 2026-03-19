@@ -6,6 +6,7 @@ import { getFirestore, Firestore } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
 import { firebaseConfig } from './config';
 import { FirebaseProvider } from './provider';
+import { FirebaseErrorListener } from '@/components/firebase-error-listener';
 
 export const FirebaseClientProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [firebaseInstance, setFirebaseInstance] = useState<{
@@ -29,6 +30,7 @@ export const FirebaseClientProvider: React.FC<{ children: ReactNode }> = ({ chil
       firestore={firebaseInstance.db}
       auth={firebaseInstance.auth}
     >
+      <FirebaseErrorListener />
       {children}
     </FirebaseProvider>
   );

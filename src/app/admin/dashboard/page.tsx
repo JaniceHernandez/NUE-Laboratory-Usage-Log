@@ -4,13 +4,13 @@ import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   PieChart, Pie, Cell, 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, 
   LineChart, Line, 
-  ResponsiveContainer, Tooltip, Legend 
+  ResponsiveContainer, Tooltip, Legend,
+  CartesianGrid, XAxis, YAxis
 } from "recharts";
 import { 
   Clock, Monitor, Activity, MapPin, 
-  TrendingUp, BarChart3, PieChart as PieChartIcon, 
+  TrendingUp, PieChart as PieChartIcon, 
   History, ArrowRight, Loader2
 } from "lucide-react";
 import { useFirestore, useCollection } from "@/firebase";
@@ -239,10 +239,10 @@ export default function DashboardPage() {
               <PieChartIcon className="text-orange-500" size={16} /> Usage by College
             </CardTitle>
           </CardHeader>
-          <CardContent className="h-[220px] p-4">
+          <CardContent className="h-[150px] p-4">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={collegeData} innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value">
+                <Pie data={collegeData} innerRadius={30} outerRadius={45} paddingAngle={5} dataKey="value">
                   {collegeData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                 </Pie>
                 <Tooltip contentStyle={{ borderRadius: '10px', border: 'none', fontSize: '10px' }} />
@@ -277,7 +277,7 @@ export default function DashboardPage() {
                 <TableRow key={i} className="hover:bg-slate-50/50 transition-colors border-slate-50">
                   <TableCell className="px-6 py-2">
                     <div className="flex items-center gap-2">
-                      <Avatar className="h-6 w-6 rounded bg-slate-100">
+                      <Avatar className="h-6 w-6 rounded bg-slate-100 border border-slate-200">
                         <AvatarFallback className="text-[8px] font-bold text-slate-500">{activity.initials}</AvatarFallback>
                       </Avatar>
                       <span className="text-[10px] font-bold text-slate-700">{activity.professor}</span>

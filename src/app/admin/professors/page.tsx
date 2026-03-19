@@ -55,12 +55,25 @@ export default function IdentityManagementPage() {
   const professors = useMemo(() => allUsers.filter(u => u.role === 'professor'), [allUsers]);
   
   const administrators = useMemo(() => {
+    // Show users already in users collection with role admin
     const activeAdmins = allUsers.filter(u => u.role === 'admin');
-    const pendingAdmins = authAdmins.filter(auth => !activeAdmins.some(active => active.email.toLowerCase() === auth.email.toLowerCase()));
+    
+    // Show emails from authorizedAdmins that don't have a matching UID profile yet
+    const pendingAdmins = authAdmins
+      .filter(auth => !activeAdmins.some(active => active.email.toLowerCase() === auth.email.toLowerCase()))
+      .map(p => ({
+        id: p.email,
+        email: p.email,
+        role: 'admin' as const,
+        status: 'active' as const,
+        type: 'pending' as const,
+        name: null,
+        photoURL: null
+      }));
     
     return [
       ...activeAdmins.map(a => ({ ...a, type: 'active' as const })),
-      ...pendingAdmins.map(p => ({ ...p, id: p.email, role: 'admin' as const, status: 'active' as const, type: 'pending' as const }))
+      ...pendingAdmins
     ];
   }, [allUsers, authAdmins]);
 
@@ -74,7 +87,7 @@ export default function IdentityManagementPage() {
   const filteredAdmins = useMemo(() => {
     return administrators.filter(a => 
       a.email?.toLowerCase().includes(search.toLowerCase()) ||
-      ('name' in a && a.name && a.name.toLowerCase().includes(search.toLowerCase()))
+      (a.name && a.name.toLowerCase().includes(search.toLowerCase()))
     );
   }, [administrators, search]);
 
@@ -260,7 +273,7 @@ export default function IdentityManagementPage() {
                               {(admin.name || admin.email || "AA").substring(0, 2).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="text-sm font-bold text-slate-700">{admin.name || "Institutional Admin"}</span>
+                          <span className="text-sm font-bold text-slate-700">{admin.name || (admin.type === 'pending' ? 'Pre-authorized' : 'Institutional Admin')}</span>
                         </div>
                       </TableCell>
                       <TableCell className="px-8 py-5">
@@ -280,14 +293,16 @@ export default function IdentityManagementPage() {
                       <TableCell className="px-8 py-5 text-right">
                         {isSuperAdmin && !UserService.isSuperAdmin(admin) && (
                           <div className="flex justify-end gap-2">
-                             <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="rounded-xl h-9 px-4 font-bold text-[10px]"
-                              onClick={() => handleUpdateStatus(admin)}
-                            >
-                              {admin.status === 'blocked' ? 'Unblock' : 'Block'}
-                            </Button>
+                             {admin.type !== 'pending' && (
+                               <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="rounded-xl h-9 px-4 font-bold text-[10px]"
+                                onClick={() => handleUpdateStatus(admin)}
+                              >
+                                {admin.status === 'blocked' ? 'Unblock' : 'Block'}
+                              </Button>
+                             )}
                             <Button 
                               variant="ghost" 
                               size="sm"

@@ -8,7 +8,7 @@ import {
   signInWithEmailAndPassword,
   User
 } from 'firebase/auth';
-import { Firestore, doc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { Firestore, doc, updateDoc, serverTimestamp, getDoc, setDoc } from 'firebase/firestore';
 import { UserService, UserProfile, SUPER_ADMIN_EMAIL } from './user-service';
 
 const INSTITUTIONAL_DOMAIN = '@neu.edu.ph';
@@ -27,13 +27,13 @@ export const AuthService = {
       throw new Error(`Access restricted. Please use your ${INSTITUTIONAL_DOMAIN} institutional email.`);
     }
 
-    // Identify role by checking registry AND existing profile
+    // Immediate check for Super Admin or Authorized Admin status using the email-based registry
     const isSuperAdmin = userEmail === SUPER_ADMIN_EMAIL;
     const isAuthorizedRegistry = await UserService.isAuthorizedAdmin(db, userEmail!);
     
     let existingProfile = await UserService.getUserProfile(db, user.uid);
     
-    // Determine the user's role: Registry/Super Admin status takes precedence
+    // Role determination logic: Registry/Super Admin status takes precedence for first-time login
     const finalRole = (isSuperAdmin || isAuthorizedRegistry || existingProfile?.role === 'admin') ? 'admin' : 'professor';
 
     if (intendedRole === 'admin' && finalRole !== 'admin') {
@@ -42,6 +42,7 @@ export const AuthService = {
     }
 
     if (!existingProfile) {
+      // First-time institutional login
       const newProfile: Partial<UserProfile> = {
         uid: user.uid,
         email: userEmail!,
@@ -52,14 +53,17 @@ export const AuthService = {
         createdAt: serverTimestamp(),
       };
       await UserService.createUserProfile(db, newProfile);
+      
+      // If they were in the authorization registry, we could migrate/link here if needed
+      // But keeping it separate allows first-try access via isAuthorizedRegistry check above
       existingProfile = await UserService.getUserProfile(db, user.uid);
     } else {
-      // Sync profile info and role
+      // Sync institutional profile data
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, {
         name: user.displayName || existingProfile.name,
         photoURL: user.photoURL || existingProfile.photoURL,
-        role: finalRole
+        role: finalRole // Ensure role stays in sync with authorization registry
       });
       existingProfile.role = finalRole as any;
     }

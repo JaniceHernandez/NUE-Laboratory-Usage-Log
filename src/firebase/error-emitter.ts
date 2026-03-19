@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Custom EventEmitter for client-side use to avoid Node.js 'events' module dependency issues.
+ * Custom EventEmitter for client-side use to avoid Node.js 'events' module dependency issues in Webpack.
  */
 type Listener = (...args: any[]) => void;
 

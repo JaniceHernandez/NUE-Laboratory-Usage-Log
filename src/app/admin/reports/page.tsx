@@ -196,9 +196,11 @@ export default function ReportsPage() {
                   <td className="px-8 py-4">
                     <div className="flex flex-col">
                       <span className="font-bold text-slate-700">
-                        {userMap[session.professorEmail?.toLowerCase()] || "Institutional User"}
+                        {userMap[session.professorEmail?.toLowerCase()] || session.professorEmail}
                       </span>
-                      <span className="text-[10px] text-slate-400">{session.professorEmail}</span>
+                      {userMap[session.professorEmail?.toLowerCase()] && (
+                        <span className="text-[10px] text-slate-400">{session.professorEmail}</span>
+                      )}
                     </div>
                   </td>
                   <td className="px-8 py-4">
