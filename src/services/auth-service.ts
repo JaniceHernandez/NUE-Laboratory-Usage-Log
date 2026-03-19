@@ -8,7 +8,7 @@ import {
   signInWithEmailAndPassword,
   User
 } from 'firebase/auth';
-import { Firestore, doc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { Firestore, doc, deleteDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { UserService, UserProfile } from './user-service';
 
 const INSTITUTIONAL_DOMAIN = '@neu.edu.ph';
@@ -77,6 +77,15 @@ export const AuthService = {
       } else {
         profile = emailProfile;
       }
+    } else {
+      // Sync latest photo and name from Google for existing users
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        name: user.displayName || profile.name,
+        photoURL: user.photoURL || profile.photoURL
+      });
+      profile.photoURL = user.photoURL || profile.photoURL;
+      profile.name = user.displayName || profile.name;
     }
 
     // Account Status Check

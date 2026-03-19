@@ -64,26 +64,26 @@ export const UserService = {
    * Pre-authorizes an admin email
    */
   async authorizeAdminEmail(db: Firestore, email: string): Promise<void> {
-    // Check if email is already authorized or in system
     const existing = await this.findUserByEmail(db, email);
-    if (existing) {
-      if (existing.role === 'admin') throw new Error('Email is already an administrator.');
-      
-      // Upgrade existing professor to admin
-      await this.updateUserRole(db, existing.uid!, 'admin');
-      return;
+    if (existing && existing.role === 'admin') {
+      throw new Error('Email is already an administrator.');
     }
 
-    // Create a new "pending" admin record
-    const usersRef = collection(db, 'users');
-    await addDoc(usersRef, {
-      email,
-      role: 'admin',
-      status: 'active',
-      name: null,
-      photoURL: null,
-      createdAt: serverTimestamp()
-    });
+    if (existing) {
+      // Upgrade existing professor to admin
+      await this.updateUserRole(db, existing.uid!, 'admin');
+    } else {
+      // Create a new "pending" admin record
+      const usersRef = collection(db, 'users');
+      await addDoc(usersRef, {
+        email,
+        role: 'admin',
+        status: 'active',
+        name: null,
+        photoURL: null,
+        createdAt: serverTimestamp()
+      });
+    }
   },
 
   /**
@@ -103,7 +103,7 @@ export const UserService = {
   },
 
   /**
-   * Deletes a user record (useful for revoking pending invites)
+   * Deletes a user record permanently from Firestore
    */
   async deleteUser(db: Firestore, uid: string): Promise<void> {
     const userRef = doc(db, 'users', uid);

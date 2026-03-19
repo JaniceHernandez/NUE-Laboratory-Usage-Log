@@ -1,20 +1,18 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { 
   UserX, UserCheck, Search, ShieldAlert, 
   Mail, Loader2, Users, ShieldCheck, 
-  Lock, ShieldPlus, ShieldMinus, Plus, UserPlus 
+  Lock, ShieldMinus, UserPlus, Trash2 
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useFirestore, useCollection, useUser, useDoc } from "@/firebase";
-import { collection, query, where, doc, updateDoc, DocumentReference } from "firebase/firestore";
-import { errorEmitter } from "@/firebase/error-emitter";
-import { FirestorePermissionError } from "@/firebase/errors";
+import { collection, doc, updateDoc, deleteDoc, DocumentReference } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { UserService, UserProfile } from "@/services/user-service";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,6 +21,7 @@ import {
   DialogTitle, DialogDescription, DialogFooter 
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function ProfessorsPage() {
   const [mounted, setMounted] = useState(false);
@@ -69,44 +68,43 @@ export default function ProfessorsPage() {
 
   const isSuperAdmin = useMemo(() => UserService.isSuperAdmin(adminProfile), [adminProfile]);
 
-  const handleUpdateStatus = (userId: string, currentStatus: string, name: string) => {
-    if (!db) return;
-    if (!isSuperAdmin) {
-      toast({ variant: "destructive", title: "Access Denied", description: "Only the Super Admin can manage account status." });
+  const handleUpdateStatus = async (targetUser: UserProfile) => {
+    if (!db || !adminProfile) return;
+
+    // Permissions check: 
+    // Super admin can block anyone. 
+    // Admins can only block professors.
+    const canManage = isSuperAdmin || targetUser.role === 'professor';
+
+    if (!canManage) {
+      toast({ variant: "destructive", title: "Access Denied", description: "You do not have permission to manage this account." });
       return;
     }
 
-    const newStatus = currentStatus === "blocked" ? "active" : "blocked";
-    const userRef = doc(db, "users", userId);
+    const newStatus = targetUser.status === "blocked" ? "active" : "blocked";
+    const userRef = doc(db, "users", targetUser.uid!);
 
-    updateDoc(userRef, { status: newStatus })
-      .then(() => {
-        toast({ title: "Updated", description: `${name} status set to ${newStatus.toUpperCase()}.` });
-      })
-      .catch(async () => {
-        errorEmitter.emit("permission-error", new FirestorePermissionError({
-          path: userRef.path,
-          operation: "update",
-          requestResourceData: { status: newStatus }
-        }));
-      });
+    try {
+      await updateDoc(userRef, { status: newStatus });
+      toast({ title: "Updated", description: `${targetUser.name || targetUser.email} status set to ${newStatus.toUpperCase()}.` });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to update account status." });
+    }
   };
 
-  const handleRevokeAdmin = async (userId: string, name: string) => {
-    if (!db) return;
-    if (!isSuperAdmin) {
-      toast({ variant: "destructive", title: "Access Denied", description: "Only the Super Admin can manage roles." });
+  const handleDeleteUser = async (targetUser: UserProfile) => {
+    if (!db || !isSuperAdmin) {
+      toast({ variant: "destructive", title: "Access Denied", description: "Only the Super Admin can delete/revoke accounts." });
       return;
     }
 
-    if (!confirm(`Are you sure you want to revoke administrative access for ${name}?`)) return;
+    if (!confirm(`Are you sure you want to permanently delete/revoke ${targetUser.email}? This action cannot be undone.`)) return;
 
-    const userRef = doc(db, "users", userId);
     try {
-      await updateDoc(userRef, { role: 'professor' });
-      toast({ title: "Admin Revoked", description: `${name} has been returned to Professor role.` });
+      await UserService.deleteUser(db, targetUser.uid!);
+      toast({ title: "Account Revoked", description: `${targetUser.email} has been removed from the system.` });
     } catch (e: any) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to revoke admin privileges." });
+      toast({ variant: "destructive", title: "Error", description: "Failed to delete account." });
     }
   };
 
@@ -167,17 +165,6 @@ export default function ProfessorsPage() {
         )}
       </div>
 
-      {!isSuperAdmin && (
-        <Card className="border-none shadow-sm bg-orange-50/50 border-l-4 border-l-orange-400 rounded-xl">
-          <CardContent className="py-4 flex items-center gap-3">
-            <Lock className="text-orange-500 shrink-0" size={18} />
-            <p className="text-xs font-medium text-orange-700 leading-relaxed">
-              <strong>Super Admin Mode Required:</strong> Only the primary system administrator can authorize new admins or block accounts.
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
       <Tabs defaultValue="professors" className="space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4">
           <TabsList className="bg-white p-1 h-12 rounded-2xl shadow-sm border border-slate-100">
@@ -218,9 +205,12 @@ export default function ProfessorsPage() {
                     <TableRow key={prof.uid} className="hover:bg-slate-50/50 transition-colors border-slate-50">
                       <TableCell className="px-8 py-5">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-primary text-xs font-black border border-slate-100">
-                            {(prof.name || prof.email).split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
-                          </div>
+                          <Avatar className="h-10 w-10 rounded-xl border border-slate-100 shadow-sm">
+                            <AvatarImage src={prof.photoURL || undefined} />
+                            <AvatarFallback className="rounded-xl bg-slate-50 text-primary text-[10px] font-black">
+                              {(prof.name || prof.email).split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
                           <span className="text-sm font-bold text-slate-700">{prof.name || "No Name"}</span>
                         </div>
                       </TableCell>
@@ -243,19 +233,29 @@ export default function ProfessorsPage() {
                         )}
                       </TableCell>
                       <TableCell className="px-8 py-5 text-right">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          disabled={!isSuperAdmin}
-                          className={`rounded-xl h-9 px-4 font-bold text-[10px] transition-all ${
-                            !isSuperAdmin ? "opacity-50" :
-                            prof.status === 'blocked' ? "text-primary border-primary/20 hover:bg-primary/5" : "text-red-500 border-red-100 hover:bg-red-50"
-                          }`}
-                          onClick={() => handleUpdateStatus(prof.uid!, prof.status, prof.name || prof.email)}
-                        >
-                          {prof.status === 'blocked' ? <UserCheck size={14} className="mr-2" /> : <UserX size={14} className="mr-2" />}
-                          {prof.status === 'blocked' ? 'Unblock' : 'Block Access'}
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className={`rounded-xl h-9 px-4 font-bold text-[10px] transition-all ${
+                              prof.status === 'blocked' ? "text-primary border-primary/20 hover:bg-primary/5" : "text-red-500 border-red-100 hover:bg-red-50"
+                            }`}
+                            onClick={() => handleUpdateStatus(prof)}
+                          >
+                            {prof.status === 'blocked' ? <UserCheck size={14} className="mr-2" /> : <UserX size={14} className="mr-2" />}
+                            {prof.status === 'blocked' ? 'Unblock' : 'Block'}
+                          </Button>
+                          {isSuperAdmin && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="rounded-xl h-9 w-9 p-0 text-red-500 hover:bg-red-50"
+                              onClick={() => handleDeleteUser(prof)}
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -282,9 +282,12 @@ export default function ProfessorsPage() {
                     <TableRow key={admin.uid || admin.email} className="hover:bg-slate-50/50 transition-colors border-slate-50">
                       <TableCell className="px-8 py-5">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center text-primary text-xs font-black border border-primary/10">
-                            {(admin.name || admin.email).split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
-                          </div>
+                          <Avatar className="h-10 w-10 rounded-xl border border-slate-100 shadow-sm">
+                            <AvatarImage src={admin.photoURL || undefined} />
+                            <AvatarFallback className="rounded-xl bg-primary/5 text-primary text-[10px] font-black">
+                              {(admin.name || admin.email).split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
                           <span className="text-sm font-bold text-slate-700">
                             {admin.name || "System Admin"} 
                             {!admin.uid && <span className="ml-2 text-[8px] text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded font-black uppercase tracking-widest">Invited</span>}
@@ -305,17 +308,30 @@ export default function ProfessorsPage() {
                         </div>
                       </TableCell>
                       <TableCell className="px-8 py-5 text-right">
-                        {isSuperAdmin && !UserService.isSuperAdmin(admin) && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            className="rounded-xl h-9 px-4 font-bold text-[10px] text-red-500 hover:bg-red-50"
-                            onClick={() => handleRevokeAdmin(admin.uid!, admin.name || admin.email)}
-                          >
-                            <ShieldMinus size={14} className="mr-2" />
-                            Revoke Access
-                          </Button>
-                        )}
+                        <div className="flex justify-end gap-2">
+                          {isSuperAdmin && !UserService.isSuperAdmin(admin) && (
+                            <>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className={`rounded-xl h-9 px-4 font-bold text-[10px] transition-all ${
+                                  admin.status === 'blocked' ? "text-primary border-primary/20 hover:bg-primary/5" : "text-red-500 border-red-100 hover:bg-red-50"
+                                }`}
+                                onClick={() => handleUpdateStatus(admin)}
+                              >
+                                {admin.status === 'blocked' ? 'Unblock' : 'Block'}
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                className="rounded-xl h-9 w-9 p-0 text-red-500 hover:bg-red-50"
+                                onClick={() => handleDeleteUser(admin)}
+                              >
+                                <Trash2 size={14} />
+                              </Button>
+                            </>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

@@ -20,13 +20,28 @@ service cloud.firestore {
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'active';
     }
 
+    // Identify the Super Admin
+    function isSuperAdmin() {
+      return isSignedIn() && request.auth.token.email == 'admin@neu.edu.ph';
+    }
+
     // Users collection rules
     match /users/{userId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || hasRole('admin'));
-      // Admins can create and manage user records (for invitations/blocking)
-      allow create: if isSignedIn() && (request.auth.uid == userId || hasRole('admin'));
-      allow update: if hasRole('admin') || (request.auth.uid == userId);
-      allow delete: if hasRole('admin');
+      allow read: if isSignedIn();
+      
+      // Super Admin can create/delete anyone. 
+      // Users can create their own profile during signup.
+      allow create: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
+      allow delete: if isSuperAdmin();
+      
+      allow update: if isSignedIn() && (
+        // Super admin can update any record
+        isSuperAdmin() || 
+        // A user can update their own profile (e.g., college affiliation)
+        (request.auth.uid == userId) ||
+        // An admin can block/unblock a professor
+        (hasRole('admin') && get(/databases/$(database)/documents/users/$(userId)).data.role == 'professor' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))
+      );
     }
     
     // Sessions collection rules
