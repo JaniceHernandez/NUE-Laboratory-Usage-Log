@@ -93,7 +93,7 @@ export default function ProfessorPortal() {
     roomNumber: string;
     college: string;
     program: string;
-    durationSeconds: number;
+    durationMinutes: number;
   } | null>(null);
   
   const [room, setRoom] = useState("");
@@ -197,7 +197,7 @@ export default function ProfessorPortal() {
 
         if (end <= start) throw new Error("End time must be after start time.");
 
-        const durationSeconds = Math.floor((end.getTime() - start.getTime()) / 1000);
+        const durationMinutes = Math.ceil((end.getTime() - start.getTime()) / 60000);
 
         await SessionService.logManualSession(db, {
           professorEmail: user.email,
@@ -214,7 +214,7 @@ export default function ProfessorPortal() {
           roomNumber: room,
           college,
           program,
-          durationSeconds
+          durationMinutes
         });
         setIsThankYouOpen(true);
       } else {
@@ -242,14 +242,14 @@ export default function ProfessorPortal() {
       const roomName = activeSession.roomNumber;
       const startMs = activeSession.startTime.toMillis();
       const endMs = Date.now();
-      const durationSeconds = Math.floor((endMs - startMs) / 1000);
+      const durationMinutes = Math.ceil((endMs - startMs) / 60000);
 
       setSummaryData({
         professorName: profile?.name || user?.displayName || "Authorized User",
         roomNumber: roomName,
         college: activeSession.college,
         program: activeSession.program,
-        durationSeconds
+        durationMinutes
       });
 
       await SessionService.endSession(db, activeSession.id, activeSession.startTime, roomName);
@@ -545,7 +545,7 @@ export default function ProfessorPortal() {
                     <div>
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">USAGE DURATION</p>
                       <p className="text-xl font-black text-primary">
-                        {summaryData ? Math.ceil(summaryData.durationSeconds / 60) : 0} 
+                        {summaryData?.durationMinutes || 0} 
                         <span className="text-sm font-bold text-slate-400 ml-1">Minutes</span>
                       </p>
                     </div>

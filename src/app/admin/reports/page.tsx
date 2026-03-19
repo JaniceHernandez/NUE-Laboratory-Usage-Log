@@ -65,13 +65,14 @@ export default function ReportsPage() {
 
   const reportStats = useMemo(() => {
     const totalSessions = filteredData.length;
-    const totalSeconds = filteredData.reduce((acc, s) => acc + (s.duration || 0), 0);
+    // Duration is in minutes from SessionService
+    const totalMinutes = filteredData.reduce((acc, s) => acc + (s.duration || 0), 0);
     const uniqueProfessors = new Set(filteredData.map(s => s.professorEmail)).size;
     const uniqueRooms = new Set(filteredData.map(s => s.roomNumber)).size;
 
     return {
       sessions: totalSessions,
-      hours: (totalSeconds / 3600).toFixed(1),
+      minutes: totalMinutes,
       professors: uniqueProfessors,
       rooms: uniqueRooms
     };
@@ -87,7 +88,7 @@ export default function ReportsPage() {
       return;
     }
 
-    const headers = ["ID", "Professor", "Room", "College", "Program", "Section", "Start Time", "End Time", "Duration (Sec)", "Status"];
+    const headers = ["ID", "Professor", "Room", "College", "Program", "Section", "Start Time", "End Time", "Duration (Min)", "Status"];
     const rows = filteredData.map(s => [
       s.id,
       s.professorEmail,
@@ -187,7 +188,7 @@ export default function ReportsPage() {
         {[
           { label: "Filtered Logs", value: reportStats.sessions, icon: Database, color: "text-blue-500", bgColor: "bg-blue-50" },
           { label: "Faculty Involved", value: reportStats.professors, icon: Users, color: "text-green-500", bgColor: "bg-green-50" },
-          { label: "Total Usage", value: `${reportStats.hours}h`, icon: Clock, color: "text-orange-500", bgColor: "bg-orange-50" },
+          { label: "Total Minutes", value: `${reportStats.minutes}m`, icon: Clock, color: "text-orange-500", bgColor: "bg-orange-50" },
           { label: "Rooms Utilized", value: reportStats.rooms, icon: BarChart, color: "text-purple-500", bgColor: "bg-purple-50" },
         ].map((stat, i) => (
           <Card key={i} className="border-none shadow-sm rounded-2xl bg-white overflow-hidden group hover:scale-[1.02] transition-transform">
@@ -254,7 +255,7 @@ export default function ReportsPage() {
                       </div>
                     </td>
                     <td className="px-8 py-4 text-center">
-                      <span className="text-xs font-mono font-bold text-primary">{session.duration || 0}s</span>
+                      <span className="text-xs font-mono font-bold text-primary">{session.duration || 0}m</span>
                     </td>
                     <td className="px-8 py-4 text-right">
                       <span className="text-xs text-slate-400">

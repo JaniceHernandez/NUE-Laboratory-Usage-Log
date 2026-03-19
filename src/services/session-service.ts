@@ -93,13 +93,14 @@ export const SessionService = {
       throw new Error('End time must be after start time.');
     }
 
-    const durationSeconds = Math.floor((endMs - startMs) / 1000);
+    // Convert to Minutes (rounded up)
+    const durationMinutes = Math.ceil((endMs - startMs) / 60000);
     const sessionsRef = collection(db, 'sessions');
     
     const docRef = await addDoc(sessionsRef, {
       ...data,
       status: 'completed',
-      duration: durationSeconds,
+      duration: durationMinutes,
       createdAt: serverTimestamp()
     });
 
@@ -110,12 +111,14 @@ export const SessionService = {
     const sessionRef = doc(db, 'sessions', sessionId);
     const startMs = startTime.toMillis();
     const endMs = Date.now();
-    const durationSeconds = Math.floor((endMs - startMs) / 1000);
+    
+    // Convert to Minutes (rounded up)
+    const durationMinutes = Math.ceil((endMs - startMs) / 60000);
 
     await updateDoc(sessionRef, {
       status: 'completed',
       endTime: serverTimestamp(),
-      duration: durationSeconds
+      duration: durationMinutes
     });
 
     await RoomService.updateRoomOccupancy(db, roomNumber, false);

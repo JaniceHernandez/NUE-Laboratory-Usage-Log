@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -59,9 +58,8 @@ export default function LogsPage() {
     });
   }, [sessions, search, dateFilter]);
 
-  const totalHours = useMemo(() => {
-    const minutes = sessions.reduce((acc: number, s: any) => acc + (s.duration || 0), 0);
-    return (minutes / 60).toFixed(1);
+  const totalMinutes = useMemo(() => {
+    return sessions.reduce((acc: number, s: any) => acc + (s.duration || 0), 0);
   }, [sessions]);
 
   const handleExportCSV = () => {
@@ -133,7 +131,7 @@ export default function LogsPage() {
           </div>
           <div>
             <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest mb-1">Total Utilization</p>
-            <p className="text-2xl font-extrabold text-slate-800 leading-none">{totalHours} hrs</p>
+            <p className="text-2xl font-extrabold text-slate-800 leading-none">{totalMinutes}m</p>
           </div>
         </Card>
         <Card className="border-none shadow-sm rounded-[2rem] bg-white flex items-center p-6 gap-6 transition-all hover:shadow-md">
