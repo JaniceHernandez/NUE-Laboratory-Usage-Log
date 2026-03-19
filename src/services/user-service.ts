@@ -1,9 +1,13 @@
 'use client';
 
-import { doc, getDoc, setDoc, updateDoc, serverTimestamp, Firestore, query, collection, where, getDocs } from 'firebase/firestore';
+import { 
+  doc, getDoc, setDoc, updateDoc, deleteDoc, 
+  serverTimestamp, Firestore, query, collection, 
+  where, getDocs, addDoc 
+} from 'firebase/firestore';
 
 export interface UserProfile {
-  uid: string;
+  uid?: string;
   email: string;
   role: 'admin' | 'professor';
   status: 'active' | 'blocked';
@@ -17,13 +21,27 @@ const SUPER_ADMIN_EMAIL = 'admin@neu.edu.ph';
 
 export const UserService = {
   /**
-   * Fetches a user profile from Firestore
+   * Fetches a user profile from Firestore by UID
    */
   async getUserProfile(db: Firestore, uid: string): Promise<UserProfile | null> {
     const docRef = doc(db, 'users', uid);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return { uid: docSnap.id, ...docSnap.data() } as UserProfile;
+      return { ...docSnap.data(), uid: docSnap.id } as UserProfile;
+    }
+    return null;
+  },
+
+  /**
+   * Finds a user by email (useful for linking pre-authorized admins)
+   */
+  async findUserByEmail(db: Firestore, email: string): Promise<UserProfile | null> {
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('email', '==', email));
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+      const docData = snapshot.docs[0];
+      return { ...docData.data(), uid: docData.id } as UserProfile;
     }
     return null;
   },
@@ -39,6 +57,32 @@ export const UserService = {
       ...profile,
       status: 'active',
       createdAt: serverTimestamp(),
+    });
+  },
+
+  /**
+   * Pre-authorizes an admin email
+   */
+  async authorizeAdminEmail(db: Firestore, email: string): Promise<void> {
+    // Check if email is already authorized or in system
+    const existing = await this.findUserByEmail(db, email);
+    if (existing) {
+      if (existing.role === 'admin') throw new Error('Email is already an administrator.');
+      
+      // Upgrade existing professor to admin
+      await this.updateUserRole(db, existing.uid!, 'admin');
+      return;
+    }
+
+    // Create a new "pending" admin record
+    const usersRef = collection(db, 'users');
+    await addDoc(usersRef, {
+      email,
+      role: 'admin',
+      status: 'active',
+      name: null,
+      photoURL: null,
+      createdAt: serverTimestamp()
     });
   },
 
@@ -59,21 +103,19 @@ export const UserService = {
   },
 
   /**
+   * Deletes a user record (useful for revoking pending invites)
+   */
+  async deleteUser(db: Firestore, uid: string): Promise<void> {
+    const userRef = doc(db, 'users', uid);
+    await deleteDoc(userRef);
+  },
+
+  /**
    * Updates user college affiliation
    */
   async updateUserCollege(db: Firestore, uid: string, college: string): Promise<void> {
     const userRef = doc(db, 'users', uid);
     await updateDoc(userRef, { college });
-  },
-
-  /**
-   * Fetches all professors
-   */
-  async getAllProfessors(db: Firestore): Promise<UserProfile[]> {
-    const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('role', '==', 'professor'));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile));
   },
 
   /**

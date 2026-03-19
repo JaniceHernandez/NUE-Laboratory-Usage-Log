@@ -8,7 +8,7 @@ import {
   signInWithEmailAndPassword,
   User
 } from 'firebase/auth';
-import { Firestore } from 'firebase/firestore';
+import { Firestore, doc, deleteDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { UserService, UserProfile } from './user-service';
 
 const INSTITUTIONAL_DOMAIN = '@neu.edu.ph';
@@ -16,7 +16,7 @@ const ADMIN_EMAIL = 'admin@neu.edu.ph';
 
 export const AuthService = {
   /**
-   * Handles Google Sign-In with institutional domain validation
+   * Handles Google Sign-In with institutional domain validation and pre-authorization check
    */
   async signInWithGoogle(auth: Auth, db: Firestore): Promise<{ user: User; profile: UserProfile }> {
     const provider = new GoogleAuthProvider();
@@ -31,20 +31,50 @@ export const AuthService = {
       throw new Error(`Access restricted. Please use your ${INSTITUTIONAL_DOMAIN} email.`);
     }
 
-    // Get or create profile
+    // 1. Try to get profile by UID (Standard lookup)
     let profile = await UserService.getUserProfile(db, user.uid);
     
+    // 2. If no UID profile, check if this email was pre-authorized as Admin
     if (!profile) {
-      const role = user.email === ADMIN_EMAIL ? 'admin' : 'professor';
-      const newProfile: Partial<UserProfile> = {
-        uid: user.uid,
-        email: user.email,
-        role: role,
-        name: user.displayName,
-        photoURL: user.photoURL,
-      };
-      await UserService.createUserProfile(db, newProfile);
-      profile = await UserService.getUserProfile(db, user.uid);
+      const emailProfile = await UserService.findUserByEmail(db, user.email!);
+      
+      if (emailProfile && !emailProfile.uid) {
+        // This is a pre-authorized record. Transfer it to the user's UID.
+        const oldDocId = (emailProfile as any).uid; // This was the random auto-generated ID
+        
+        // Create the official profile with UID
+        const newProfile: UserProfile = {
+          ...emailProfile,
+          uid: user.uid,
+          name: user.displayName || emailProfile.name,
+          photoURL: user.photoURL || emailProfile.photoURL,
+          createdAt: emailProfile.createdAt || serverTimestamp()
+        };
+        
+        await UserService.createUserProfile(db, newProfile);
+        
+        // Cleanup the temporary record
+        if (oldDocId) {
+          await deleteDoc(doc(db, 'users', oldDocId));
+        }
+        
+        profile = newProfile;
+      } else if (!emailProfile) {
+        // Completely new user (Professor by default)
+        const role = user.email === ADMIN_EMAIL ? 'admin' : 'professor';
+        const newProfile: Partial<UserProfile> = {
+          uid: user.uid,
+          email: user.email!,
+          role: role,
+          name: user.displayName,
+          photoURL: user.photoURL,
+        };
+        await UserService.createUserProfile(db, newProfile);
+        profile = await UserService.getUserProfile(db, user.uid);
+      } else {
+        // Email profile exists and has a UID already (shouldn't happen with standard flow but handled)
+        profile = emailProfile;
+      }
     }
 
     if (profile && UserService.isBlocked(profile)) {
@@ -68,7 +98,6 @@ export const AuthService = {
 
     let profile = await UserService.getUserProfile(db, user.uid);
     
-    // Auto-create admin profile if it doesn't exist for the master admin email
     if (!profile) {
       const newProfile: Partial<UserProfile> = {
         uid: user.uid,
