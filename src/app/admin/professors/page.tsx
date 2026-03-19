@@ -13,7 +13,13 @@ import { Input } from "@/components/ui/input";
 import { useFirestore, useCollection, useUser, useDoc } from "@/firebase";
 import { Query, collection, doc, updateDoc, DocumentReference } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { UserService, UserProfile, AuthorizedAdmin } from "@/services/user-service";
+import { 
+  isSuperAdmin as checkSuperAdmin, 
+  authorizeAdminEmail, 
+  deleteAuthorizedAdmin, 
+  UserProfile, 
+  AuthorizedAdmin 
+} from "@/services/user-service";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -55,10 +61,8 @@ export default function IdentityManagementPage() {
   const professors = useMemo(() => allUsers.filter(u => u.role === 'professor'), [allUsers]);
   
   const administrators = useMemo(() => {
-    // Show users already in users collection with role admin
     const activeAdmins = allUsers.filter(u => u.role === 'admin');
     
-    // Show emails from authorizedAdmins that don't have a matching UID profile yet
     const pendingAdmins = authAdmins
       .filter(auth => !activeAdmins.some(active => active.email.toLowerCase() === auth.email.toLowerCase()))
       .map(p => ({
@@ -91,7 +95,7 @@ export default function IdentityManagementPage() {
     );
   }, [administrators, search]);
 
-  const isSuperAdmin = useMemo(() => UserService.isSuperAdmin(currentAdminProfile || { email: authUser?.email || '' } as UserProfile), [currentAdminProfile, authUser]);
+  const isSuperAdmin = useMemo(() => checkSuperAdmin(currentAdminProfile || { email: authUser?.email || '' } as UserProfile), [currentAdminProfile, authUser]);
 
   const handleUpdateStatus = async (targetUser: UserProfile & { id: string }) => {
     if (!db || (!isSuperAdmin && targetUser.role === 'admin')) {
@@ -113,7 +117,7 @@ export default function IdentityManagementPage() {
     if (!confirm(`Revoke administrative access for ${email}?`)) return;
 
     try {
-      await UserService.deleteAuthorizedAdmin(db, email);
+      await deleteAuthorizedAdmin(db, email);
       const existing = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
       if (existing) {
         await updateDoc(doc(db, "users", existing.id), { role: 'professor' });
@@ -130,7 +134,7 @@ export default function IdentityManagementPage() {
 
     setIsSubmitting(true);
     try {
-      await UserService.authorizeAdminEmail(db, adminEmail, authUser?.email || 'Super Admin');
+      await authorizeAdminEmail(db, adminEmail, authUser?.email || 'Super Admin');
       toast({ title: "Admin Authorized", description: `${adminEmail} has been added to the registry.` });
       setIsAdminDialogOpen(false);
       setAdminEmail("");
@@ -281,7 +285,7 @@ export default function IdentityManagementPage() {
                           <Badge variant="outline" className="bg-orange-50 text-orange-600 border-none font-bold text-[8px] uppercase tracking-widest px-2.5 py-1">
                             <Clock size={10} className="mr-1" /> Pending
                           </Badge>
-                        ) : UserService.isSuperAdmin(admin) ? (
+                        ) : checkSuperAdmin(admin) ? (
                           <Badge className="bg-primary text-white border-none font-bold text-[8px] uppercase tracking-widest px-2.5 py-1">Super Admin</Badge>
                         ) : (
                           <Badge variant="outline" className="bg-blue-50 text-blue-600 border-none font-bold text-[8px] uppercase tracking-widest px-2.5 py-1">Management</Badge>
@@ -291,7 +295,7 @@ export default function IdentityManagementPage() {
                         {admin.email}
                       </TableCell>
                       <TableCell className="px-8 py-5 text-right">
-                        {isSuperAdmin && !UserService.isSuperAdmin(admin) && (
+                        {isSuperAdmin && !checkSuperAdmin(admin) && (
                           <div className="flex justify-end gap-2">
                              {admin.type !== 'pending' && (
                                <Button 

@@ -7,7 +7,7 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { AuthService } from "@/services/auth-service";
-import { UserService, UserProfile } from "@/services/user-service";
+import { isBlocked, UserProfile } from "@/services/user-service";
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -45,7 +45,7 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
       if (snapshot.exists()) {
         const userData = { uid: snapshot.id, ...snapshot.data() } as UserProfile;
         
-        if (UserService.isBlocked(userData)) {
+        if (isBlocked(userData)) {
           AuthService.logout(auth).then(() => {
             toast({
               variant: "destructive",

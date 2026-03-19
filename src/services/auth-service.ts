@@ -8,8 +8,15 @@ import {
   signInWithEmailAndPassword,
   User
 } from 'firebase/auth';
-import { Firestore, doc, updateDoc, serverTimestamp, getDoc, setDoc } from 'firebase/firestore';
-import { UserService, UserProfile, SUPER_ADMIN_EMAIL } from './user-service';
+import { Firestore, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { 
+  getUserProfile, 
+  createUserProfile, 
+  isAuthorizedAdmin, 
+  isBlocked, 
+  UserProfile, 
+  SUPER_ADMIN_EMAIL 
+} from './user-service';
 
 const INSTITUTIONAL_DOMAIN = '@neu.edu.ph';
 
@@ -27,14 +34,13 @@ export const AuthService = {
       throw new Error(`Access restricted. Please use your ${INSTITUTIONAL_DOMAIN} institutional email.`);
     }
 
-    // Immediate check for Super Admin or Authorized Admin status using the email-based registry
-    const isSuperAdmin = userEmail === SUPER_ADMIN_EMAIL;
-    const isAuthorizedRegistry = await UserService.isAuthorizedAdmin(db, userEmail!);
+    // Immediate check for Super Admin or Authorized Admin status
+    const isSuper = userEmail === SUPER_ADMIN_EMAIL;
+    const isAuthorized = await isAuthorizedAdmin(db, userEmail!);
     
-    let existingProfile = await UserService.getUserProfile(db, user.uid);
+    let existingProfile = await getUserProfile(db, user.uid);
     
-    // Role determination logic: Registry/Super Admin status takes precedence for first-time login
-    const finalRole = (isSuperAdmin || isAuthorizedRegistry || existingProfile?.role === 'admin') ? 'admin' : 'professor';
+    const finalRole = (isSuper || isAuthorized || existingProfile?.role === 'admin') ? 'admin' : 'professor';
 
     if (intendedRole === 'admin' && finalRole !== 'admin') {
       await signOut(auth);
@@ -42,7 +48,6 @@ export const AuthService = {
     }
 
     if (!existingProfile) {
-      // First-time institutional login
       const newProfile: Partial<UserProfile> = {
         uid: user.uid,
         email: userEmail!,
@@ -52,23 +57,19 @@ export const AuthService = {
         photoURL: user.photoURL,
         createdAt: serverTimestamp(),
       };
-      await UserService.createUserProfile(db, newProfile);
-      
-      // If they were in the authorization registry, we could migrate/link here if needed
-      // But keeping it separate allows first-try access via isAuthorizedRegistry check above
-      existingProfile = await UserService.getUserProfile(db, user.uid);
+      await createUserProfile(db, newProfile);
+      existingProfile = await getUserProfile(db, user.uid);
     } else {
-      // Sync institutional profile data
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, {
         name: user.displayName || existingProfile.name,
         photoURL: user.photoURL || existingProfile.photoURL,
-        role: finalRole // Ensure role stays in sync with authorization registry
+        role: finalRole
       });
       existingProfile.role = finalRole as any;
     }
 
-    if (existingProfile && UserService.isBlocked(existingProfile)) {
+    if (existingProfile && isBlocked(existingProfile)) {
       await signOut(auth);
       throw new Error('Your institutional account has been deactivated.');
     }
@@ -85,7 +86,7 @@ export const AuthService = {
     const result = await signInWithEmailAndPassword(auth, normalizedEmail, pass);
     const user = result.user;
 
-    let profile = await UserService.getUserProfile(db, user.uid);
+    let profile = await getUserProfile(db, user.uid);
     
     if (!profile) {
       const newProfile: Partial<UserProfile> = {
@@ -97,8 +98,8 @@ export const AuthService = {
         photoURL: null,
         createdAt: serverTimestamp(),
       };
-      await UserService.createUserProfile(db, newProfile);
-      profile = await UserService.getUserProfile(db, user.uid);
+      await createUserProfile(db, newProfile);
+      profile = await getUserProfile(db, user.uid);
     }
     
     return { user, profile: profile! };

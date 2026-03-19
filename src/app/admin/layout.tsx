@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -17,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
-import { UserService, UserProfile } from "@/services/user-service";
+import { isSuperAdmin as checkSuperAdmin, UserProfile } from "@/services/user-service";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -45,7 +44,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     [db, user]
   );
   const { data: profile } = useDoc<UserProfile>(userProfileRef);
-  const isSuperAdmin = useMemo(() => UserService.isSuperAdmin(profile), [profile]);
+  const isSuperAdmin = useMemo(() => checkSuperAdmin(profile), [profile]);
 
   const handleLogout = async () => {
     if (auth) {
