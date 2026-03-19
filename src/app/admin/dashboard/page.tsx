@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
@@ -119,16 +120,17 @@ export default function DashboardPage() {
     const counts: Record<string, number> = {};
     sessions.forEach(s => {
       if (s.college) {
-        counts[s.college] = (counts[s.college] || 0) + 1;
+        const trimmed = s.college.trim();
+        counts[trimmed] = (counts[trimmed] || 0) + 1;
       }
     });
     
-    const colors = ['#266AFF', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+    const colors = ['#266AFF', '#4BC64F', '#FFD43D', '#ef4444', '#8b5cf6'];
     return COLLEGES.map((name, idx) => ({
       name,
       value: counts[name] || 0,
       color: colors[idx % colors.length]
-    })).filter(d => d.value > 0);
+    }));
   }, [sessions]);
 
   const recentActivityList = useMemo(() => {
@@ -238,37 +240,34 @@ export default function DashboardPage() {
               <PieChartIcon className="text-orange-500" size={16} /> Usage by College
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-4 flex items-center h-[250px]">
-            <div className="w-1/2 h-full">
+          <CardContent className="p-4 flex items-center h-[250px] gap-4">
+            <div className="w-2/5 h-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie 
-                    data={collegeData} 
+                    data={collegeData.filter(d => d.value > 0)} 
                     innerRadius={45} 
                     outerRadius={65} 
                     paddingAngle={5} 
                     dataKey="value"
                     stroke="none"
                   >
-                    {collegeData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                    {collegeData.filter(d => d.value > 0).map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                   </Pie>
                   <Tooltip contentStyle={{ borderRadius: '10px', border: 'none', fontSize: '10px' }} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            <div className="w-1/2 space-y-3 pl-4 overflow-y-auto max-h-full">
+            <div className="w-3/5 space-y-2.5 pl-2 overflow-y-auto max-h-full">
               {collegeData.map((entry, index) => (
                 <div key={index} className="flex items-start gap-2">
-                  <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: entry.color }} />
+                  <div className="w-2 h-2 rounded-full mt-1 shrink-0" style={{ backgroundColor: entry.color }} />
                   <div className="flex flex-col">
-                    <span className="text-[9px] font-bold text-slate-700 leading-tight">{entry.name}</span>
+                    <span className="text-[8px] font-bold text-slate-700 leading-tight uppercase tracking-tight">{entry.name}</span>
                     <span className="text-[8px] text-slate-400 font-medium">{entry.value} Logs</span>
                   </div>
                 </div>
               ))}
-              {collegeData.length === 0 && (
-                <p className="text-[10px] text-slate-400 italic">No usage data available.</p>
-              )}
             </div>
           </CardContent>
         </Card>
