@@ -1,3 +1,4 @@
+
 'use client';
 
 import { 
@@ -8,7 +9,7 @@ import {
   signInWithEmailAndPassword,
   User
 } from 'firebase/auth';
-import { Firestore, doc, getDoc, updateDoc, serverTimestamp, collection, query, where, getDocs, deleteDoc, setDoc } from 'firebase/firestore';
+import { Firestore, doc, updateDoc, serverTimestamp, setDoc } from 'firebase/firestore';
 import { UserService, UserProfile } from './user-service';
 
 const INSTITUTIONAL_DOMAIN = '@neu.edu.ph';
@@ -21,91 +22,58 @@ export const AuthService = {
     
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
-    const userEmail = user.email?.toLowerCase();
+    const userEmail = user.email?.toLowerCase().trim();
 
-    // 1. Domain Check
     if (!userEmail?.endsWith(INSTITUTIONAL_DOMAIN) && userEmail !== ADMIN_EMAIL) {
       await signOut(auth);
       throw new Error(`Access restricted. Please use your ${INSTITUTIONAL_DOMAIN} institutional email.`);
     }
 
-    // 2. Profile Check & "Claim" Logic
     let profile = await UserService.getUserProfile(db, user.uid);
-    
+    const isAuthorized = await UserService.isAuthorizedAdmin(db, userEmail!);
+
+    // If trying to log in as admin but not authorized
+    if (intendedRole === 'admin' && !isAuthorized) {
+      await signOut(auth);
+      throw new Error('This account does not have administrative clearance.');
+    }
+
+    const finalRole = isAuthorized ? 'admin' : 'professor';
+
     if (!profile) {
-      // Check if this email was pre-authorized (search by email or check email-doc-id)
-      const preAuthorized = await UserService.findUserByEmail(db, userEmail!);
-      
-      if (preAuthorized) {
-        // "Claim" the pre-authorized profile: Rewrite it using the permanent UID
-        const oldDocId = preAuthorized.id;
-        const newProfile: UserProfile = {
-          ...preAuthorized.data,
-          uid: user.uid,
-          name: user.displayName || preAuthorized.data.name || 'Authorized User',
-          photoURL: user.photoURL || preAuthorized.data.photoURL,
-          status: preAuthorized.data.status || 'active',
-          createdAt: preAuthorized.data.createdAt || serverTimestamp(),
-        };
-
-        // Write the permanent UID document
-        await setDoc(doc(db, 'users', user.uid), newProfile);
-        
-        // If the old doc was email-based (different from UID), delete it to avoid duplicates
-        if (oldDocId !== user.uid) {
-          await deleteDoc(doc(db, 'users', oldDocId));
-        }
-        
-        profile = newProfile;
-      } else {
-        // Completely new user. Check if they are trying to log in as admin.
-        if (intendedRole === 'admin' && userEmail !== ADMIN_EMAIL) {
-          await signOut(auth);
-          throw new Error('You are not an authorized administrator.');
-        }
-
-        // New professor profile
-        const role = userEmail === ADMIN_EMAIL ? 'admin' : 'professor';
-        const newProfile: Partial<UserProfile> = {
-          uid: user.uid,
-          email: userEmail!,
-          role: role as any,
-          name: user.displayName,
-          photoURL: user.photoURL,
-          status: 'active',
-          createdAt: serverTimestamp(),
-        };
-        await UserService.createUserProfile(db, newProfile);
-        profile = await UserService.getUserProfile(db, user.uid);
-      }
+      const newProfile: Partial<UserProfile> = {
+        uid: user.uid,
+        email: userEmail!,
+        role: finalRole as any,
+        status: 'active',
+        name: user.displayName,
+        photoURL: user.photoURL,
+        createdAt: serverTimestamp(),
+      };
+      await UserService.createUserProfile(db, newProfile);
+      profile = await UserService.getUserProfile(db, user.uid);
     } else {
-      // Profile exists, update institutional metadata
+      // Sync profile info
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, {
         name: user.displayName || profile.name,
-        photoURL: user.photoURL || profile.photoURL
+        photoURL: user.photoURL || profile.photoURL,
+        role: finalRole // Ensure role is synced with authorization registry
       });
-      profile.photoURL = user.photoURL || profile.photoURL;
       profile.name = user.displayName || profile.name;
+      profile.role = finalRole as any;
     }
 
-    // 3. Status Verification
     if (profile && UserService.isBlocked(profile)) {
       await signOut(auth);
       throw new Error('Your institutional account has been deactivated.');
-    }
-
-    // 4. Intent-Based Authorization Check
-    if (intendedRole === 'admin' && profile?.role !== 'admin') {
-      await signOut(auth);
-      throw new Error('You do not have administrative privileges.');
     }
 
     return { user, profile: profile! };
   },
 
   async signInAdmin(auth: Auth, db: Firestore, email: string, pass: string): Promise<{ user: User; profile: UserProfile }> {
-    const normalizedEmail = email.toLowerCase();
+    const normalizedEmail = email.toLowerCase().trim();
     if (normalizedEmail !== ADMIN_EMAIL) {
       throw new Error('Invalid admin credentials.');
     }
@@ -120,19 +88,16 @@ export const AuthService = {
         uid: user.uid,
         email: normalizedEmail,
         role: 'admin',
+        status: 'active',
         name: 'Authorized Admin',
         photoURL: null,
+        createdAt: serverTimestamp(),
       };
       await UserService.createUserProfile(db, newProfile);
       profile = await UserService.getUserProfile(db, user.uid);
     }
     
-    if (!profile || profile.role !== 'admin') {
-      await signOut(auth);
-      throw new Error('Unauthorized access.');
-    }
-
-    return { user, profile };
+    return { user, profile: profile! };
   },
 
   async logout(auth: Auth): Promise<void> {

@@ -44,6 +44,17 @@
       },
       "required": ["uid", "email", "role", "status"]
     },
+    "AuthorizedAdmin": {
+      "title": "Authorized Admin",
+      "description": "A registry of emails authorized for administrative access.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "authorizedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email"]
+    },
     "Session": {
       "title": "Session",
       "description": "Represents a laboratory usage session.",
@@ -83,6 +94,10 @@
     "/users/{userId}": {
       "schema": "User",
       "description": "Collection of authorized users and their roles."
+    },
+    "/authorizedAdmins/{emailId}": {
+      "schema": "AuthorizedAdmin",
+      "description": "Registry of pre-authorized administrative emails."
     },
     "/sessions/{sessionId}": {
       "schema": "Session",

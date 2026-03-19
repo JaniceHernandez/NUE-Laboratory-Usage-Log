@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
@@ -8,19 +9,19 @@ import { Badge } from "@/components/ui/badge";
 import { 
   UserX, UserCheck, Search, ShieldAlert, 
   Mail, Loader2, Users, ShieldCheck, 
-  Trash2, UserPlus, Fingerprint
+  Trash2, UserPlus, Fingerprint, Clock
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useFirestore, useCollection, useUser, useDoc } from "@/firebase";
 import { Query, collection, doc, updateDoc, deleteDoc, DocumentReference } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
-import { UserService, UserProfile } from "@/services/user-service";
+import { UserService, UserProfile, AuthorizedAdmin } from "@/services/user-service";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 
-export default function ProfessorsPage() {
+export default function IdentityManagementPage() {
   const [mounted, setMounted] = useState(false);
   const [search, setSearch] = useState("");
   const [isAdminDialogOpen, setIsAdminDialogOpen] = useState(false);
@@ -41,42 +42,42 @@ export default function ProfessorsPage() {
   );
   const { data: currentAdminProfile } = useDoc<UserProfile>(adminProfileRef);
 
-  const { data: allUsers, loading } = useCollection<UserProfile & { id: string }>(
-    useMemo(() => {
-      if (!db) return null;
-      return collection(db, "users") as unknown as Query<UserProfile & { id: string }>;
-    }, [db])
+  const usersCollectionRef = useMemo(() => 
+    db ? (collection(db, "users") as unknown as Query<UserProfile & { id: string }>) : null, 
+    [db]
   );
+  const { data: allUsers, loading: usersLoading } = useCollection<UserProfile & { id: string }>(usersCollectionRef);
+
+  const authAdminsCollectionRef = useMemo(() => 
+    db ? (collection(db, "authorizedAdmins") as unknown as Query<AuthorizedAdmin & { id: string }>) : null, 
+    [db]
+  );
+  const { data: authAdmins, loading: authAdminsLoading } = useCollection<AuthorizedAdmin & { id: string }>(authAdminsCollectionRef);
 
   const professors = useMemo(() => allUsers.filter(u => u.role === 'professor'), [allUsers]);
   
   const administrators = useMemo(() => {
-    const admins = allUsers.filter(u => u.role === 'admin');
-    const seenEmails = new Set<string>();
+    // Combine real profiles with authorized registry entries that haven't logged in yet
+    const activeAdmins = allUsers.filter(u => u.role === 'admin');
+    const pendingAdmins = authAdmins.filter(auth => !activeAdmins.some(active => active.email.toLowerCase() === auth.email.toLowerCase()));
     
-    return admins.filter(a => {
-      if (!a.email) return false;
-      const email = a.email.toLowerCase();
-      const isPlaceholder = a.id === a.email;
-      const hasRealProfile = admins.some(other => other.id !== other.email && other.email?.toLowerCase() === email);
-      
-      if (isPlaceholder && hasRealProfile) return false;
-      return true;
-    });
-  }, [allUsers]);
+    return [
+      ...activeAdmins.map(a => ({ ...a, type: 'active' as const })),
+      ...pendingAdmins.map(p => ({ ...p, id: p.email, role: 'admin' as const, status: 'active' as const, type: 'pending' as const }))
+    ];
+  }, [allUsers, authAdmins]);
 
   const filteredProfessors = useMemo(() => {
     return professors.filter(p => 
       p.email?.toLowerCase().includes(search.toLowerCase()) ||
-      (p.name && p.name.toLowerCase().includes(search.toLowerCase())) ||
-      (p.college && p.college.toLowerCase().includes(search.toLowerCase()))
+      (p.name && p.name.toLowerCase().includes(search.toLowerCase()))
     );
   }, [professors, search]);
 
   const filteredAdmins = useMemo(() => {
     return administrators.filter(a => 
       a.email?.toLowerCase().includes(search.toLowerCase()) ||
-      (a.name && a.name.toLowerCase().includes(search.toLowerCase()))
+      ('name' in a && a.name && a.name.toLowerCase().includes(search.toLowerCase()))
     );
   }, [administrators, search]);
 
@@ -86,36 +87,36 @@ export default function ProfessorsPage() {
     if (!db || !currentAdminProfile) return;
 
     const canManage = isSuperAdmin || targetUser.role === 'professor';
-
     if (!canManage) {
-      toast({ variant: "destructive", title: "Access Denied", description: "You do not have permission to manage this administrative account." });
+      toast({ variant: "destructive", title: "Access Denied", description: "Insufficient privileges." });
       return;
     }
 
     const newStatus = targetUser.status === "blocked" ? "active" : "blocked";
-    const userRef = doc(db, "users", targetUser.id);
-
     try {
-      await updateDoc(userRef, { status: newStatus });
-      toast({ title: "Updated", description: `${targetUser.name || targetUser.email} status set to ${newStatus.toUpperCase()}.` });
+      await updateDoc(doc(db, "users", targetUser.id), { status: newStatus });
+      toast({ title: "Updated", description: `Account status set to ${newStatus.toUpperCase()}.` });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Error", description: "Failed to update account status." });
     }
   };
 
-  const handleDeleteUser = async (targetUser: UserProfile & { id: string }) => {
-    if (!db || !isSuperAdmin) {
-      toast({ variant: "destructive", title: "Access Denied", description: "Only the Super Admin can permanently revoke access." });
-      return;
-    }
-
-    if (!confirm(`Permanently revoke access for ${targetUser.email}? This cannot be undone.`)) return;
+  const handleRevokeAdmin = async (email: string) => {
+    if (!db || !isSuperAdmin) return;
+    if (!confirm(`Revoke administrative access for ${email}?`)) return;
 
     try {
-      await deleteDoc(doc(db, "users", targetUser.id));
-      toast({ title: "Access Revoked", description: `${targetUser.email} has been removed from the institutional database.` });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Error", description: "Failed to revoke account access." });
+      await UserService.deleteAuthorizedAdmin(db, email);
+      
+      // If they have a user profile, downgrade it
+      const existing = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+      if (existing) {
+        await updateDoc(doc(db, "users", existing.id), { role: 'professor' });
+      }
+      
+      toast({ title: "Access Revoked", description: `${email} is no longer an administrator.` });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to revoke access." });
     }
   };
 
@@ -125,25 +126,18 @@ export default function ProfessorsPage() {
 
     setIsSubmitting(true);
     try {
-      await UserService.authorizeAdminEmail(db, adminEmail);
-      toast({
-        title: "Admin Authorized",
-        description: `${adminEmail} has been added to the administrative registry.`,
-      });
+      await UserService.authorizeAdminEmail(db, adminEmail, authUser?.email || 'Super Admin');
+      toast({ title: "Admin Authorized", description: `${adminEmail} has been added to the registry.` });
       setIsAdminDialogOpen(false);
       setAdminEmail("");
     } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Authorization Failed",
-        description: error.message || "Could not authorize this email.",
-      });
+      toast({ variant: "destructive", title: "Error", description: error.message });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (!mounted || loading) {
+  if (!mounted || usersLoading || authAdminsLoading) {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50">
         <Loader2 className="animate-spin text-primary" size={40} />
@@ -185,14 +179,14 @@ export default function ProfessorsPage() {
               Professors ({professors.length})
             </TabsTrigger>
             <TabsTrigger value="admins" className="rounded-xl px-6 font-bold data-[state=active]:bg-primary data-[state=active]:text-white">
-              Admins ({administrators.length})
+              Administrators ({administrators.length})
             </TabsTrigger>
           </TabsList>
 
           <div className="relative w-full max-w-md group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={18} />
             <Input 
-              placeholder="Search by name, email, or college..." 
+              placeholder="Search registry..." 
               className="pl-12 h-12 bg-white border-none rounded-2xl shadow-sm focus-visible:ring-1 focus-visible:ring-primary/20 transition-all text-sm"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -226,43 +220,23 @@ export default function ProfessorsPage() {
                           <span className="text-sm font-bold text-slate-700">{prof.name || "Authorized Professor"}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="px-8 py-5">
-                        <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                          <Mail size={14} className="text-slate-300" />
-                          {prof.email}
-                        </div>
+                      <TableCell className="px-8 py-5 text-xs text-slate-500 font-medium">
+                        {prof.email}
                       </TableCell>
                       <TableCell className="px-8 py-5">
-                        {prof.status === 'blocked' ? (
-                          <Badge variant="destructive" className="bg-red-50 text-red-600 border-none font-bold text-[9px] uppercase tracking-widest px-2.5 py-1">Blocked</Badge>
-                        ) : (
-                          <Badge variant="secondary" className="bg-green-50 text-green-600 border-none font-bold text-[9px] uppercase tracking-widest px-2.5 py-1">Active</Badge>
-                        )}
+                        <Badge variant={prof.status === 'blocked' ? "destructive" : "secondary"} className="font-bold text-[9px] uppercase px-2.5 py-1">
+                          {prof.status}
+                        </Badge>
                       </TableCell>
                       <TableCell className="px-8 py-5 text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className={`rounded-xl h-9 px-4 font-bold text-[10px] transition-all ${
-                              prof.status === 'blocked' ? "text-primary border-primary/20 hover:bg-primary/5" : "text-red-500 border-red-100 hover:bg-red-50"
-                            }`}
-                            onClick={() => handleUpdateStatus(prof)}
-                          >
-                            {prof.status === 'blocked' ? <UserCheck size={14} className="mr-2" /> : <UserX size={14} className="mr-2" />}
-                            {prof.status === 'blocked' ? 'Unblock' : 'Block'}
-                          </Button>
-                          {isSuperAdmin && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              className="rounded-xl h-9 w-9 p-0 text-red-500 hover:bg-red-50"
-                              onClick={() => handleDeleteUser(prof)}
-                            >
-                              <Trash2 size={14} />
-                            </Button>
-                          )}
-                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="rounded-xl h-9 px-4 font-bold text-[10px]"
+                          onClick={() => handleUpdateStatus(prof)}
+                        >
+                          {prof.status === 'blocked' ? 'Unblock' : 'Block'}
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -285,7 +259,7 @@ export default function ProfessorsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredAdmins.map((admin) => (
+                  {filteredAdmins.map((admin: any) => (
                     <TableRow key={admin.id} className="hover:bg-slate-50/50 transition-colors border-slate-50">
                       <TableCell className="px-8 py-5">
                         <div className="flex items-center gap-3">
@@ -295,47 +269,36 @@ export default function ProfessorsPage() {
                               {(admin.name || admin.email || "AA").substring(0, 2).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
-                          <span className="text-sm font-bold text-slate-700">{admin.name || "Authorized Admin"}</span>
+                          <span className="text-sm font-bold text-slate-700">{admin.name || "Institutional Admin"}</span>
                         </div>
                       </TableCell>
                       <TableCell className="px-8 py-5">
-                        {UserService.isSuperAdmin(admin) ? (
+                        {admin.type === 'pending' ? (
+                          <Badge variant="outline" className="bg-orange-50 text-orange-600 border-none font-bold text-[8px] uppercase tracking-widest px-2.5 py-1">
+                            <Clock size={10} className="mr-1" /> Pending
+                          </Badge>
+                        ) : UserService.isSuperAdmin(admin) ? (
                           <Badge className="bg-primary text-white border-none font-bold text-[8px] uppercase tracking-widest px-2.5 py-1">Super Admin</Badge>
                         ) : (
                           <Badge variant="outline" className="bg-blue-50 text-blue-600 border-none font-bold text-[8px] uppercase tracking-widest px-2.5 py-1">Management</Badge>
                         )}
                       </TableCell>
-                      <TableCell className="px-8 py-5">
-                        <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                          <Mail size={14} className="text-slate-300" />
-                          {admin.email}
-                        </div>
+                      <TableCell className="px-8 py-5 text-xs text-slate-500 font-medium">
+                        {admin.email}
                       </TableCell>
                       <TableCell className="px-8 py-5 text-right">
-                        <div className="flex justify-end gap-2">
-                          {isSuperAdmin && !UserService.isSuperAdmin(admin) && (
-                            <>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                className={`rounded-xl h-9 px-4 font-bold text-[10px] transition-all ${
-                                  admin.status === 'blocked' ? "text-primary border-primary/20 hover:bg-primary/5" : "text-red-500 border-red-100 hover:bg-red-50"
-                                }`}
-                                onClick={() => handleUpdateStatus(admin)}
-                              >
-                                {admin.status === 'blocked' ? 'Unblock' : 'Block'}
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                className="rounded-xl h-9 w-9 p-0 text-red-500 hover:bg-red-50"
-                                onClick={() => handleDeleteUser(admin)}
-                              >
-                                <Trash2 size={14} />
-                              </Button>
-                            </>
-                          )}
-                        </div>
+                        {isSuperAdmin && !UserService.isSuperAdmin(admin) && (
+                          <div className="flex justify-end gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              className="rounded-xl h-9 w-9 p-0 text-red-500 hover:bg-red-50"
+                              onClick={() => handleRevokeAdmin(admin.email)}
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          </div>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -367,7 +330,6 @@ export default function ProfessorsPage() {
                 onChange={(e) => setAdminEmail(e.target.value)}
                 required
               />
-              <p className="text-[10px] text-slate-400 font-medium italic">User must use this email with Google Sign-in to access administrative tools.</p>
             </div>
             <DialogFooter className="pt-4">
               <Button type="submit" className="w-full h-12 bg-primary rounded-xl font-bold shadow-lg shadow-primary/20" disabled={isSubmitting}>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { 
@@ -17,12 +18,15 @@ export interface UserProfile {
   createdAt: any;
 }
 
+export interface AuthorizedAdmin {
+  email: string;
+  authorizedBy?: string;
+  createdAt: any;
+}
+
 const SUPER_ADMIN_EMAIL = 'admin@neu.edu.ph';
 
 export const UserService = {
-  /**
-   * Fetches a user profile from Firestore by UID
-   */
   async getUserProfile(db: Firestore, uid: string): Promise<UserProfile | null> {
     const docRef = doc(db, 'users', uid);
     const docSnap = await getDoc(docRef);
@@ -32,33 +36,36 @@ export const UserService = {
     return null;
   },
 
-  /**
-   * Finds a user by email (useful for linking pre-authorized admins)
-   */
-  async findUserByEmail(db: Firestore, email: string): Promise<{ id: string; data: UserProfile } | null> {
-    const normalizedEmail = email.toLowerCase();
-    
-    // First check if there is a document with the email as the ID (pre-auth placeholder)
-    const directDocRef = doc(db, 'users', normalizedEmail);
-    const directSnap = await getDoc(directDocRef);
-    if (directSnap.exists()) {
-      return { id: directSnap.id, data: { ...directSnap.data(), email: normalizedEmail } as UserProfile };
-    }
+  async isAuthorizedAdmin(db: Firestore, email: string): Promise<boolean> {
+    if (email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()) return true;
+    const emailId = email.toLowerCase().trim().replace(/[^a-z0-9]/g, '_');
+    const authRef = doc(db, 'authorizedAdmins', emailId);
+    const authSnap = await getDoc(authRef);
+    return authSnap.exists();
+  },
 
-    // Otherwise search the collection
+  async authorizeAdminEmail(db: Firestore, email: string, authorizedBy: string): Promise<void> {
+    const normalizedEmail = email.toLowerCase().trim();
+    const emailId = normalizedEmail.replace(/[^a-z0-9]/g, '_');
+    
+    // Create pre-authorization record
+    const authRef = doc(db, 'authorizedAdmins', emailId);
+    await setDoc(authRef, {
+      email: normalizedEmail,
+      authorizedBy,
+      createdAt: serverTimestamp()
+    });
+
+    // If user already exists, upgrade their role immediately
     const usersRef = collection(db, 'users');
     const q = query(usersRef, where('email', '==', normalizedEmail));
     const snapshot = await getDocs(q);
     if (!snapshot.empty) {
-      const docData = snapshot.docs[0];
-      return { id: docData.id, data: { ...docData.data(), uid: docData.id } as UserProfile };
+      const userDoc = snapshot.docs[0];
+      await updateDoc(doc(db, 'users', userDoc.id), { role: 'admin' });
     }
-    return null;
   },
 
-  /**
-   * Creates or rewrites a user profile in Firestore
-   */
   async createUserProfile(db: Firestore, profile: Partial<UserProfile>): Promise<void> {
     if (!profile.uid) throw new Error('UID is required to create a profile');
     
@@ -70,78 +77,20 @@ export const UserService = {
     }, { merge: true });
   },
 
-  /**
-   * Pre-authorizes an admin email without duplicating
-   */
-  async authorizeAdminEmail(db: Firestore, email: string): Promise<void> {
-    const normalizedEmail = email.toLowerCase();
-    const existing = await this.findUserByEmail(db, normalizedEmail);
-    
-    if (existing && existing.data.role === 'admin') {
-      throw new Error('Email is already an authorized administrator.');
-    }
-
-    if (existing) {
-      // If user exists (either UID or email-placeholder), upgrade the role
-      const userRef = doc(db, 'users', existing.id);
-      await updateDoc(userRef, { role: 'admin' });
-    } else {
-      // Create a pre-authorization record using EMAIL as the document ID
-      // This will be "claimed" and rewritten with UID upon first login
-      const userRef = doc(db, 'users', normalizedEmail);
-      await setDoc(userRef, {
-        email: normalizedEmail,
-        role: 'admin',
-        status: 'active',
-        name: null,
-        photoURL: null,
-        createdAt: serverTimestamp()
-      });
-    }
-  },
-
-  /**
-   * Updates user status (block/unblock)
-   */
-  async updateUserStatus(db: Firestore, uid: string, status: 'active' | 'blocked'): Promise<void> {
-    const userRef = doc(db, 'users', uid);
-    await updateDoc(userRef, { status });
-  },
-
-  /**
-   * Updates user role (admin/professor)
-   */
-  async updateUserRole(db: Firestore, uid: string, role: 'admin' | 'professor'): Promise<void> {
-    const userRef = doc(db, 'users', uid);
-    await updateDoc(userRef, { role });
-  },
-
-  /**
-   * Deletes a user record permanently from Firestore
-   */
   async deleteUser(db: Firestore, uid: string): Promise<void> {
     const userRef = doc(db, 'users', uid);
     await deleteDoc(userRef);
   },
 
-  /**
-   * Updates user college affiliation
-   */
-  async updateUserCollege(db: Firestore, uid: string, college: string): Promise<void> {
-    const userRef = doc(db, 'users', uid);
-    await updateDoc(userRef, { college });
+  async deleteAuthorizedAdmin(db: Firestore, email: string): Promise<void> {
+    const emailId = email.toLowerCase().trim().replace(/[^a-z0-9]/g, '_');
+    await deleteDoc(doc(db, 'authorizedAdmins', emailId));
   },
 
-  /**
-   * Checks if a user is blocked
-   */
   isBlocked(profile: UserProfile): boolean {
     return profile.status === 'blocked';
   },
 
-  /**
-   * Checks if a user is the Super Admin
-   */
   isSuperAdmin(profile?: UserProfile | null): boolean {
     if (!profile) return false;
     return profile.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
