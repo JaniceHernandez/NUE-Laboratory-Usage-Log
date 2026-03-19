@@ -134,7 +134,6 @@ export default function ProfessorPortal() {
       }
       setIsLoading(false);
     }, (error) => {
-      console.error("Session monitor error:", error);
       setIsLoading(false);
     });
 
@@ -390,7 +389,7 @@ export default function ProfessorPortal() {
                             <SelectContent className="rounded-xl">
                               {availableRooms.map((r) => (
                                 <SelectItem key={r.id} value={r.number} disabled={r.currentlyOccupied} className="rounded-lg">
-                                  {r.number} {r.currentlyOccupied ? "(Occupied)" : ""}
+                                  {r.number} - {r.location} {r.currentlyOccupied ? "(Occupied)" : ""}
                                 </SelectItem>
                               ))}
                             </SelectContent>
@@ -527,34 +526,34 @@ export default function ProfessorPortal() {
               <div className="mx-auto w-16 h-16 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mb-6 shadow-sm">
                 <CheckCircle2 size={32} />
               </div>
-              <DialogTitle className="text-3xl font-black text-slate-900 tracking-tight">Check-out Complete</DialogTitle>
+              <DialogTitle className="text-3xl font-black text-slate-900 tracking-tight">Session Complete</DialogTitle>
               <DialogDescription className="text-base font-bold text-slate-500 mt-1">
-                Thank you, Prof. <span className="text-primary">{summaryData?.professorName}</span>.
+                Thank you for using Room {summaryData?.roomNumber}
               </DialogDescription>
             </DialogHeader>
-            <div className="py-8 space-y-4">
-              <div className="bg-slate-50 rounded-[2rem] p-8 border border-slate-100 space-y-6 shadow-inner">
-                <div className="flex flex-col items-center text-center space-y-6">
-                  <div className="w-full">
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Usage Duration</p>
-                    <p className="text-3xl font-black text-slate-800">
-                      {summaryData ? Math.ceil(summaryData.durationSeconds / 60) : 0} 
-                      <span className="text-sm font-bold text-slate-400 ml-1">Minutes</span>
-                    </p>
+            <div className="py-8 space-y-4 text-center">
+              <div className="bg-slate-50 rounded-[2rem] p-8 border border-slate-100 shadow-inner">
+                <div className="space-y-6">
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">FACULTY MEMBER</p>
+                    <p className="text-xl font-black text-slate-800">Prof. {summaryData?.professorName}</p>
                   </div>
                   
-                  <div className="w-full pt-6 border-t border-slate-200/50 space-y-4">
+                  <div className="pt-6 border-t border-slate-200/50 space-y-6">
                     <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Facility Number</p>
-                      <p className="text-lg font-black text-primary">{summaryData?.roomNumber}</p>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">USAGE DURATION</p>
+                      <p className="text-xl font-black text-primary">
+                        {summaryData ? Math.ceil(summaryData.durationSeconds / 60) : 0} 
+                        <span className="text-sm font-bold text-slate-400 ml-1">Minutes</span>
+                      </p>
                     </div>
                     <div>
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">College</p>
-                      <p className="text-sm font-bold text-slate-700 leading-tight">{summaryData?.college}</p>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">COLLEGE</p>
+                      <p className="text-xl font-black text-slate-700 leading-tight">{summaryData?.college}</p>
                     </div>
                     <div>
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Academic Program</p>
-                      <p className="text-sm font-bold text-slate-700 leading-tight">{summaryData?.program}</p>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">ACADEMIC PROGRAM</p>
+                      <p className="text-xl font-black text-slate-700 leading-tight">{summaryData?.program}</p>
                     </div>
                   </div>
                 </div>
