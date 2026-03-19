@@ -366,7 +366,7 @@ export default function ProfessorPortal() {
                     <div className="flex justify-between items-center">
                       <div className="space-y-1">
                         <CardTitle className="text-3xl font-black text-slate-800 tracking-tight">
-                          {isManualEntry ? "Audit Log" : "Professor Check-in"}
+                          Check-in Portal
                         </CardTitle>
                         <CardDescription className="text-[10px] text-slate-400 uppercase font-black tracking-[0.2em]">
                           Laboratory Access Management
@@ -482,7 +482,7 @@ export default function ProfessorPortal() {
                     <div className="mx-auto w-20 h-20 bg-primary/5 text-primary rounded-[2rem] flex items-center justify-center mb-6">
                       <Clock size={40} className="animate-pulse" />
                     </div>
-                    <CardTitle className="text-3xl font-black text-slate-800 tracking-tight">Session in Progress</CardTitle>
+                    <CardTitle className="text-3xl font-black text-slate-800 tracking-tight">Session Active</CardTitle>
                     <CardDescription className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] flex items-center justify-center gap-2 mt-2">
                       <MapPin size={14} className="text-primary" /> Room {activeSession.roomNumber}
                     </CardDescription>
@@ -512,7 +512,7 @@ export default function ProfessorPortal() {
                       disabled={isActionLoading}
                     >
                       {isActionLoading ? <Loader2 className="animate-spin mr-3" size={24} /> : <Square className="mr-3" size={24} />}
-                      End Session & Check-out
+                      Check-out Facility
                     </Button>
                   </CardFooter>
                 </Card>
@@ -522,7 +522,7 @@ export default function ProfessorPortal() {
         </main>
 
         <Dialog open={isThankYouOpen} onOpenChange={setIsThankYouOpen}>
-          <DialogContent className="sm:max-w-2xl rounded-[2.5rem] p-10 border-none shadow-2xl overflow-hidden">
+          <DialogContent className="sm:max-w-xl rounded-[2.5rem] p-10 border-none shadow-2xl overflow-hidden">
             <DialogHeader className="text-center">
               <div className="mx-auto w-16 h-16 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mb-6 shadow-sm">
                 <CheckCircle2 size={32} />
@@ -533,25 +533,30 @@ export default function ProfessorPortal() {
               </DialogDescription>
             </DialogHeader>
             <div className="py-8 space-y-4">
-              <div className="bg-slate-50 rounded-3xl p-6 border border-slate-100 flex items-center justify-between shadow-inner">
-                <div>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Duration</p>
-                  <p className="text-xl font-black text-slate-800">{summaryData?.durationSeconds} <span className="text-xs font-bold text-slate-400">Seconds</span></p>
+              <div className="bg-slate-50 rounded-[2rem] p-8 border border-slate-100 space-y-6 shadow-inner">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Usage Duration</p>
+                    <p className="text-2xl font-black text-slate-800">
+                      {summaryData ? Math.ceil(summaryData.durationSeconds / 60) : 0} 
+                      <span className="text-xs font-bold text-slate-400 ml-1">Minutes</span>
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Facility</p>
+                    <p className="text-2xl font-black text-primary">{summaryData?.roomNumber}</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Room</p>
-                  <p className="text-xl font-black text-primary">{summaryData?.roomNumber}</p>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-white border border-slate-100 rounded-xl">
-                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">College</p>
-                  <p className="text-xs font-bold text-slate-600">{summaryData?.college}</p>
-                </div>
-                <div className="p-4 bg-white border border-slate-100 rounded-xl">
-                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Program</p>
-                  <p className="text-xs font-bold text-slate-600 truncate">{summaryData?.program}</p>
+                
+                <div className="space-y-4 pt-4 border-t border-slate-200/50">
+                  <div className="flex flex-col">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">College Affiliation</p>
+                    <p className="text-sm font-bold text-slate-700">{summaryData?.college}</p>
+                  </div>
+                  <div className="flex flex-col">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Academic Program</p>
+                    <p className="text-sm font-bold text-slate-700">{summaryData?.program}</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -560,7 +565,7 @@ export default function ProfessorPortal() {
                 onClick={() => setIsThankYouOpen(false)} 
                 className="w-full h-14 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-base font-bold transition-all shadow-lg shadow-slate-200"
               >
-                Close
+                Close Session Summary
               </Button>
             </DialogFooter>
           </DialogContent>
