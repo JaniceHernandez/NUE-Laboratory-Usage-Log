@@ -93,7 +93,7 @@ export default function ReportsPage() {
   const userMap = useMemo(() => {
     const map: Record<string, string> = {};
     users.forEach(u => {
-      if (u.email) map[u.email.toLowerCase()] = u.name || u.email;
+      if (u.email && u.name) map[u.email.toLowerCase()] = u.name;
     });
     return map;
   }, [users]);
@@ -364,42 +364,51 @@ export default function ReportsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {filteredData.slice(0, 50).map((session) => (
-                  <tr key={session.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-8 py-4">
-                      <div className="flex flex-col">
-                        <span className="font-bold text-slate-700">
-                          {userMap[session.professorEmail?.toLowerCase()] || session.professorEmail?.split('@')[0]}
+                {filteredData.slice(0, 50).map((session) => {
+                  const facultyEmail = session.professorEmail?.toLowerCase();
+                  const facultyName = userMap[facultyEmail];
+                  
+                  return (
+                    <tr key={session.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-8 py-4">
+                        <div className="flex flex-col">
+                          {facultyName ? (
+                            <>
+                              <span className="font-bold text-slate-700">{facultyName}</span>
+                              <span className="text-[10px] text-slate-400">{session.professorEmail}</span>
+                            </>
+                          ) : (
+                            <span className="font-bold text-slate-700">{session.professorEmail}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-8 py-4">
+                        <Badge variant="outline" className="bg-slate-50 text-slate-600 border-none font-bold text-[10px]">
+                          {session.roomNumber}
+                        </Badge>
+                      </td>
+                      <td className="px-8 py-4">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-slate-600">{session.program}</span>
+                          <span className="text-[10px] text-slate-400">{session.college}</span>
+                        </div>
+                      </td>
+                      <td className="px-8 py-4 text-center">
+                        <span className="text-xs font-mono font-bold text-primary">{session.duration || 0}m</span>
+                      </td>
+                      <td className="px-8 py-4 text-right">
+                        <span className="text-xs text-slate-400">
+                          {session.startTime?.toDate ? format(session.startTime.toDate(), "MMM dd, hh:mm a") : "---"}
                         </span>
-                        <span className="text-[10px] text-slate-400">{session.professorEmail}</span>
-                      </div>
-                    </td>
-                    <td className="px-8 py-4">
-                      <Badge variant="outline" className="bg-slate-50 text-slate-600 border-none font-bold text-[10px]">
-                        {session.roomNumber}
-                      </Badge>
-                    </td>
-                    <td className="px-8 py-4">
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-slate-600">{session.program}</span>
-                        <span className="text-[10px] text-slate-400">{session.college}</span>
-                      </div>
-                    </td>
-                    <td className="px-8 py-4 text-center">
-                      <span className="text-xs font-mono font-bold text-primary">{session.duration || 0}m</span>
-                    </td>
-                    <td className="px-8 py-4 text-right">
-                      <span className="text-xs text-slate-400">
-                        {session.startTime?.toDate ? format(session.startTime.toDate(), "MMM dd, hh:mm a") : "---"}
-                      </span>
-                    </td>
-                    <td className="px-8 py-4 text-right">
-                      <span className="text-xs text-slate-400">
-                        {session.endTime?.toDate ? format(session.endTime.toDate(), "MMM dd, hh:mm a") : "---"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-8 py-4 text-right">
+                        <span className="text-xs text-slate-400">
+                          {session.endTime?.toDate ? format(session.endTime.toDate(), "MMM dd, hh:mm a") : "---"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {filteredData.length > 50 && (
                   <tr>
                     <td colSpan={6} className="px-8 py-6 text-center bg-slate-50/30">
