@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
@@ -6,23 +5,31 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { UserX, UserCheck, Search, ShieldAlert, Mail, Loader2, Users } from "lucide-react";
+import { UserX, UserCheck, Search, ShieldAlert, Mail, Loader2, Users, ShieldCheck, Lock } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { useFirestore, useCollection } from "@/firebase";
-import { collection, query, where, doc, updateDoc } from "firebase/firestore";
+import { useFirestore, useCollection, useUser, useDoc } from "@/firebase";
+import { collection, query, where, doc, updateDoc, DocumentReference } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { useToast } from "@/hooks/use-toast";
+import { UserService, UserProfile } from "@/services/user-service";
 
 export default function ProfessorsPage() {
   const [mounted, setMounted] = useState(false);
   const [search, setSearch] = useState("");
   const db = useFirestore();
+  const { user: authUser } = useUser();
   const { toast } = useToast();
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const adminProfileRef = useMemo(() => 
+    (db && authUser) ? (doc(db, "users", authUser.uid) as DocumentReference<UserProfile>) : null, 
+    [db, authUser]
+  );
+  const { data: adminProfile } = useDoc<UserProfile>(adminProfileRef);
 
   const professorsQuery = useMemo(() => {
     if (!db) return null;
@@ -39,8 +46,20 @@ export default function ProfessorsPage() {
     );
   }, [professors, search]);
 
+  const isSuperAdmin = useMemo(() => UserService.isSuperAdmin(adminProfile), [adminProfile]);
+
   const toggleBlock = (userId: string, currentStatus: string, name: string) => {
     if (!db) return;
+    
+    if (!isSuperAdmin) {
+      toast({
+        variant: "destructive",
+        title: "Access Denied",
+        description: "Only the Super Admin (admin@neu.edu.ph) can manage faculty access.",
+      });
+      return;
+    }
+
     const newStatus = currentStatus === "blocked" ? "active" : "blocked";
     const userRef = doc(db, "users", userId);
 
@@ -75,10 +94,28 @@ export default function ProfessorsPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <p className="text-[10px] text-primary uppercase font-bold tracking-[0.2em] mb-1">Admin / Faculty Control</p>
-          <h1 className="text-3xl font-extrabold text-slate-800 leading-none">Professor Management</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-extrabold text-slate-800 leading-none">Professor Management</h1>
+            {isSuperAdmin && (
+              <Badge className="bg-primary/10 text-primary border-none font-bold text-[10px] uppercase tracking-widest px-2.5 py-1">
+                <ShieldCheck size={12} className="mr-1" /> Super Admin
+              </Badge>
+            )}
+          </div>
           <p className="text-sm text-slate-400 font-medium mt-2">Manage faculty access and institutional authorization.</p>
         </div>
       </div>
+
+      {!isSuperAdmin && (
+        <Card className="border-none shadow-sm bg-orange-50/50 border-l-4 border-l-orange-400 rounded-xl">
+          <CardContent className="py-4 flex items-center gap-3">
+            <Lock className="text-orange-500 shrink-0" size={18} />
+            <p className="text-xs font-medium text-orange-700 leading-relaxed">
+              <strong>View-Only Mode:</strong> Your account is an authorized administrator, but only the <strong>Super Admin (admin@neu.edu.ph)</strong> can block or unblock faculty accounts.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="border-none shadow-sm bg-green-50/50 border-l-4 border-l-green-500 rounded-[1.5rem]">
@@ -186,7 +223,9 @@ export default function ProfessorsPage() {
                     <Button 
                       variant="outline" 
                       size="sm" 
+                      disabled={!isSuperAdmin}
                       className={`rounded-xl h-9 px-4 font-bold text-[10px] transition-all ${
+                        !isSuperAdmin ? "opacity-50 cursor-not-allowed" :
                         prof.status === 'blocked' 
                           ? "text-primary border-primary/20 hover:bg-primary/5" 
                           : "text-red-500 border-red-100 hover:bg-red-50"

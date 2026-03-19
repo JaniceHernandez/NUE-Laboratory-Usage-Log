@@ -1,22 +1,23 @@
-
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import { LayoutDashboard, FileText, Monitor, Users, Settings, LogOut, GraduationCap, BarChart3, User, Shield, Save, Loader2 } from "lucide-react";
+import { LayoutDashboard, FileText, Monitor, Users, Settings, LogOut, GraduationCap, BarChart3, User, Shield, Save, Loader2, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { AuthGuard } from "@/components/auth-guard";
-import { useAuth, useUser, useFirestore } from "@/firebase";
+import { useAuth, useUser, useFirestore, useDoc } from "@/firebase";
 import { signOut, updateProfile } from "firebase/auth";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, DocumentReference } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import Image from "next/image";
+import { UserService, UserProfile } from "@/services/user-service";
+import { Badge } from "@/components/ui/badge";
 
 const navItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/admin/dashboard" },
@@ -37,6 +38,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [displayName, setDisplayName] = useState(user?.displayName || "");
+
+  const userProfileRef = useMemo(() => 
+    (db && user) ? (doc(db, "users", user.uid) as DocumentReference<UserProfile>) : null, 
+    [db, user]
+  );
+  const { data: profile } = useDoc<UserProfile>(userProfileRef);
+  const isSuperAdmin = useMemo(() => UserService.isSuperAdmin(profile), [profile]);
 
   const handleLogout = async () => {
     if (auth) {
@@ -140,7 +148,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           
           <SidebarInset className="flex-1 flex flex-col overflow-hidden bg-[#F8FAFC]">
             <header className="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-8 shrink-0">
-              <SidebarTrigger className="text-slate-400 hover:text-slate-900" />
+              <div className="flex items-center gap-4">
+                <SidebarTrigger className="text-slate-400 hover:text-slate-900" />
+                {isSuperAdmin && (
+                  <Badge variant="outline" className="bg-primary/5 text-primary border-none font-bold text-[9px] uppercase tracking-[0.2em] px-3 py-1">
+                    <ShieldCheck size={12} className="mr-1.5" /> Super Admin
+                  </Badge>
+                )}
+              </div>
               <div className="flex items-center gap-3">
                 <div className="flex flex-col text-right hidden sm:flex">
                   <p className="text-xs font-bold text-slate-800 leading-none mb-1">
@@ -191,7 +206,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <Label className="text-xs font-bold uppercase tracking-widest text-slate-400">Account Access</Label>
                   <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-1">
                     <p className="text-xs font-bold text-slate-700">{user?.email}</p>
-                    <p className="text-[10px] text-slate-400 font-medium">Verified Institutional Admin</p>
+                    <p className="text-[10px] text-slate-400 font-medium">{isSuperAdmin ? 'Super Administrative Access' : 'Verified Institutional Admin'}</p>
                   </div>
                 </div>
               </div>

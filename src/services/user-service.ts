@@ -13,6 +13,8 @@ export interface UserProfile {
   createdAt: any;
 }
 
+const SUPER_ADMIN_EMAIL = 'admin@neu.edu.ph';
+
 export const UserService = {
   /**
    * Fetches a user profile from Firestore
@@ -71,5 +73,13 @@ export const UserService = {
    */
   isBlocked(profile: UserProfile): boolean {
     return profile.status === 'blocked';
+  },
+
+  /**
+   * Checks if a user is the Super Admin
+   */
+  isSuperAdmin(profile?: UserProfile | null): boolean {
+    if (!profile) return false;
+    return profile.email === SUPER_ADMIN_EMAIL;
   }
 };
