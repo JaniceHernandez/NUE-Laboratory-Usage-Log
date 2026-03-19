@@ -16,12 +16,13 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const COLLEGES = [
-  "College of Informatics and Computing Studies (CICS)",
-  "College of Engineering and Architecture (CEA)",
-  "College of Communication (COC)",
-  "College of Accountancy (CA)",
+  "College of Informatics and Computing Studies",
+  "College of Engineering and Architecture",
+  "College of Communication",
+  "College of Accountancy",
 ];
 
 export default function ReportsPage() {
@@ -92,7 +93,7 @@ export default function ReportsPage() {
   const handleExportCSV = () => {
     if (filteredData.length === 0) return;
 
-    const headers = ["Professor", "Email", "Room", "College", "Program", "Start Time", "Duration (Min)"];
+    const headers = ["Professor", "Email", "Room", "College", "Program", "Start Time", "End Time", "Duration (Min)"];
     const rows = filteredData.map(s => {
       const profile = userMap[s.professorEmail?.toLowerCase()];
       return [
@@ -102,6 +103,7 @@ export default function ReportsPage() {
         s.college,
         s.program,
         s.startTime?.toDate ? format(s.startTime.toDate(), "yyyy-MM-dd HH:mm") : "N/A",
+        s.endTime?.toDate ? format(s.endTime.toDate(), "yyyy-MM-dd HH:mm") : "N/A",
         s.duration || 0
       ];
     });
@@ -188,23 +190,24 @@ export default function ReportsPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50/80">
-              <tr>
-                <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Faculty Member</th>
-                <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Facility</th>
-                <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Program</th>
-                <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Duration</th>
-                <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Start Time</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
+        <CardContent className="p-0 overflow-x-auto">
+          <Table>
+            <TableHeader className="bg-slate-50/80">
+              <TableRow>
+                <TableHead className="px-8 h-14 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Faculty Member</TableHead>
+                <TableHead className="px-8 h-14 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Facility</TableHead>
+                <TableHead className="px-8 h-14 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Program</TableHead>
+                <TableHead className="px-8 h-14 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Start Time</TableHead>
+                <TableHead className="px-8 h-14 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">End Time</TableHead>
+                <TableHead className="px-8 h-14 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Duration</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="divide-y divide-slate-50">
               {filteredData.map((session) => {
                 const profile = userMap[session.professorEmail?.toLowerCase()];
                 return (
-                  <tr key={session.id} className="hover:bg-slate-50/50">
-                    <td className="px-8 py-4">
+                  <TableRow key={session.id} className="hover:bg-slate-50/50 border-none">
+                    <TableCell className="px-8 py-4">
                       <div className="flex flex-col">
                         <span className="font-bold text-slate-700">
                           {profile?.name || session.professorEmail}
@@ -213,20 +216,30 @@ export default function ReportsPage() {
                           <span className="text-[10px] text-slate-400">{session.professorEmail}</span>
                         )}
                       </div>
-                    </td>
-                    <td className="px-8 py-4">
+                    </TableCell>
+                    <TableCell className="px-8 py-4">
                       <Badge variant="outline" className="bg-slate-50 border-none font-bold text-[10px]">{session.roomNumber}</Badge>
-                    </td>
-                    <td className="px-8 py-4 text-xs font-medium text-slate-600">{session.program}</td>
-                    <td className="px-8 py-4 text-center font-bold text-primary">{session.duration || 0}m</td>
-                    <td className="px-8 py-4 text-right text-xs text-slate-400">
+                    </TableCell>
+                    <TableCell className="px-8 py-4 text-xs font-medium text-slate-600">{session.program}</TableCell>
+                    <TableCell className="px-8 py-4 text-right text-xs text-slate-400">
                       {session.startTime?.toDate ? format(session.startTime.toDate(), "MMM dd, hh:mm a") : "---"}
-                    </td>
-                  </tr>
+                    </TableCell>
+                    <TableCell className="px-8 py-4 text-right text-xs text-slate-400">
+                      {session.endTime?.toDate ? format(session.endTime.toDate(), "MMM dd, hh:mm a") : "---"}
+                    </TableCell>
+                    <TableCell className="px-8 py-4 text-center font-bold text-primary">{session.duration || 0}m</TableCell>
+                  </TableRow>
                 );
               })}
-            </tbody>
-          </table>
+              {filteredData.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-48 text-center text-slate-400 italic font-medium">
+                    No utilization records match the current filters.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>

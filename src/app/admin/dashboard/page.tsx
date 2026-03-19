@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   PieChart, Pie, Cell, 
   LineChart, Line, 
-  ResponsiveContainer, Tooltip, Legend,
+  ResponsiveContainer, Tooltip,
   CartesianGrid, XAxis, YAxis
 } from "recharts";
 import { 
@@ -25,12 +25,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-const COLLEGE_MAP: Record<string, string> = {
-  "College of Informatics and Computing Studies": "CICS",
-  "College of Engineering and Architecture": "CEA",
-  "College of Communication": "COC",
-  "College of Accountancy": "CA"
-};
+const COLLEGES = [
+  "College of Informatics and Computing Studies",
+  "College of Engineering and Architecture",
+  "College of Communication",
+  "College of Accountancy"
+];
 
 export default function DashboardPage() {
   const db = useFirestore();
@@ -119,17 +119,16 @@ export default function DashboardPage() {
     const counts: Record<string, number> = {};
     sessions.forEach(s => {
       if (s.college) {
-        const shortName = COLLEGE_MAP[s.college] || s.college;
-        counts[shortName] = (counts[shortName] || 0) + 1;
+        counts[s.college] = (counts[s.college] || 0) + 1;
       }
     });
     
     const colors = ['#266AFF', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-    return Object.entries(counts).map(([name, value], idx) => ({
+    return COLLEGES.map((name, idx) => ({
       name,
-      value,
+      value: counts[name] || 0,
       color: colors[idx % colors.length]
-    }));
+    })).filter(d => d.value > 0);
   }, [sessions]);
 
   const recentActivityList = useMemo(() => {
@@ -199,8 +198,8 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="lg:col-span-2 border-none shadow-sm rounded-xl bg-white">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <Card className="lg:col-span-3 border-none shadow-sm rounded-xl bg-white">
           <CardHeader className="p-4 border-b border-slate-50 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-bold flex items-center gap-2">
               <TrendingUp className="text-[#266AFF]" size={16} /> Utilization Trends
@@ -220,7 +219,7 @@ export default function DashboardPage() {
               ))}
             </div>
           </CardHeader>
-          <CardContent className="h-[220px] p-4">
+          <CardContent className="h-[250px] p-4">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={trendData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -233,22 +232,44 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-none shadow-sm rounded-xl bg-white">
+        <Card className="lg:col-span-2 border-none shadow-sm rounded-xl bg-white">
           <CardHeader className="p-4 border-b border-slate-50">
             <CardTitle className="text-sm font-bold flex items-center gap-2">
               <PieChartIcon className="text-orange-500" size={16} /> Usage by College
             </CardTitle>
           </CardHeader>
-          <CardContent className="h-[150px] p-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={collegeData} innerRadius={30} outerRadius={45} paddingAngle={5} dataKey="value">
-                  {collegeData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
-                </Pie>
-                <Tooltip contentStyle={{ borderRadius: '10px', border: 'none', fontSize: '10px' }} />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '10px' }} />
-              </PieChart>
-            </ResponsiveContainer>
+          <CardContent className="p-4 flex items-center h-[250px]">
+            <div className="w-1/2 h-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie 
+                    data={collegeData} 
+                    innerRadius={45} 
+                    outerRadius={65} 
+                    paddingAngle={5} 
+                    dataKey="value"
+                    stroke="none"
+                  >
+                    {collegeData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                  </Pie>
+                  <Tooltip contentStyle={{ borderRadius: '10px', border: 'none', fontSize: '10px' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="w-1/2 space-y-3 pl-4 overflow-y-auto max-h-full">
+              {collegeData.map((entry, index) => (
+                <div key={index} className="flex items-start gap-2">
+                  <div className="w-2 h-2 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: entry.color }} />
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-bold text-slate-700 leading-tight">{entry.name}</span>
+                    <span className="text-[8px] text-slate-400 font-medium">{entry.value} Logs</span>
+                  </div>
+                </div>
+              ))}
+              {collegeData.length === 0 && (
+                <p className="text-[10px] text-slate-400 italic">No usage data available.</p>
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
