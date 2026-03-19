@@ -549,11 +549,11 @@ export default function ProfessorPortal() {
                     </div>
                     <div>
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">COLLEGE</p>
-                      <p className="text-xl font-black text-slate-700 leading-tight">{summaryData?.college}</p>
+                      <p className="text-l font-black text-slate-700 leading-tight">{summaryData?.college}</p>
                     </div>
                     <div>
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">ACADEMIC PROGRAM</p>
-                      <p className="text-xl font-black text-slate-700 leading-tight">{summaryData?.program}</p>
+                      <p className="text-l font-black text-slate-700 leading-tight">{summaryData?.program}</p>
                     </div>
                   </div>
                 </div>
