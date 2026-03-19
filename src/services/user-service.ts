@@ -51,6 +51,14 @@ export const UserService = {
   },
 
   /**
+   * Updates user role (admin/professor)
+   */
+  async updateUserRole(db: Firestore, uid: string, role: 'admin' | 'professor'): Promise<void> {
+    const userRef = doc(db, 'users', uid);
+    await updateDoc(userRef, { role });
+  },
+
+  /**
    * Updates user college affiliation
    */
   async updateUserCollege(db: Firestore, uid: string, college: string): Promise<void> {

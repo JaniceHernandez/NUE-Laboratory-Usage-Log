@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { UserX, UserCheck, Search, ShieldAlert, Mail, Loader2, Users, ShieldCheck, Lock } from "lucide-react";
+import { UserX, UserCheck, Search, ShieldAlert, Mail, Loader2, Users, ShieldCheck, Lock, ShieldPlus, ShieldMinus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useFirestore, useCollection, useUser, useDoc } from "@/firebase";
 import { collection, query, where, doc, updateDoc, DocumentReference } from "firebase/firestore";
@@ -13,6 +13,7 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { useToast } from "@/hooks/use-toast";
 import { UserService, UserProfile } from "@/services/user-service";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function ProfessorsPage() {
   const [mounted, setMounted] = useState(false);
@@ -31,31 +32,37 @@ export default function ProfessorsPage() {
   );
   const { data: adminProfile } = useDoc<UserProfile>(adminProfileRef);
 
-  const professorsQuery = useMemo(() => {
-    if (!db) return null;
-    return query(collection(db, "users"), where("role", "==", "professor"));
-  }, [db]);
+  const { data: allUsers, loading } = useCollection<UserProfile>(
+    useMemo(() => db ? collection(db, "users") : null, [db])
+  );
 
-  const { data: professors, loading } = useCollection<any>(professorsQuery);
+  const professors = useMemo(() => allUsers.filter(u => u.role === 'professor'), [allUsers]);
+  const administrators = useMemo(() => allUsers.filter(u => u.role === 'admin'), [allUsers]);
 
   const filteredProfessors = useMemo(() => {
     return professors.filter(p => 
       p.email?.toLowerCase().includes(search.toLowerCase()) ||
-      p.name?.toLowerCase().includes(search.toLowerCase()) ||
-      p.college?.toLowerCase().includes(search.toLowerCase())
+      (p.name && p.name.toLowerCase().includes(search.toLowerCase())) ||
+      (p.college && p.college.toLowerCase().includes(search.toLowerCase()))
     );
   }, [professors, search]);
 
+  const filteredAdmins = useMemo(() => {
+    return administrators.filter(a => 
+      a.email?.toLowerCase().includes(search.toLowerCase()) ||
+      (a.name && a.name.toLowerCase().includes(search.toLowerCase()))
+    );
+  }, [administrators, search]);
+
   const isSuperAdmin = useMemo(() => UserService.isSuperAdmin(adminProfile), [adminProfile]);
 
-  const toggleBlock = (userId: string, currentStatus: string, name: string) => {
+  const handleUpdateStatus = (userId: string, currentStatus: string, name: string) => {
     if (!db) return;
-    
     if (!isSuperAdmin) {
       toast({
         variant: "destructive",
         title: "Access Denied",
-        description: "Only the Super Admin (admin@neu.edu.ph) can manage faculty access.",
+        description: "Only the Super Admin can manage account status.",
       });
       return;
     }
@@ -65,18 +72,41 @@ export default function ProfessorsPage() {
 
     updateDoc(userRef, { status: newStatus })
       .then(() => {
-        toast({
-          title: "Status Updated",
-          description: `Professor ${name} has been ${newStatus.toUpperCase()}.`,
-        });
+        toast({ title: "Updated", description: `${name} status set to ${newStatus.toUpperCase()}.` });
       })
-      .catch(async (error) => {
-        const permissionError = new FirestorePermissionError({
+      .catch(async () => {
+        errorEmitter.emit("permission-error", new FirestorePermissionError({
           path: userRef.path,
           operation: "update",
-          requestResourceData: { status: newStatus },
-        });
-        errorEmitter.emit("permission-error", permissionError);
+          requestResourceData: { status: newStatus }
+        }));
+      });
+  };
+
+  const handleUpdateRole = (userId: string, currentRole: string, name: string) => {
+    if (!db) return;
+    if (!isSuperAdmin) {
+      toast({
+        variant: "destructive",
+        title: "Access Denied",
+        description: "Only the Super Admin can manage administrative roles.",
+      });
+      return;
+    }
+
+    const newRole = currentRole === "admin" ? "professor" : "admin";
+    const userRef = doc(db, "users", userId);
+
+    updateDoc(userRef, { role: newRole })
+      .then(() => {
+        toast({ title: "Role Updated", description: `${name} has been promoted to ${newRole.toUpperCase()}.` });
+      })
+      .catch(async () => {
+        errorEmitter.emit("permission-error", new FirestorePermissionError({
+          path: userRef.path,
+          operation: "update",
+          requestResourceData: { role: newRole }
+        }));
       });
   };
 
@@ -84,7 +114,7 @@ export default function ProfessorsPage() {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50">
         <Loader2 className="animate-spin text-primary" size={40} />
-        <p className="mt-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Loading Faculty Registry...</p>
+        <p className="mt-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Loading Records...</p>
       </div>
     );
   }
@@ -93,16 +123,16 @@ export default function ProfessorsPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <p className="text-[10px] text-primary uppercase font-bold tracking-[0.2em] mb-1">Admin / Faculty Control</p>
+          <p className="text-[10px] text-primary uppercase font-bold tracking-[0.2em] mb-1">Admin / Institutional Access</p>
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-extrabold text-slate-800 leading-none">Professor Management</h1>
+            <h1 className="text-3xl font-extrabold text-slate-800 leading-none">Management Portal</h1>
             {isSuperAdmin && (
               <Badge className="bg-primary/10 text-primary border-none font-bold text-[10px] uppercase tracking-widest px-2.5 py-1">
                 <ShieldCheck size={12} className="mr-1" /> Super Admin
               </Badge>
             )}
           </div>
-          <p className="text-sm text-slate-400 font-medium mt-2">Manage faculty access and institutional authorization.</p>
+          <p className="text-sm text-slate-400 font-medium mt-2">Oversee faculty authorization and system administrators.</p>
         </div>
       </div>
 
@@ -111,153 +141,169 @@ export default function ProfessorsPage() {
           <CardContent className="py-4 flex items-center gap-3">
             <Lock className="text-orange-500 shrink-0" size={18} />
             <p className="text-xs font-medium text-orange-700 leading-relaxed">
-              <strong>View-Only Mode:</strong> Your account is an authorized administrator, but only the <strong>Super Admin (admin@neu.edu.ph)</strong> can block or unblock faculty accounts.
+              <strong>Super Admin Mode Required:</strong> Only the primary system administrator can modify roles or block accounts.
             </p>
           </CardContent>
         </Card>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="border-none shadow-sm bg-green-50/50 border-l-4 border-l-green-500 rounded-[1.5rem]">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-green-100 rounded-2xl flex items-center justify-center text-green-600">
-                <UserCheck size={24} />
-              </div>
-              <div>
-                <p className="text-2xl font-black text-slate-800">
-                  {professors.filter(p => p.status !== 'blocked').length}
-                </p>
-                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Authorized Accounts</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <Tabs defaultValue="professors" className="space-y-6">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+          <TabsList className="bg-white p-1 h-12 rounded-2xl shadow-sm border border-slate-100">
+            <TabsTrigger value="professors" className="rounded-xl px-6 font-bold data-[state=active]:bg-primary data-[state=active]:text-white">
+              <Users size={16} className="mr-2" /> Professors ({professors.length})
+            </TabsTrigger>
+            <TabsTrigger value="admins" className="rounded-xl px-6 font-bold data-[state=active]:bg-primary data-[state=active]:text-white">
+              <ShieldCheck size={16} className="mr-2" /> Admins ({administrators.length})
+            </TabsTrigger>
+          </TabsList>
 
-        <Card className="border-none shadow-sm bg-red-50/50 border-l-4 border-l-red-500 rounded-[1.5rem]">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center text-red-600">
-                <ShieldAlert size={24} />
-              </div>
-              <div>
-                <p className="text-2xl font-black text-slate-800">
-                  {professors.filter(p => p.status === 'blocked').length}
-                </p>
-                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Blocked Accounts</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-none shadow-sm bg-blue-50/50 border-l-4 border-l-blue-500 rounded-[1.5rem]">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600">
-                <Users size={24} />
-              </div>
-              <div>
-                <p className="text-2xl font-black text-slate-800">
-                  {professors.length}
-                </p>
-                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Total Faculty</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-white">
-        <CardHeader className="p-6 border-b border-slate-50 bg-slate-50/30">
           <div className="relative w-full max-w-md group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={18} />
             <Input 
-              placeholder="Search professors by name, email, or college..." 
-              className="pl-12 h-12 bg-white border-slate-100 rounded-2xl focus-visible:ring-1 focus-visible:ring-primary/20 shadow-sm transition-all text-sm"
+              placeholder="Search by name, email, or college..." 
+              className="pl-12 h-12 bg-white border-none rounded-2xl shadow-sm focus-visible:ring-1 focus-visible:ring-primary/20 transition-all text-sm"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-slate-50/50">
-              <TableRow className="border-none">
-                <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">Name / Identity</TableHead>
-                <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">Institutional Email</TableHead>
-                <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">College</TableHead>
-                <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14">Access Status</TableHead>
-                <TableHead className="px-8 text-[10px] font-bold text-slate-400 uppercase tracking-widest h-14 text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredProfessors.map((prof) => (
-                <TableRow key={prof.id} className="hover:bg-slate-50/50 transition-colors border-slate-50">
-                  <TableCell className="px-8 py-5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center text-primary text-xs font-black shadow-sm border border-primary/10">
-                        {(prof.name || prof.email).split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
-                      </div>
-                      <span className="text-sm font-bold text-slate-700">{prof.name || "No Name"}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-8 py-5">
-                    <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-                      <Mail size={14} className="text-slate-300" />
-                      {prof.email}
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-8 py-5">
-                    <Badge variant="outline" className="bg-slate-50 text-slate-500 border-none font-bold text-[10px] px-3 py-1">
-                      {prof.college || "Unassigned"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="px-8 py-5">
-                    {prof.status === 'blocked' ? (
-                      <Badge variant="destructive" className="bg-red-50 text-red-600 border-none font-bold text-[9px] uppercase tracking-widest px-2.5 py-1">Blocked</Badge>
-                    ) : (
-                      <Badge variant="secondary" className="bg-green-50 text-green-600 border-none font-bold text-[9px] uppercase tracking-widest px-2.5 py-1">Authorized</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="px-8 py-5 text-right">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      disabled={!isSuperAdmin}
-                      className={`rounded-xl h-9 px-4 font-bold text-[10px] transition-all ${
-                        !isSuperAdmin ? "opacity-50 cursor-not-allowed" :
-                        prof.status === 'blocked' 
-                          ? "text-primary border-primary/20 hover:bg-primary/5" 
-                          : "text-red-500 border-red-100 hover:bg-red-50"
-                      }`}
-                      onClick={() => toggleBlock(prof.id, prof.status, prof.name || prof.email)}
-                    >
-                      {prof.status === 'blocked' ? (
-                        <>
-                          <UserCheck size={14} className="mr-2" />
-                          Unblock
-                        </>
-                      ) : (
-                        <>
-                          <UserX size={14} className="mr-2" />
-                          Block Access
-                        </>
-                      )}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filteredProfessors.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="h-40 text-center text-slate-400 font-medium italic">
-                    No matching faculty records found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+        </div>
+
+        <TabsContent value="professors" className="animate-in slide-in-from-left-4 duration-300">
+          <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-white">
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader className="bg-slate-50/50">
+                  <TableRow className="border-none">
+                    <TableHead className="px-8 h-14 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Faculty Name</TableHead>
+                    <TableHead className="px-8 h-14 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Institutional Email</TableHead>
+                    <TableHead className="px-8 h-14 text-[10px] font-bold text-slate-400 uppercase tracking-widest">College</TableHead>
+                    <TableHead className="px-8 h-14 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</TableHead>
+                    <TableHead className="px-8 h-14 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredProfessors.map((prof) => (
+                    <TableRow key={prof.uid} className="hover:bg-slate-50/50 transition-colors border-slate-50">
+                      <TableCell className="px-8 py-5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-primary text-xs font-black border border-slate-100">
+                            {(prof.name || prof.email).split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
+                          </div>
+                          <span className="text-sm font-bold text-slate-700">{prof.name || "No Name"}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-8 py-5">
+                        <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                          <Mail size={14} className="text-slate-300" />
+                          {prof.email}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-8 py-5">
+                        <Badge variant="outline" className="bg-slate-50 text-slate-500 border-none font-bold text-[10px] px-3 py-1">
+                          {prof.college || "Not Affiliated"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="px-8 py-5">
+                        {prof.status === 'blocked' ? (
+                          <Badge variant="destructive" className="bg-red-50 text-red-600 border-none font-bold text-[9px] uppercase tracking-widest px-2.5 py-1">Blocked</Badge>
+                        ) : (
+                          <Badge variant="secondary" className="bg-green-50 text-green-600 border-none font-bold text-[9px] uppercase tracking-widest px-2.5 py-1">Active</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="px-8 py-5 text-right">
+                        <div className="flex justify-end gap-2">
+                          {isSuperAdmin && (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="rounded-xl h-9 px-4 font-bold text-[10px] text-primary border-primary/20 hover:bg-primary/5"
+                              onClick={() => handleUpdateRole(prof.uid, prof.role, prof.name || prof.email)}
+                            >
+                              <ShieldPlus size={14} className="mr-2" />
+                              Promote to Admin
+                            </Button>
+                          )}
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            disabled={!isSuperAdmin}
+                            className={`rounded-xl h-9 px-4 font-bold text-[10px] transition-all ${
+                              !isSuperAdmin ? "opacity-50" :
+                              prof.status === 'blocked' ? "text-primary border-primary/20 hover:bg-primary/5" : "text-red-500 border-red-100 hover:bg-red-50"
+                            }`}
+                            onClick={() => handleUpdateStatus(prof.uid, prof.status, prof.name || prof.email)}
+                          >
+                            {prof.status === 'blocked' ? <UserCheck size={14} className="mr-2" /> : <UserX size={14} className="mr-2" />}
+                            {prof.status === 'blocked' ? 'Unblock' : 'Block Access'}
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="admins" className="animate-in slide-in-from-right-4 duration-300">
+          <Card className="border-none shadow-sm rounded-[2rem] overflow-hidden bg-white">
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader className="bg-slate-50/50">
+                  <TableRow className="border-none">
+                    <TableHead className="px-8 h-14 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Admin Name</TableHead>
+                    <TableHead className="px-8 h-14 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Access Level</TableHead>
+                    <TableHead className="px-8 h-14 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Institutional Email</TableHead>
+                    <TableHead className="px-8 h-14 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredAdmins.map((admin) => (
+                    <TableRow key={admin.uid} className="hover:bg-slate-50/50 transition-colors border-slate-50">
+                      <TableCell className="px-8 py-5">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center text-primary text-xs font-black border border-primary/10">
+                            {(admin.name || admin.email).split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
+                          </div>
+                          <span className="text-sm font-bold text-slate-700">{admin.name || "System Admin"}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-8 py-5">
+                        {UserService.isSuperAdmin(admin) ? (
+                          <Badge className="bg-primary text-white border-none font-bold text-[8px] uppercase tracking-widest px-2.5 py-1">Super Admin</Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-600 border-none font-bold text-[8px] uppercase tracking-widest px-2.5 py-1">Management</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="px-8 py-5">
+                        <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+                          <Mail size={14} className="text-slate-300" />
+                          {admin.email}
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-8 py-5 text-right">
+                        {isSuperAdmin && !UserService.isSuperAdmin(admin) && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="rounded-xl h-9 px-4 font-bold text-[10px] text-red-500 hover:bg-red-50"
+                            onClick={() => handleUpdateRole(admin.uid, admin.role, admin.name || admin.email)}
+                          >
+                            <ShieldMinus size={14} className="mr-2" />
+                            Revoke Admin
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
