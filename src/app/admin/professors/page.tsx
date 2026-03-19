@@ -71,7 +71,6 @@ export default function ProfessorsPage() {
     }
 
     const newStatus = targetUser.status === "blocked" ? "active" : "blocked";
-    // targetUser.id is the Firestore document ID provided by useCollection
     const userRef = doc(db, "users", targetUser.id);
 
     try {

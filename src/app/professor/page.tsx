@@ -133,7 +133,7 @@ export default function ProfessorPortal() {
         setActiveSession(null);
       }
       setIsLoading(false);
-    }, (error) => {
+    }, (err) => {
       setIsLoading(false);
     });
 
@@ -197,6 +197,8 @@ export default function ProfessorPortal() {
 
         if (end <= start) throw new Error("End time must be after start time.");
 
+        const durationSeconds = Math.floor((end.getTime() - start.getTime()) / 1000);
+
         await SessionService.logManualSession(db, {
           professorEmail: user.email,
           roomNumber: room,
@@ -212,7 +214,7 @@ export default function ProfessorPortal() {
           roomNumber: room,
           college,
           program,
-          durationSeconds: Math.floor((end.getTime() - start.getTime()) / 1000)
+          durationSeconds
         });
         setIsThankYouOpen(true);
       } else {
@@ -548,11 +550,11 @@ export default function ProfessorPortal() {
                       </p>
                     </div>
                     <div>
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">COLLEGE</p>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">COLLEGE affiliation</p>
                       <p className="text-xl font-black text-slate-700 leading-tight">{summaryData?.college}</p>
                     </div>
                     <div>
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">ACADEMIC PROGRAM</p>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">academic PROGRAM</p>
                       <p className="text-xl font-black text-slate-700 leading-tight">{summaryData?.program}</p>
                     </div>
                   </div>
