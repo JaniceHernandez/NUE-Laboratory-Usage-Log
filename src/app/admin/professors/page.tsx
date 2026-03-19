@@ -55,7 +55,6 @@ export default function IdentityManagementPage() {
   const professors = useMemo(() => allUsers.filter(u => u.role === 'professor'), [allUsers]);
   
   const administrators = useMemo(() => {
-    // Combine real profiles with authorized registry entries that haven't logged in yet
     const activeAdmins = allUsers.filter(u => u.role === 'admin');
     const pendingAdmins = authAdmins.filter(auth => !activeAdmins.some(active => active.email.toLowerCase() === auth.email.toLowerCase()));
     
@@ -82,7 +81,7 @@ export default function IdentityManagementPage() {
   const isSuperAdmin = useMemo(() => UserService.isSuperAdmin(currentAdminProfile || { email: authUser?.email || '' } as UserProfile), [currentAdminProfile, authUser]);
 
   const handleUpdateStatus = async (targetUser: UserProfile & { id: string }) => {
-    if (!db || !isSuperAdmin && targetUser.role === 'admin') {
+    if (!db || (!isSuperAdmin && targetUser.role === 'admin')) {
       toast({ variant: "destructive", title: "Access Denied", description: "Insufficient privileges." });
       return;
     }
@@ -102,12 +101,10 @@ export default function IdentityManagementPage() {
 
     try {
       await UserService.deleteAuthorizedAdmin(db, email);
-      
       const existing = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
       if (existing) {
         await updateDoc(doc(db, "users", existing.id), { role: 'professor' });
       }
-      
       toast({ title: "Access Revoked", description: `${email} is no longer an administrator.` });
     } catch (e) {
       toast({ variant: "destructive", title: "Error", description: "Failed to revoke access." });

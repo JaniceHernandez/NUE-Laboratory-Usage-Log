@@ -1,4 +1,3 @@
-
 'use client';
 
 import { 
@@ -9,7 +8,7 @@ import {
   signInWithEmailAndPassword,
   User
 } from 'firebase/auth';
-import { Firestore, doc, updateDoc, serverTimestamp, getDoc, deleteDoc } from 'firebase/firestore';
+import { Firestore, doc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { UserService, UserProfile, SUPER_ADMIN_EMAIL } from './user-service';
 
 const INSTITUTIONAL_DOMAIN = '@neu.edu.ph';
@@ -28,20 +27,21 @@ export const AuthService = {
       throw new Error(`Access restricted. Please use your ${INSTITUTIONAL_DOMAIN} institutional email.`);
     }
 
-    // Determine role: Super Admin or Registry-based Admin or Professor
+    // Identify role by checking registry AND existing profile
     const isSuperAdmin = userEmail === SUPER_ADMIN_EMAIL;
     const isAuthorizedRegistry = await UserService.isAuthorizedAdmin(db, userEmail!);
-    const finalRole = (isSuperAdmin || isAuthorizedRegistry) ? 'admin' : 'professor';
+    
+    let existingProfile = await UserService.getUserProfile(db, user.uid);
+    
+    // Determine the user's role: Registry/Super Admin status takes precedence
+    const finalRole = (isSuperAdmin || isAuthorizedRegistry || existingProfile?.role === 'admin') ? 'admin' : 'professor';
 
-    // If trying to log in as admin specifically but not authorized
     if (intendedRole === 'admin' && finalRole !== 'admin') {
       await signOut(auth);
       throw new Error('This account does not have administrative clearance.');
     }
 
-    let profile = await UserService.getUserProfile(db, user.uid);
-
-    if (!profile) {
+    if (!existingProfile) {
       const newProfile: Partial<UserProfile> = {
         uid: user.uid,
         email: userEmail!,
@@ -52,31 +52,24 @@ export const AuthService = {
         createdAt: serverTimestamp(),
       };
       await UserService.createUserProfile(db, newProfile);
-      profile = await UserService.getUserProfile(db, user.uid);
-      
-      // If it was a registry-based login, cleanup the registry placeholder to prevent "Pending" duplication
-      if (isAuthorizedRegistry && !isSuperAdmin) {
-        const emailId = userEmail!.replace(/[^a-z0-9]/g, '_');
-        await deleteDoc(doc(db, 'authorizedAdmins', emailId)).catch(() => {});
-      }
+      existingProfile = await UserService.getUserProfile(db, user.uid);
     } else {
-      // Sync profile info
+      // Sync profile info and role
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, {
-        name: user.displayName || profile.name,
-        photoURL: user.photoURL || profile.photoURL,
-        role: finalRole // Ensure role is synced (e.g., if just granted admin access)
+        name: user.displayName || existingProfile.name,
+        photoURL: user.photoURL || existingProfile.photoURL,
+        role: finalRole
       });
-      profile.name = user.displayName || profile.name;
-      profile.role = finalRole as any;
+      existingProfile.role = finalRole as any;
     }
 
-    if (profile && UserService.isBlocked(profile)) {
+    if (existingProfile && UserService.isBlocked(existingProfile)) {
       await signOut(auth);
       throw new Error('Your institutional account has been deactivated.');
     }
 
-    return { user, profile: profile! };
+    return { user, profile: existingProfile! };
   },
 
   async signInAdmin(auth: Auth, db: Firestore, email: string, pass: string): Promise<{ user: User; profile: UserProfile }> {
