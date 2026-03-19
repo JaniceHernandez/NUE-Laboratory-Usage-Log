@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -26,32 +25,36 @@ import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const COLLEGES = [
-  "College of Informatics and Computing Studies",
-  "College of Engineering and Architecture",
-  "College of Communication",
-  "College of Accountancy",
+  "College of Informatics and Computing Studies (CICS)",
+  "College of Engineering and Architecture (CEA)",
+  "College of Communication (COC)",
+  "College of Accountancy (CA)",
 ];
 
 const PROGRAMS: Record<string, string[]> = {
-  "College of Informatics and Computing Studies": [
+  "College of Informatics and Computing Studies (CICS)": [
+    "Bachelor of Library and Information Science",
     "Bachelor of Science in Computer Science",
+    "Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Digital Animation Technology",
+    "Bachelor of Science in Entertainment and Multimedia Computing with Specialization in Game Development",
     "Bachelor of Science in Information Technology",
-    "Bachelor of Science in Information System",
-    "Bachelor of Science in Entertainment and Multimedia Computing"
+    "Bachelor of Science in Information System"
   ],
-  "College of Engineering and Architecture": [
+  "College of Engineering and Architecture (CEA)": [
     "Bachelor of Science in Architecture",
+    "Bachelor of Science in Astronomy",
     "Bachelor of Science in Civil Engineering",
     "Bachelor of Science in Electrical Engineering",
     "Bachelor of Science in Electronics Engineering",
+    "Bachelor of Science in Industrial Engineering",
     "Bachelor of Science in Mechanical Engineering"
   ],
-  "College of Communication": [
+  "College of Communication (COC)": [
     "Bachelor of Arts in Broadcasting",
     "Bachelor of Arts in Communication",
     "Bachelor of Arts in Journalism"
   ],
-  "College of Accountancy": [
+  "College of Accountancy (CA)": [
     "Bachelor of Science in Accounting Information System"
   ]
 };
@@ -63,10 +66,9 @@ export default function ReportsPage() {
   
   // Filters
   const [search, setSearch] = useState("");
-  const [roomFilter, setRoomFilter] = useState("");
+  const [roomFilter, setRoomFilter] = useState("all");
   const [collegeFilter, setCollegeFilter] = useState("all");
   const [programFilter, setProgramFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>({
     start: subDays(new Date(), 30),
     end: new Date()
@@ -76,8 +78,12 @@ export default function ReportsPage() {
     setMounted(true);
   }, []);
 
-  const { data: sessions, loading } = useCollection<any>(
+  const { data: sessions, loading: sessionsLoading } = useCollection<any>(
     useMemo(() => db ? query(collection(db, "sessions"), orderBy("startTime", "desc")) : null, [db])
+  );
+
+  const { data: rooms, loading: roomsLoading } = useCollection<any>(
+    useMemo(() => db ? query(collection(db, "rooms"), orderBy("number", "asc")) : null, [db])
   );
 
   const filteredData = useMemo(() => {
@@ -99,14 +105,13 @@ export default function ReportsPage() {
         s.program?.toLowerCase().includes(search.toLowerCase());
 
       // Specific Filters
-      const matchesRoom = !roomFilter || s.roomNumber?.toLowerCase().includes(roomFilter.toLowerCase());
+      const matchesRoom = roomFilter === "all" || s.roomNumber === roomFilter;
       const matchesCollege = collegeFilter === "all" || s.college === collegeFilter;
       const matchesProgram = programFilter === "all" || s.program === programFilter;
-      const matchesStatus = statusFilter === "all" || s.status === statusFilter;
 
-      return matchesDate && matchesSearch && matchesRoom && matchesCollege && matchesProgram && matchesStatus;
+      return matchesDate && matchesSearch && matchesRoom && matchesCollege && matchesProgram;
     });
-  }, [sessions, dateRange, search, roomFilter, collegeFilter, programFilter, statusFilter, mounted]);
+  }, [sessions, dateRange, search, roomFilter, collegeFilter, programFilter, mounted]);
 
   const reportStats = useMemo(() => {
     const totalSessions = filteredData.length;
@@ -124,10 +129,9 @@ export default function ReportsPage() {
 
   const resetFilters = () => {
     setSearch("");
-    setRoomFilter("");
+    setRoomFilter("all");
     setCollegeFilter("all");
     setProgramFilter("all");
-    setStatusFilter("all");
     setDateRange({
       start: subDays(new Date(), 30),
       end: new Date()
@@ -175,7 +179,7 @@ export default function ReportsPage() {
     });
   };
 
-  if (loading || !mounted) {
+  if (sessionsLoading || roomsLoading || !mounted) {
     return (
       <div className="h-96 w-full flex items-center justify-center">
         <Loader2 className="animate-spin text-primary" size={40} />
@@ -294,12 +298,15 @@ export default function ReportsPage() {
 
             <div className="space-y-1.5">
               <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Room Number</span>
-              <Input 
-                placeholder="e.g., COM LAB 402" 
-                className="h-10 bg-white border-slate-200 rounded-xl focus-visible:ring-1 focus-visible:ring-primary/20 text-xs"
-                value={roomFilter}
-                onChange={(e) => setRoomFilter(e.target.value)}
-              />
+              <Select value={roomFilter} onValueChange={setRoomFilter}>
+                <SelectTrigger className="h-10 bg-white border-slate-200 rounded-xl text-xs">
+                  <SelectValue placeholder="All Rooms" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="all">All Rooms</SelectItem>
+                  {rooms.map(r => <SelectItem key={r.id} value={r.number}>{r.number}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-1.5">
@@ -329,20 +336,6 @@ export default function ReportsPage() {
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Session Status</span>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="h-10 bg-white border-slate-200 rounded-xl text-xs">
-                  <SelectValue placeholder="All Status" />
-                </SelectTrigger>
-                <SelectContent className="rounded-xl">
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -354,8 +347,8 @@ export default function ReportsPage() {
                   <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Facility</th>
                   <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Program / College</th>
                   <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Duration</th>
-                  <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Status</th>
                   <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Start Time</th>
+                  <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">End Time</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -381,16 +374,14 @@ export default function ReportsPage() {
                     <td className="px-8 py-4 text-center">
                       <span className="text-xs font-mono font-bold text-primary">{session.duration || 0}m</span>
                     </td>
-                    <td className="px-8 py-4 text-center">
-                      <Badge variant="outline" className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 border-none ${
-                        session.status === 'active' ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-400'
-                      }`}>
-                        {session.status}
-                      </Badge>
-                    </td>
                     <td className="px-8 py-4 text-right">
                       <span className="text-xs text-slate-400">
                         {session.startTime?.toDate ? format(session.startTime.toDate(), "MMM dd, hh:mm a") : "---"}
+                      </span>
+                    </td>
+                    <td className="px-8 py-4 text-right">
+                      <span className="text-xs text-slate-400">
+                        {session.endTime?.toDate ? format(session.endTime.toDate(), "MMM dd, hh:mm a") : "---"}
                       </span>
                     </td>
                   </tr>

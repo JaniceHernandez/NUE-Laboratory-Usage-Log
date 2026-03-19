@@ -10,8 +10,8 @@
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    /* NEU Blue */
-    --primary: 221 83% 53%;
+    /* NEU Blue: #266AFF (Hue: 220, Saturation: 75%, Lightness: 55%) */
+    --primary: 220 75% 55%;
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222 47% 11%;
@@ -24,10 +24,10 @@
     --destructive-foreground: 210 40% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221 83% 53%;
+    --ring: 220 75% 55%;
     --radius: 1rem;
     /* NEU Yellow/Amber for charts and warnings */
-    --chart-1: 221 83% 53%;
+    --chart-1: 220 75% 55%;
     --chart-2: 142 71% 45%;
     --chart-3: 47 100% 62%;
     --chart-4: 220 70% 50%;
