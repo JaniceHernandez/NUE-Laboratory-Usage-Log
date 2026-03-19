@@ -1,19 +1,11 @@
-
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
   FileDown, 
   Loader2, 
-  BarChart, 
-  Clock, 
-  Users, 
-  Database,
-  ArrowRight,
-  Search,
-  FilterX
 } from "lucide-react";
 import { useFirestore, useCollection } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";

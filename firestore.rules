@@ -6,58 +6,54 @@ service cloud.firestore {
       return request.auth != null;
     }
     
-    // Safely check for a role without failing if the user document is missing
-    function hasRole(role) {
-      return isSignedIn() && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
-    }
-
-    // Check if account is active
-    function isActive() {
-      return isSignedIn() && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'active';
-    }
-
     // Identify the Super Admin
     function isSuperAdmin() {
       return isSignedIn() && request.auth.token.email == 'admin@neu.edu.ph';
     }
 
+    // Safely check for a role or Super Admin status
+    function hasRole(role) {
+      return isSignedIn() && (
+        isSuperAdmin() || 
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role)
+      );
+    }
+
+    // Check if account is active
+    function isActive() {
+      return isSignedIn() && (
+        isSuperAdmin() ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.status == 'active')
+      );
+    }
+
     // Users collection rules
     match /users/{userId} {
       allow read: if isSignedIn();
-      
-      // Super Admin can create/delete anyone. 
-      // Users can create their own profile during signup.
       allow create: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
+      allow update: if isSuperAdmin() || (isSignedIn() && request.auth.uid == userId);
       allow delete: if isSuperAdmin();
-      
-      allow update: if isSignedIn() && (
-        // Super admin can update any record
-        isSuperAdmin() || 
-        // A user can update their own profile (e.g., college affiliation)
-        (request.auth.uid == userId) ||
-        // An admin can block/unblock a professor
-        (hasRole('admin') && get(/databases/$(database)/documents/users/$(userId)).data.role == 'professor' && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))
-      );
     }
     
+    // Authorized Admins registry (Pre-authorization)
+    match /authorizedAdmins/{emailId} {
+      allow read: if isSignedIn();
+      allow write: if isSuperAdmin();
+    }
+
     // Sessions collection rules
     match /sessions/{sessionId} {
       allow read: if isSignedIn() && (
         hasRole('admin') || 
-        resource.data.professorEmail == request.auth.token.email ||
-        resource.data.status == 'active'
+        resource.data.professorEmail == request.auth.token.email
       );
       
-      allow create: if isSignedIn() && (
-        request.resource.data.professorEmail == request.auth.token.email
-      );
+      allow create: if isSignedIn();
       
-      allow update: if isSignedIn() && (
-        resource.data.professorEmail == request.auth.token.email || hasRole('admin')
+      allow update: if hasRole('admin') || (
+        isSignedIn() && resource.data.professorEmail == request.auth.token.email
       );
       
       allow delete: if hasRole('admin');

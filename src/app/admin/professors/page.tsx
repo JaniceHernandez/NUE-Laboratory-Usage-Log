@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
@@ -7,13 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { 
-  UserX, UserCheck, Search, ShieldAlert, 
-  Mail, Loader2, Users, ShieldCheck, 
-  Trash2, UserPlus, Fingerprint, Clock
+  Search, ShieldCheck, 
+  Loader2, Trash2, UserPlus, Clock
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useFirestore, useCollection, useUser, useDoc } from "@/firebase";
-import { Query, collection, doc, updateDoc, deleteDoc, DocumentReference } from "firebase/firestore";
+import { Query, collection, doc, updateDoc, DocumentReference } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { UserService, UserProfile, AuthorizedAdmin } from "@/services/user-service";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -81,13 +79,10 @@ export default function IdentityManagementPage() {
     );
   }, [administrators, search]);
 
-  const isSuperAdmin = useMemo(() => UserService.isSuperAdmin(currentAdminProfile), [currentAdminProfile]);
+  const isSuperAdmin = useMemo(() => UserService.isSuperAdmin(currentAdminProfile || { email: authUser?.email || '' } as UserProfile), [currentAdminProfile, authUser]);
 
   const handleUpdateStatus = async (targetUser: UserProfile & { id: string }) => {
-    if (!db || !currentAdminProfile) return;
-
-    const canManage = isSuperAdmin || targetUser.role === 'professor';
-    if (!canManage) {
+    if (!db || !isSuperAdmin && targetUser.role === 'admin') {
       toast({ variant: "destructive", title: "Access Denied", description: "Insufficient privileges." });
       return;
     }
@@ -108,7 +103,6 @@ export default function IdentityManagementPage() {
     try {
       await UserService.deleteAuthorizedAdmin(db, email);
       
-      // If they have a user profile, downgrade it
       const existing = allUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
       if (existing) {
         await updateDoc(doc(db, "users", existing.id), { role: 'professor' });
@@ -289,6 +283,14 @@ export default function IdentityManagementPage() {
                       <TableCell className="px-8 py-5 text-right">
                         {isSuperAdmin && !UserService.isSuperAdmin(admin) && (
                           <div className="flex justify-end gap-2">
+                             <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="rounded-xl h-9 px-4 font-bold text-[10px]"
+                              onClick={() => handleUpdateStatus(admin)}
+                            >
+                              {admin.status === 'blocked' ? 'Unblock' : 'Block'}
+                            </Button>
                             <Button 
                               variant="ghost" 
                               size="sm"

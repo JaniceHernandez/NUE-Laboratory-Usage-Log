@@ -1,10 +1,9 @@
-
 'use client';
 
 import { 
   doc, getDoc, setDoc, updateDoc, deleteDoc, 
   serverTimestamp, Firestore, query, collection, 
-  where, getDocs, addDoc, DocumentData
+  where, getDocs
 } from 'firebase/firestore';
 
 export interface UserProfile {
@@ -40,7 +39,6 @@ export const UserService = {
     const normalizedEmail = email.toLowerCase().trim();
     if (normalizedEmail === SUPER_ADMIN_EMAIL) return true;
     
-    // Check registry
     const emailId = normalizedEmail.replace(/[^a-z0-9]/g, '_');
     const authRef = doc(db, 'authorizedAdmins', emailId);
     const authSnap = await getDoc(authRef);
@@ -51,7 +49,6 @@ export const UserService = {
     const normalizedEmail = email.toLowerCase().trim();
     const emailId = normalizedEmail.replace(/[^a-z0-9]/g, '_');
     
-    // Create pre-authorization record
     const authRef = doc(db, 'authorizedAdmins', emailId);
     await setDoc(authRef, {
       email: normalizedEmail,
@@ -59,7 +56,6 @@ export const UserService = {
       createdAt: serverTimestamp()
     });
 
-    // If user already exists, upgrade their role immediately
     const usersRef = collection(db, 'users');
     const q = query(usersRef, where('email', '==', normalizedEmail));
     const snapshot = await getDocs(q);
