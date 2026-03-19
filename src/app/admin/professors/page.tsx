@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { 
   UserX, UserCheck, Search, ShieldAlert, 
   Mail, Loader2, Users, ShieldCheck, 
-  Trash2, Plus, UserPlus
+  Trash2, Plus, UserPlus, Fingerprint
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useFirestore, useCollection, useUser, useDoc } from "@/firebase";
@@ -130,7 +130,7 @@ export default function ProfessorsPage() {
     return (
       <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50">
         <Loader2 className="animate-spin text-primary" size={40} />
-        <p className="mt-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Loading Records...</p>
+        <p className="mt-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Loading IAM Registry...</p>
       </div>
     );
   }
@@ -139,16 +139,16 @@ export default function ProfessorsPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <p className="text-[10px] text-primary uppercase font-bold tracking-[0.2em] mb-1">Admin / Institutional Access</p>
+          <p className="text-[10px] text-primary uppercase font-bold tracking-[0.2em] mb-1">Admin / Identity & Access Management</p>
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-extrabold text-slate-800 leading-none">Management Portal</h1>
+            <h1 className="text-3xl font-extrabold text-slate-800 leading-none tracking-tight">Access Registry</h1>
             {isSuperAdmin && (
               <Badge className="bg-primary/10 text-primary border-none font-bold text-[10px] uppercase tracking-widest px-2.5 py-1">
                 <ShieldCheck size={12} className="mr-1" /> Super Admin
               </Badge>
             )}
           </div>
-          <p className="text-sm text-slate-400 font-medium mt-2">Oversee faculty authorization and system administrators.</p>
+          <p className="text-sm text-slate-400 font-medium mt-2">Oversee institutional faculty access and administrative roles.</p>
         </div>
         {isSuperAdmin && (
           <Button 

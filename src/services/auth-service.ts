@@ -21,9 +21,10 @@ export const AuthService = {
     
     const result = await signInWithPopup(auth, provider);
     const user = result.user;
+    const userEmail = user.email?.toLowerCase();
 
     // 1. Domain Check
-    if (!user.email?.endsWith(INSTITUTIONAL_DOMAIN) && user.email !== ADMIN_EMAIL) {
+    if (!userEmail?.endsWith(INSTITUTIONAL_DOMAIN) && userEmail !== ADMIN_EMAIL) {
       await signOut(auth);
       throw new Error(`Access restricted. Please use your ${INSTITUTIONAL_DOMAIN} institutional email.`);
     }
@@ -34,7 +35,7 @@ export const AuthService = {
     // 3. Handle First-time Login or Pre-authorized Linking
     if (!profile) {
       // Check if this email was pre-authorized as an admin
-      const preAuthorized = await UserService.findUserByEmail(db, user.email!);
+      const preAuthorized = await UserService.findUserByEmail(db, userEmail!);
       
       if (preAuthorized && preAuthorized.role === 'admin') {
         // "Claim" the pre-authorized profile: Link it to the UID
@@ -56,16 +57,16 @@ export const AuthService = {
         profile = newProfile;
       } else {
         // Not pre-authorized as admin. Check if they are trying to log in as admin.
-        if (intendedRole === 'admin' && user.email !== ADMIN_EMAIL) {
+        if (intendedRole === 'admin' && userEmail !== ADMIN_EMAIL) {
           await signOut(auth);
           throw new Error('You are not an authorized administrator. Please contact the system admin.');
         }
 
         // New professor profile
-        const role = user.email === ADMIN_EMAIL ? 'admin' : 'professor';
+        const role = userEmail === ADMIN_EMAIL ? 'admin' : 'professor';
         const newProfile: Partial<UserProfile> = {
           uid: user.uid,
-          email: user.email!,
+          email: userEmail!,
           role: role as any,
           name: user.displayName,
           photoURL: user.photoURL,
@@ -93,6 +94,7 @@ export const AuthService = {
     }
 
     // 5. Final Role Authorization Check
+    // If the user intended to login as admin, they MUST have the admin role.
     if (intendedRole === 'admin' && profile?.role !== 'admin') {
       await signOut(auth);
       throw new Error('You do not have administrative privileges.');
@@ -102,11 +104,12 @@ export const AuthService = {
   },
 
   async signInAdmin(auth: Auth, db: Firestore, email: string, pass: string): Promise<{ user: User; profile: UserProfile }> {
-    if (email !== ADMIN_EMAIL) {
+    const normalizedEmail = email.toLowerCase();
+    if (normalizedEmail !== ADMIN_EMAIL) {
       throw new Error('Invalid admin credentials.');
     }
 
-    const result = await signInWithEmailAndPassword(auth, email, pass);
+    const result = await signInWithEmailAndPassword(auth, normalizedEmail, pass);
     const user = result.user;
 
     let profile = await UserService.getUserProfile(db, user.uid);
@@ -114,7 +117,7 @@ export const AuthService = {
     if (!profile) {
       const newProfile: Partial<UserProfile> = {
         uid: user.uid,
-        email: user.email!,
+        email: normalizedEmail,
         role: 'admin',
         name: 'Authorized Admin',
         photoURL: null,

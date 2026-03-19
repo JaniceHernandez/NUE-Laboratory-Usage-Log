@@ -36,8 +36,9 @@ export const UserService = {
    * Finds a user by email (useful for linking pre-authorized admins)
    */
   async findUserByEmail(db: Firestore, email: string): Promise<UserProfile | null> {
+    const normalizedEmail = email.toLowerCase();
     const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('email', '==', email));
+    const q = query(usersRef, where('email', '==', normalizedEmail));
     const snapshot = await getDocs(q);
     if (!snapshot.empty) {
       const docData = snapshot.docs[0];
@@ -64,19 +65,20 @@ export const UserService = {
    * Pre-authorizes an admin email
    */
   async authorizeAdminEmail(db: Firestore, email: string): Promise<void> {
-    const existing = await this.findUserByEmail(db, email);
+    const normalizedEmail = email.toLowerCase();
+    const existing = await this.findUserByEmail(db, normalizedEmail);
     if (existing && existing.role === 'admin') {
       throw new Error('Email is already an administrator.');
     }
 
     if (existing) {
       // Upgrade existing professor to admin
-      await this.updateUserRole(db, existing.uid!, 'admin');
+      await this.updateUserRole(db, (existing as any).uid || existing.uid!, 'admin');
     } else {
       // Create a new "pending" admin record
       const usersRef = collection(db, 'users');
       await addDoc(usersRef, {
-        email,
+        email: normalizedEmail,
         role: 'admin',
         status: 'active',
         name: null,
@@ -130,6 +132,6 @@ export const UserService = {
    */
   isSuperAdmin(profile?: UserProfile | null): boolean {
     if (!profile) return false;
-    return profile.email === SUPER_ADMIN_EMAIL;
+    return profile.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
   }
 };

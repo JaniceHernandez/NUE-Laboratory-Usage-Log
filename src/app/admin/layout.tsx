@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import { LayoutDashboard, Monitor, Users, Settings, LogOut, BarChart3, User, Shield, Save, Loader2, ShieldCheck } from "lucide-react";
+import { LayoutDashboard, Monitor, Users, Settings, LogOut, BarChart3, User, Shield, Save, Loader2, ShieldCheck, Fingerprint } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/admin/dashboard" },
   { title: "Room Management", icon: Monitor, href: "/admin/rooms" },
-  { title: "Professor Management", icon: Users, href: "/admin/professors" },
+  { title: "Identity & Access", icon: Fingerprint, href: "/admin/professors" },
   { title: "Reports", icon: BarChart3, href: "/admin/reports" },
 ];
 
@@ -96,7 +96,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </div>
                 <div className="flex flex-col text-left">
                   <h1 className="text-[10px] font-black text-slate-900 leading-tight uppercase tracking-tight">NEW ERA UNIVERSITY</h1>
-                  <p className="text-[9px] text-[#266AFF] font-bold mt-0.5 leading-none">LABORATORY USAGE LOG</p>
+                  <p className="text-[9px] text-primary font-bold mt-0.5 leading-none uppercase">LABORATORY USAGE LOG</p>
                 </div>
               </div>
             </SidebarHeader>
@@ -112,7 +112,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         className={cn(
                           "h-11 px-4 rounded-xl transition-all duration-200",
                           isActive 
-                            ? "bg-slate-50 text-[#266AFF] border-l-4 border-[#266AFF] rounded-l-none font-bold" 
+                            ? "bg-slate-50 text-primary border-l-4 border-primary rounded-l-none font-bold" 
                             : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                         )}
                       >
@@ -156,7 +156,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <div className="flex items-center gap-4">
                 <SidebarTrigger className="text-slate-400 hover:text-slate-900" />
                 {isSuperAdmin && (
-                  <Badge variant="outline" className="bg-[#266AFF]/5 text-[#266AFF] border-none font-bold text-[9px] uppercase tracking-[0.2em] px-3 py-1">
+                  <Badge variant="outline" className="bg-primary/5 text-primary border-none font-bold text-[9px] uppercase tracking-[0.2em] px-3 py-1">
                     <ShieldCheck size={12} className="mr-1.5" /> Super Admin
                   </Badge>
                 )}
@@ -186,7 +186,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
           <DialogContent className="sm:max-w-[425px] rounded-[2rem] p-8">
             <DialogHeader>
-              <div className="w-12 h-12 bg-[#266AFF]/10 text-[#266AFF] rounded-2xl flex items-center justify-center mb-4">
+              <div className="w-12 h-12 bg-primary/10 text-primary rounded-2xl flex items-center justify-center mb-4">
                 <Shield size={24} />
               </div>
               <DialogTitle className="text-2xl font-bold">Admin Settings</DialogTitle>
@@ -203,7 +203,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     placeholder="System Administrator" 
-                    className="h-12 rounded-xl bg-slate-50 border-none focus-visible:ring-1 focus-visible:ring-[#266AFF]/20"
+                    className="h-12 rounded-xl bg-slate-50 border-none focus-visible:ring-1 focus-visible:ring-primary/20"
                     required
                   />
                 </div>
@@ -216,7 +216,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </div>
               </div>
               <DialogFooter className="pt-4">
-                <Button type="submit" className="w-full h-12 bg-[#266AFF] rounded-xl font-bold shadow-lg shadow-[#266AFF]/20 gap-2" disabled={isSaving}>
+                <Button type="submit" className="w-full h-12 bg-primary rounded-xl font-bold shadow-lg shadow-primary/20 gap-2" disabled={isSaving}>
                   {isSaving ? <Loader2 className="animate-spin" size={20} /> : <Save size={18} />}
                   Save Changes
                 </Button>
