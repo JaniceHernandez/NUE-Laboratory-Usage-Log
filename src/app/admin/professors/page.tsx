@@ -150,7 +150,7 @@ export default function IdentityManagementPage() {
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <p className="text-[10px] text-primary uppercase font-bold tracking-[0.2em] mb-1">Admin / Identity & Access Management</p>
+          <p className="text-[10px] text-primary uppercase font-bold tracking-[0.2em] mb-1">Admin / Identify & Access Management</p>
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-extrabold text-slate-800 leading-none tracking-tight">Access Registry</h1>
             {isSuperAdmin && (

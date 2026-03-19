@@ -32,28 +32,6 @@ const COLLEGES = [
   "College of Accountancy (CA)",
 ];
 
-const PROGRAMS: Record<string, string[]> = {
-  "College of Informatics and Computing Studies (CICS)": [
-    "Bachelor of Science in Computer Science",
-    "Bachelor of Science in Information Technology",
-    "Bachelor of Science in Information System",
-    "Bachelor of Science in Entertainment and Multimedia Computing"
-  ],
-  "College of Engineering and Architecture (CEA)": [
-    "Bachelor of Science in Architecture",
-    "Bachelor of Science in Civil Engineering",
-    "Bachelor of Science in Electrical Engineering",
-    "Bachelor of Science in Mechanical Engineering"
-  ],
-  "College of Communication (COC)": [
-    "Bachelor of Arts in Communication",
-    "Bachelor of Arts in Journalism"
-  ],
-  "College of Accountancy (CA)": [
-    "Bachelor of Science in Accounting Information System"
-  ]
-};
-
 export default function ReportsPage() {
   const db = useFirestore();
   const { toast } = useToast();
@@ -62,7 +40,6 @@ export default function ReportsPage() {
   const [search, setSearch] = useState("");
   const [roomFilter, setRoomFilter] = useState("all");
   const [collegeFilter, setCollegeFilter] = useState("all");
-  const [programFilter, setProgramFilter] = useState("all");
   const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>({
     start: subDays(new Date(), 30),
     end: new Date()
@@ -109,11 +86,10 @@ export default function ReportsPage() {
 
       const matchesRoom = roomFilter === "all" || s.roomNumber === roomFilter;
       const matchesCollege = collegeFilter === "all" || s.college === collegeFilter;
-      const matchesProgram = programFilter === "all" || s.program === programFilter;
 
-      return matchesDate && matchesSearch && matchesRoom && matchesCollege && matchesProgram;
+      return matchesDate && matchesSearch && matchesRoom && matchesCollege;
     });
-  }, [sessions, dateRange, search, roomFilter, collegeFilter, programFilter, mounted, userMap]);
+  }, [sessions, dateRange, search, roomFilter, collegeFilter, mounted, userMap]);
 
   const handleExportCSV = () => {
     if (filteredData.length === 0) return;
@@ -227,7 +203,9 @@ export default function ReportsPage() {
                 <tr key={session.id} className="hover:bg-slate-50/50">
                   <td className="px-8 py-4">
                     <div className="flex flex-col">
-                      <span className="font-bold text-slate-700">{userMap[session.professorEmail?.toLowerCase()] || "Unknown"}</span>
+                      <span className="font-bold text-slate-700">
+                        {userMap[session.professorEmail?.toLowerCase()] || "Institutional User"}
+                      </span>
                       <span className="text-[10px] text-slate-400">{session.professorEmail}</span>
                     </div>
                   </td>

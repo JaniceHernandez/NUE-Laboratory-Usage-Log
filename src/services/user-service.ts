@@ -24,7 +24,7 @@ export interface AuthorizedAdmin {
   createdAt: any;
 }
 
-const SUPER_ADMIN_EMAIL = 'admin@neu.edu.ph';
+export const SUPER_ADMIN_EMAIL = 'admin@neu.edu.ph';
 
 export const UserService = {
   async getUserProfile(db: Firestore, uid: string): Promise<UserProfile | null> {
@@ -37,8 +37,11 @@ export const UserService = {
   },
 
   async isAuthorizedAdmin(db: Firestore, email: string): Promise<boolean> {
-    if (email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()) return true;
-    const emailId = email.toLowerCase().trim().replace(/[^a-z0-9]/g, '_');
+    const normalizedEmail = email.toLowerCase().trim();
+    if (normalizedEmail === SUPER_ADMIN_EMAIL) return true;
+    
+    // Check registry
+    const emailId = normalizedEmail.replace(/[^a-z0-9]/g, '_');
     const authRef = doc(db, 'authorizedAdmins', emailId);
     const authSnap = await getDoc(authRef);
     return authSnap.exists();
@@ -75,11 +78,6 @@ export const UserService = {
       status: 'active',
       createdAt: serverTimestamp(),
     }, { merge: true });
-  },
-
-  async deleteUser(db: Firestore, uid: string): Promise<void> {
-    const userRef = doc(db, 'users', uid);
-    await deleteDoc(userRef);
   },
 
   async deleteAuthorizedAdmin(db: Firestore, email: string): Promise<void> {
