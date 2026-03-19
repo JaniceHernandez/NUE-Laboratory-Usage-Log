@@ -8,7 +8,7 @@ import {
   signInWithEmailAndPassword,
   User
 } from 'firebase/auth';
-import { Firestore, doc, deleteDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { Firestore, doc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { UserService, UserProfile } from './user-service';
 
 const INSTITUTIONAL_DOMAIN = '@neu.edu.ph';
@@ -16,9 +16,9 @@ const ADMIN_EMAIL = 'admin@neu.edu.ph';
 
 export const AuthService = {
   /**
-   * Handles Google Sign-In with institutional domain validation and pre-authorization check
+   * Handles Google Sign-In with institutional domain validation and portal-specific authorization
    */
-  async signInWithGoogle(auth: Auth, db: Firestore): Promise<{ user: User; profile: UserProfile }> {
+  async signInWithGoogle(auth: Auth, db: Firestore, intendedRole?: 'admin' | 'professor'): Promise<{ user: User; profile: UserProfile }> {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account', hd: 'neu.edu.ph' });
     
@@ -31,7 +31,7 @@ export const AuthService = {
       throw new Error(`Access restricted. Please use your ${INSTITUTIONAL_DOMAIN} email.`);
     }
 
-    // 1. Try to get profile by UID (Standard lookup)
+    // 1. Try to get profile by UID
     let profile = await UserService.getUserProfile(db, user.uid);
     
     // 2. If no UID profile, check if this email was pre-authorized as Admin
@@ -39,10 +39,9 @@ export const AuthService = {
       const emailProfile = await UserService.findUserByEmail(db, user.email!);
       
       if (emailProfile && !emailProfile.uid) {
-        // This is a pre-authorized record. Transfer it to the user's UID.
-        const oldDocId = (emailProfile as any).uid; // This was the random auto-generated ID
+        // Pre-authorized record found. Transfer it to the user's UID.
+        const oldDocId = (emailProfile as any).id; 
         
-        // Create the official profile with UID
         const newProfile: UserProfile = {
           ...emailProfile,
           uid: user.uid,
@@ -55,12 +54,16 @@ export const AuthService = {
         
         // Cleanup the temporary record
         if (oldDocId) {
-          await deleteDoc(doc(db, 'users', oldDocId));
+          try {
+            await deleteDoc(doc(db, 'users', oldDocId));
+          } catch (e) {
+            console.warn("Cleanup of pre-auth record failed", e);
+          }
         }
         
         profile = newProfile;
       } else if (!emailProfile) {
-        // Completely new user (Professor by default)
+        // New user (Professor by default)
         const role = user.email === ADMIN_EMAIL ? 'admin' : 'professor';
         const newProfile: Partial<UserProfile> = {
           uid: user.uid,
@@ -72,14 +75,20 @@ export const AuthService = {
         await UserService.createUserProfile(db, newProfile);
         profile = await UserService.getUserProfile(db, user.uid);
       } else {
-        // Email profile exists and has a UID already (shouldn't happen with standard flow but handled)
         profile = emailProfile;
       }
     }
 
+    // Account Status Check
     if (profile && UserService.isBlocked(profile)) {
       await signOut(auth);
       throw new Error('Your account has been deactivated by an administrator.');
+    }
+
+    // Portal Authorization Check
+    if (intendedRole === 'admin' && profile?.role !== 'admin') {
+      await signOut(auth);
+      throw new Error('You are not an authorized administrator.');
     }
 
     return { user, profile: profile! };
