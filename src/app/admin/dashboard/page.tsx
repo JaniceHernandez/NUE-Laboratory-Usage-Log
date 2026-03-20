@@ -218,30 +218,9 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Active Facilities Card */}
-        <Card className="border-none shadow-sm rounded-xl bg-white">
-          <CardHeader className="p-4 border-b border-slate-50 flex flex-row items-center gap-2">
-            <Activity className="text-[#266AFF]" size={16} />
-            <CardTitle className="text-sm font-bold">Active Facilities</CardTitle>
-          </CardHeader>
-          <CardContent className="h-[250px] flex items-center justify-center p-4">
-            {activeRooms.length > 0 ? (
-              <div className="flex flex-wrap justify-center gap-3">
-                {activeRooms.map(room => (
-                  <Badge key={room.id} className="bg-green-100 text-green-600 border-none font-bold text-xs px-4 py-2 rounded-lg">
-                    {room.number}
-                  </Badge>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-slate-400 italic font-medium">All facilities currently idle.</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Utilization Trends */}
-        <Card className="border-none shadow-sm rounded-xl bg-white">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Utilization Trends - Longer (2/3) */}
+        <Card className="border-none shadow-sm rounded-xl bg-white lg:col-span-2">
           <CardHeader className="p-4 border-b border-slate-50 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-bold flex items-center gap-2">
               <TrendingUp className="text-[#266AFF]" size={16} /> Utilization Trends
@@ -271,6 +250,27 @@ export default function DashboardPage() {
                 <Line type="monotone" dataKey="sessions" stroke="#266AFF" strokeWidth={2.5} dot={{ r: 2 }} />
               </LineChart>
             </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Active Facilities Card - Shorter (1/3) */}
+        <Card className="border-none shadow-sm rounded-xl bg-white lg:col-span-1">
+          <CardHeader className="p-4 border-b border-slate-50 flex flex-row items-center gap-2">
+            <Activity className="text-[#266AFF]" size={16} />
+            <CardTitle className="text-sm font-bold">Active Facilities</CardTitle>
+          </CardHeader>
+          <CardContent className="h-[250px] flex items-center justify-center p-4">
+            {activeRooms.length > 0 ? (
+              <div className="flex flex-wrap justify-center gap-3">
+                {activeRooms.map(room => (
+                  <Badge key={room.id} className="bg-green-100 text-green-600 border-none font-bold text-xs px-4 py-2 rounded-lg">
+                    {room.number}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400 italic font-medium">All facilities currently idle.</p>
+            )}
           </CardContent>
         </Card>
       </div>
