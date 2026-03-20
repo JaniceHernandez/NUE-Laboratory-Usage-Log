@@ -259,7 +259,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="h-[250px] flex items-center justify-center p-4">
             {activeRooms.length > 0 ? (
-              <div className="flex flex-wrap justify-center gap-2">
+              <div className="flex flex-wrap justify-center gap-2 overflow-y-auto max-h-full">
                 {activeRooms.map(room => (
                   <Badge key={room.id} className="bg-accent/10 text-accent border-none font-bold text-[10px] px-3 py-1.5 rounded-lg">
                     {room.number}
@@ -267,7 +267,7 @@ export default function DashboardPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-[10px] text-slate-400 italic font-medium uppercase tracking-widest">All facilities currently idle</p>
+              <p className="text-[10px] text-slate-400 italic font-medium uppercase tracking-widest text-center">All facilities currently idle</p>
             )}
           </CardContent>
         </Card>

@@ -17,9 +17,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AuthGuard } from "@/components/auth-guard";
 import { useAuth, useUser, useFirestore, useCollection, useDoc } from "@/firebase";
 import { signOut } from "firebase/auth";
-import { SessionService, LabSession } from "@/services/session-service";
-import { Room } from "@/services/room-service";
-import { updateUserCollege, UserProfile } from "@/services/user-service";
+import { startSession, endSession, getActiveSession, logManualSession } from "@/services/session-service";
+import { updateUserCollege } from "@/services/user-service";
 import { useToast } from "@/hooks/use-toast";
 import { Timestamp, collection, query, where, doc, onSnapshot, limit, DocumentReference, Query } from "firebase/firestore";
 import { format } from "date-fns";
@@ -78,12 +77,12 @@ export default function ProfessorPortal() {
   }, []);
 
   const userProfileRef = useMemo(() => 
-    (db && user) ? (doc(db, "users", user.uid) as DocumentReference<UserProfile>) : null, 
+    (db && user) ? (doc(db, "users", user.uid) as DocumentReference<any>) : null, 
     [db, user]
   );
-  const { data: profile, loading: profileLoading } = useDoc<UserProfile>(userProfileRef);
+  const { data: profile, loading: profileLoading } = useDoc<any>(userProfileRef);
 
-  const [activeSession, setActiveSession] = useState<LabSession | null>(null);
+  const [activeSessionState, setActiveSessionState] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [elapsedTime, setElapsedTime] = useState("00:00:00");
@@ -111,10 +110,10 @@ export default function ProfessorPortal() {
   const [onboardingCollege, setOnboardingCollege] = useState("");
 
   const roomsQuery = useMemo(() => {
-    if (!db || !user) return null;
-    return query(collection(db, "rooms"), where("status", "==", "available")) as Query<Room>;
-  }, [db, user]);
-  const { data: availableRooms, loading: roomsLoading } = useCollection<Room>(roomsQuery);
+    if (!db) return null;
+    return query(collection(db, "rooms"), where("status", "==", "available")) as Query<any>;
+  }, [db]);
+  const { data: availableRooms, loading: roomsLoading } = useCollection<any>(roomsQuery);
 
   useEffect(() => {
     if (!db || !user?.email) return;
@@ -130,9 +129,9 @@ export default function ProfessorPortal() {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       if (!snapshot.empty) {
         const docData = snapshot.docs[0];
-        setActiveSession({ id: docData.id, ...docData.data() } as LabSession);
+        setActiveSessionState({ id: docData.id, ...docData.data() });
       } else {
-        setActiveSession(null);
+        setActiveSessionState(null);
       }
       setIsLoading(false);
     }, (err) => {
@@ -144,9 +143,9 @@ export default function ProfessorPortal() {
 
   useEffect(() => {
     let interval: any;
-    if (activeSession?.startTime && mounted) {
+    if (activeSessionState?.startTime && mounted) {
       interval = setInterval(() => {
-        const start = activeSession.startTime.toMillis();
+        const start = activeSessionState.startTime.toMillis();
         const now = Date.now();
         const diff = now - start;
         
@@ -164,7 +163,7 @@ export default function ProfessorPortal() {
       setShowThresholdWarning(false);
     }
     return () => clearInterval(interval);
-  }, [activeSession, mounted]);
+  }, [activeSessionState, mounted]);
 
   const handleOnboarding = async () => {
     if (!db || !user?.uid || !onboardingCollege) return;
@@ -204,7 +203,7 @@ export default function ProfessorPortal() {
 
         const durationMinutes = Math.ceil((end.getTime() - start.getTime()) / 60000);
 
-        await SessionService.logManualSession(db, {
+        await logManualSession(db, {
           professorEmail: user.email,
           roomNumber: room,
           college,
@@ -223,7 +222,7 @@ export default function ProfessorPortal() {
         });
         setIsThankYouOpen(true);
       } else {
-        await SessionService.startSession(db, {
+        await startSession(db, {
           professorEmail: user.email,
           roomNumber: room,
           college,
@@ -240,24 +239,24 @@ export default function ProfessorPortal() {
   };
 
   const handleEndSession = async () => {
-    if (!db || !activeSession?.id || !activeSession.startTime) return;
+    if (!db || !activeSessionState?.id || !activeSessionState.startTime) return;
     setIsActionLoading(true);
 
     try {
-      const roomName = activeSession.roomNumber;
-      const startMs = activeSession.startTime.toMillis();
+      const roomName = activeSessionState.roomNumber;
+      const startMs = activeSessionState.startTime.toMillis();
       const endMs = Date.now();
       const durationMinutes = Math.ceil((endMs - startMs) / 60000);
 
       setSummaryData({
         professorName: profile?.name || user?.displayName || "Authorized User",
         roomNumber: roomName,
-        college: activeSession.college,
-        program: activeSession.program,
+        college: activeSessionState.college,
+        program: activeSessionState.program,
         durationMinutes
       });
 
-      await SessionService.endSession(db, activeSession.id, activeSession.startTime, roomName);
+      await endSession(db, activeSessionState.id, activeSessionState.startTime, roomName);
       setIsThankYouOpen(true);
       setElapsedTime("00:00:00");
     } catch (error: any) {
@@ -268,7 +267,7 @@ export default function ProfessorPortal() {
   };
 
   const handleLogout = async () => {
-    if (activeSession) {
+    if (activeSessionState) {
       toast({ variant: "destructive", title: "Session Active", description: "Please check-out before logging out." });
       return;
     }
@@ -352,7 +351,7 @@ export default function ProfessorPortal() {
             </Card>
           ) : (
             <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              {showThresholdWarning && (
+              {showThresholdWarning && (activeSessionState) && (
                 <Alert className="bg-orange-50 text-orange-700 border-orange-200 shadow-sm rounded-2xl p-4">
                   <div className="flex items-center gap-3">
                     <AlertTriangle className="h-5 w-5 text-orange-600 shrink-0" />
@@ -366,7 +365,7 @@ export default function ProfessorPortal() {
                 </Alert>
               )}
 
-              {!activeSession ? (
+              {!activeSessionState ? (
                 <Card className="shadow-2xl border-none rounded-[1.5rem] sm:rounded-[3rem] overflow-hidden bg-white">
                   <CardHeader className="bg-white border-b border-slate-50 p-6 sm:p-10">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -490,7 +489,7 @@ export default function ProfessorPortal() {
                     </div>
                     <CardTitle className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight">Session Active</CardTitle>
                     <CardDescription className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] flex items-center justify-center gap-2 mt-1">
-                      <MapPin size={12} className="text-primary" /> Room {activeSession.roomNumber}
+                      <MapPin size={12} className="text-primary" /> Room {activeSessionState.roomNumber}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4 sm:space-y-6 px-6 sm:px-12 pb-6 sm:pb-8">
@@ -502,11 +501,11 @@ export default function ProfessorPortal() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                       <div className="p-3 sm:p-4 bg-white rounded-lg sm:rounded-xl border border-slate-100 shadow-sm">
                         <span className="text-[7px] sm:text-[8px] text-slate-400 uppercase font-black tracking-widest mb-1 block">College</span>
-                        <p className="text-[10px] sm:text-xs font-bold text-slate-700">{activeSession.college}</p>
+                        <p className="text-[10px] sm:text-xs font-bold text-slate-700">{activeSessionState.college}</p>
                       </div>
                       <div className="p-3 sm:p-4 bg-white rounded-lg sm:rounded-xl border border-slate-100 shadow-sm">
                         <span className="text-[7px] sm:text-[8px] text-slate-400 uppercase font-black tracking-widest mb-1 block">Program</span>
-                        <p className="text-[10px] sm:text-xs font-bold text-slate-700 truncate">{activeSession.program}</p>
+                        <p className="text-[10px] sm:text-xs font-bold text-slate-700 truncate">{activeSessionState.program}</p>
                       </div>
                     </div>
                   </CardContent>

@@ -9,7 +9,7 @@ import { QrCode, ShieldCheck, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth, useFirestore } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
-import { AuthService } from "@/services/auth-service";
+import { signInWithGoogle, signInAdmin } from "@/services/auth-service";
 import Image from "next/image";
 
 import { 
@@ -41,7 +41,7 @@ export default function LandingPage() {
     setIsLoading(true);
     try {
       const intendedRole = activeTab === 'admin' ? 'admin' : 'professor';
-      const { profile } = await AuthService.signInWithGoogle(auth, db, intendedRole);
+      const { profile } = await signInWithGoogle(auth, db, intendedRole);
       
       toast({
         title: "Login Successful",
@@ -74,7 +74,7 @@ export default function LandingPage() {
 
     setIsLoading(true);
     try {
-      await AuthService.signInAdmin(auth, db, adminEmail, adminPassword);
+      await signInAdmin(auth, db, adminEmail, adminPassword);
       
       toast({
         title: "Admin Login Successful",
