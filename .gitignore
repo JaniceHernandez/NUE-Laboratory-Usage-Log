@@ -33,4 +33,4 @@ yarn-error.log*
 next-env.d.ts
 
 # Firebase config (sensitive)
-src/firebase/config.ts
+#src/firebase/config.ts
