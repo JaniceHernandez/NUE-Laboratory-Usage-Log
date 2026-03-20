@@ -179,7 +179,10 @@ export default function ProfessorPortal() {
 
   const handleSubmitSession = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!db || !user?.email) return;
+    if (!db || !user?.email || !profile) {
+      toast({ variant: "destructive", title: "Authentication Error", description: "Identity profile not yet ready. Please wait a moment." });
+      return;
+    }
 
     setIsActionLoading(true);
 
