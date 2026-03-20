@@ -79,6 +79,11 @@ export async function updateUserCollege(db: Firestore, uid: string, college: str
   await updateDoc(userRef, { college });
 }
 
+export async function deleteUserProfile(db: Firestore, uid: string): Promise<void> {
+  const userRef = doc(db, 'users', uid);
+  await deleteDoc(userRef);
+}
+
 export async function deleteAuthorizedAdmin(db: Firestore, email: string): Promise<void> {
   const emailId = email.toLowerCase().trim().replace(/[^a-z0-9]/g, '_');
   await deleteDoc(doc(db, 'authorizedAdmins', emailId));

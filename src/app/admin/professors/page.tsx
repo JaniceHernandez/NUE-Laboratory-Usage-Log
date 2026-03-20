@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
@@ -18,6 +17,7 @@ import {
   isSuperAdmin, 
   authorizeAdminEmail, 
   deleteAuthorizedAdmin, 
+  deleteUserProfile,
   UserProfile, 
   AuthorizedAdmin 
 } from "@/services/user-service";
@@ -108,6 +108,18 @@ export default function IdentityManagementPage() {
       toast({ title: "Updated", description: `Account status set to ${newStatus.toUpperCase()}.` });
     } catch (e: any) {
       toast({ variant: "destructive", title: "Error", description: "Failed to update account status." });
+    }
+  };
+
+  const handleDeleteProfessor = async (prof: UserProfile & { id: string }) => {
+    if (!db) return;
+    if (!confirm(`Permanently remove ${prof.name || prof.email} from the registry?`)) return;
+
+    try {
+      await deleteUserProfile(db, prof.id);
+      toast({ title: "Professor Deleted", description: "The account has been removed." });
+    } catch (e) {
+      toast({ variant: "destructive", title: "Error", description: "Failed to delete account." });
     }
   };
 
@@ -241,19 +253,29 @@ export default function IdentityManagementPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="px-8 py-5 text-right">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className={cn(
-                            "rounded-xl h-9 px-4 font-bold text-[10px] transition-all",
-                            prof.status === 'blocked' 
-                              ? "border-primary text-primary hover:bg-primary hover:text-white" 
-                              : "border-red-200 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600"
-                          )}
-                          onClick={() => handleUpdateStatus(prof)}
-                        >
-                          {prof.status === 'blocked' ? 'Unblock' : 'Block'}
-                        </Button>
+                        <div className="flex justify-end items-center gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className={cn(
+                              "rounded-xl h-9 px-4 font-bold text-[10px] transition-all",
+                              prof.status === 'blocked' 
+                                ? "border-primary text-primary hover:bg-primary hover:text-white" 
+                                : "border-red-200 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600"
+                            )}
+                            onClick={() => handleUpdateStatus(prof)}
+                          >
+                            {prof.status === 'blocked' ? 'Unblock' : 'Block'}
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="rounded-xl h-9 w-9 p-0 text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
+                            onClick={() => handleDeleteProfessor(prof)}
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

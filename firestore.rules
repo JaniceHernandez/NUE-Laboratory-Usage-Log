@@ -32,9 +32,16 @@ service cloud.firestore {
     // Users collection rules
     match /users/{userId} {
       allow read: if isSignedIn();
-      allow create: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
-      allow update: if isSuperAdmin() || (isSignedIn() && request.auth.uid == userId);
-      allow delete: if isSuperAdmin();
+      allow create: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin() || hasRole('admin'));
+      
+      // Admins can update professors. Professors can update themselves.
+      allow update: if isSuperAdmin() || 
+                   (isSignedIn() && request.auth.uid == userId) || 
+                   (hasRole('admin') && resource.data.role == 'professor');
+                   
+      // Admins can delete professors.
+      allow delete: if isSuperAdmin() || 
+                   (hasRole('admin') && resource.data.role == 'professor');
     }
     
     // Authorized Admins registry (Pre-authorization)
@@ -45,15 +52,11 @@ service cloud.firestore {
 
     // Sessions collection rules
     match /sessions/{sessionId} {
-      // Allow read for all signed-in users so professors can check room occupancy
       allow read: if isSignedIn();
-      
       allow create: if isSignedIn() && isActive();
-      
       allow update: if hasRole('admin') || (
         isSignedIn() && resource.data.professorEmail == request.auth.token.email
       );
-      
       allow delete: if hasRole('admin');
     }
 
