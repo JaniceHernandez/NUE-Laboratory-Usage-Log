@@ -6,7 +6,6 @@ Professors log sessions using their **@neu.edu.ph Google account**, while admini
 ---
 ### 🔗 Application Link
 - https://neu-laboratory-usage-log-sigma.vercel.app
-- https://studio-20404588-b672e.web.app/
 
 ---
 
