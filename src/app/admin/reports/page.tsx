@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { 
   FileDown, 
   Loader2, 
+  RotateCcw,
+  Search,
+  Calendar as CalendarIcon
 } from "lucide-react";
 import { useFirestore, useCollection } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
@@ -17,6 +20,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 const COLLEGES = [
   "College of Informatics and Computing Studies",
@@ -24,6 +28,11 @@ const COLLEGES = [
   "College of Communication",
   "College of Accountancy",
 ];
+
+const DEFAULT_DATE_RANGE = {
+  start: subDays(new Date(), 30),
+  end: new Date()
+};
 
 export default function ReportsPage() {
   const db = useFirestore();
@@ -33,10 +42,7 @@ export default function ReportsPage() {
   const [search, setSearch] = useState("");
   const [roomFilter, setRoomFilter] = useState("all");
   const [collegeFilter, setCollegeFilter] = useState("all");
-  const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>({
-    start: subDays(new Date(), 30),
-    end: new Date()
-  });
+  const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>(DEFAULT_DATE_RANGE);
 
   useEffect(() => {
     setMounted(true);
@@ -90,6 +96,17 @@ export default function ReportsPage() {
     });
   }, [sessions, dateRange, search, roomFilter, collegeFilter, mounted, userMap]);
 
+  const resetFilters = () => {
+    setSearch("");
+    setRoomFilter("all");
+    setCollegeFilter("all");
+    setDateRange(DEFAULT_DATE_RANGE);
+    toast({
+      title: "Filters Cleared",
+      description: "Showing all activity from the last 30 days."
+    });
+  };
+
   const handleExportCSV = () => {
     if (filteredData.length === 0) return;
 
@@ -108,8 +125,8 @@ export default function ReportsPage() {
       ];
     });
 
-    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const csvContent = [headers, ...rows].map(e => `"${e.join('","')}"`).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -134,9 +151,21 @@ export default function ReportsPage() {
           <h1 className="text-3xl font-extrabold text-slate-800 leading-none">Institutional Reports</h1>
           <p className="text-sm text-slate-400 font-medium mt-2">Generate and export laboratory utilization data.</p>
         </div>
-        <Button onClick={handleExportCSV} className="bg-primary hover:bg-primary/90 h-12 px-6 rounded-xl font-bold flex items-center gap-2">
-          <FileDown size={20} /> Export CSV
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline"
+            onClick={resetFilters} 
+            className="h-12 px-6 rounded-xl font-bold flex items-center gap-2 border-slate-200 text-slate-500 hover:bg-slate-50"
+          >
+            <RotateCcw size={18} /> Clear Filters
+          </Button>
+          <Button 
+            onClick={handleExportCSV} 
+            className="bg-primary hover:bg-primary/90 h-12 px-6 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-primary/20"
+          >
+            <FileDown size={20} /> Export CSV
+          </Button>
+        </div>
       </div>
 
       <Card className="border-none shadow-sm rounded-2xl bg-white overflow-hidden">
@@ -144,17 +173,20 @@ export default function ReportsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-1.5">
               <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Search Faculty/Room</span>
-              <Input 
-                placeholder="Search..." 
-                className="h-10 rounded-xl text-xs"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+              <div className="relative group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+                <Input 
+                  placeholder="Search..." 
+                  className="h-10 pl-9 rounded-xl text-xs bg-white border-slate-100"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
             </div>
             <div className="space-y-1.5">
               <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Room</span>
               <Select value={roomFilter} onValueChange={setRoomFilter}>
-                <SelectTrigger className="h-10 rounded-xl text-xs">
+                <SelectTrigger className="h-10 rounded-xl text-xs bg-white border-slate-100">
                   <SelectValue placeholder="All Rooms" />
                 </SelectTrigger>
                 <SelectContent>
@@ -166,7 +198,7 @@ export default function ReportsPage() {
             <div className="space-y-1.5">
               <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">College</span>
               <Select value={collegeFilter} onValueChange={setCollegeFilter}>
-                <SelectTrigger className="h-10 rounded-xl text-xs">
+                <SelectTrigger className="h-10 rounded-xl text-xs bg-white border-slate-100">
                   <SelectValue placeholder="All Colleges" />
                 </SelectTrigger>
                 <SelectContent>
@@ -180,7 +212,8 @@ export default function ReportsPage() {
                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">From</span>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="h-10 w-full rounded-xl text-[10px] px-2 justify-start truncate">
+                    <Button variant="outline" className="h-10 w-full rounded-xl text-[10px] px-2 justify-start truncate bg-white border-slate-100">
+                      <CalendarIcon className="mr-2 h-3 w-3 text-slate-400" />
                       {format(dateRange.start, "MMM dd, yyyy")}
                     </Button>
                   </PopoverTrigger>
@@ -193,7 +226,8 @@ export default function ReportsPage() {
                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">To</span>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="h-10 w-full rounded-xl text-[10px] px-2 justify-start truncate">
+                    <Button variant="outline" className="h-10 w-full rounded-xl text-[10px] px-2 justify-start truncate bg-white border-slate-100">
+                      <CalendarIcon className="mr-2 h-3 w-3 text-slate-400" />
                       {format(dateRange.end, "MMM dd, yyyy")}
                     </Button>
                   </PopoverTrigger>
@@ -221,7 +255,7 @@ export default function ReportsPage() {
               {filteredData.map((session) => {
                 const profile = userMap[session.professorEmail?.toLowerCase()];
                 return (
-                  <TableRow key={session.id} className="hover:bg-slate-50/50 border-none">
+                  <TableRow key={session.id} className="hover:bg-slate-50/50 border-none transition-colors">
                     <TableCell className="px-8 py-4">
                       <div className="flex flex-col">
                         <span className="font-bold text-slate-700">
@@ -233,7 +267,9 @@ export default function ReportsPage() {
                       </div>
                     </TableCell>
                     <TableCell className="px-8 py-4">
-                      <Badge variant="outline" className="bg-slate-50 border-none font-bold text-[10px]">{session.roomNumber}</Badge>
+                      <Badge variant="outline" className="bg-slate-50 border-none font-bold text-[10px] text-slate-600">
+                        {session.roomNumber}
+                      </Badge>
                     </TableCell>
                     <TableCell className="px-8 py-4 text-xs font-medium text-slate-600">{session.program}</TableCell>
                     <TableCell className="px-8 py-4 text-right text-xs text-slate-400">
@@ -242,7 +278,9 @@ export default function ReportsPage() {
                     <TableCell className="px-8 py-4 text-right text-xs text-slate-400">
                       {session.endTime?.toDate ? format(session.endTime.toDate(), "MMM dd, hh:mm a") : "---"}
                     </TableCell>
-                    <TableCell className="px-8 py-4 text-center font-bold text-primary">{session.duration || 0}m</TableCell>
+                    <TableCell className="px-8 py-4 text-center">
+                      <span className="font-bold text-primary text-xs">{session.duration || 0}m</span>
+                    </TableCell>
                   </TableRow>
                 );
               })}
