@@ -76,10 +76,10 @@ export default function DashboardPage() {
     const mostUsedRoom = mostUsedRoomEntry ? mostUsedRoomEntry[0] : "N/A";
 
     return [
-      { title: "Total Logs", value: totalSessions, icon: Monitor, trend: "Cumulative", color: "text-blue-500", bgColor: "bg-blue-50" },
+      { title: "Total Logs", value: totalSessions, icon: Monitor, trend: "Cumulative", color: "text-primary", bgColor: "bg-primary/10" },
       { title: "Usage Minutes", value: `${totalMinutes}m`, icon: Clock, trend: "Overall", color: "text-orange-500", bgColor: "bg-orange-50" },
-      { title: "Busiest Lab", value: mostUsedRoom, icon: MapPin, trend: "Most Active", color: "text-green-500", bgColor: "bg-green-50" },
-      { title: "Live Units", value: `${occupiedRoomsCount}/${rooms.length}`, icon: Activity, trend: "Real-time", color: "text-[#266AFF]", bgColor: "bg-blue-50" },
+      { title: "Busiest Lab", value: mostUsedRoom, icon: MapPin, trend: "Most Active", color: "text-accent", bgColor: "bg-accent/10" },
+      { title: "Live Units", value: `${occupiedRoomsCount}/${rooms.length}`, icon: Activity, trend: "Real-time", color: "text-primary", bgColor: "bg-primary/5" },
     ];
   }, [sessions, rooms]);
 
@@ -126,7 +126,7 @@ export default function DashboardPage() {
       }
     });
     
-    const colors = ['#266AFF', '#4BC64F', '#FFD43D', '#ef4444', '#8b5cf6'];
+    const colors = ['hsl(var(--primary))', 'hsl(var(--accent))', 'hsl(var(--chart-3))', '#ef4444', '#8b5cf6'];
     return COLLEGES.map((name, idx) => ({
       name,
       value: counts[name] || 0,
@@ -222,8 +222,8 @@ export default function DashboardPage() {
         {/* Utilization Trends - Longer (2/3) */}
         <Card className="border-none shadow-sm rounded-xl bg-white lg:col-span-2">
           <CardHeader className="p-4 border-b border-slate-50 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <TrendingUp className="text-[#266AFF]" size={16} /> Utilization Trends
+            <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-800">
+              <TrendingUp className="text-primary" size={16} /> Utilization Trends
             </CardTitle>
             <div className="flex bg-slate-50 p-1 rounded-lg gap-1">
               {["daily", "weekly", "monthly"].map((g) => (
@@ -232,7 +232,7 @@ export default function DashboardPage() {
                   onClick={() => setTrendGranularity(g as any)}
                   className={cn(
                     "px-2 py-1 text-[8px] font-black uppercase rounded-md transition-all",
-                    trendGranularity === g ? "bg-white text-[#266AFF] shadow-sm" : "text-slate-400"
+                    trendGranularity === g ? "bg-white text-primary shadow-sm" : "text-slate-400"
                   )}
                 >
                   {g}
@@ -247,7 +247,7 @@ export default function DashboardPage() {
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 8 }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 8 }} />
                 <Tooltip contentStyle={{ borderRadius: '10px', border: 'none', fontSize: '10px' }} />
-                <Line type="monotone" dataKey="sessions" stroke="#266AFF" strokeWidth={2.5} dot={{ r: 2 }} />
+                <Line type="monotone" dataKey="sessions" stroke="hsl(var(--primary))" strokeWidth={2.5} dot={{ r: 2 }} />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -256,14 +256,14 @@ export default function DashboardPage() {
         {/* Active Facilities Card - Shorter (1/3) */}
         <Card className="border-none shadow-sm rounded-xl bg-white lg:col-span-1">
           <CardHeader className="p-4 border-b border-slate-50 flex flex-row items-center gap-2">
-            <Activity className="text-[#266AFF]" size={16} />
-            <CardTitle className="text-sm font-bold">Active Facilities</CardTitle>
+            <Activity className="text-primary" size={16} />
+            <CardTitle className="text-sm font-bold text-slate-800">Active Facilities</CardTitle>
           </CardHeader>
           <CardContent className="h-[250px] flex items-center justify-center p-4">
             {activeRooms.length > 0 ? (
               <div className="flex flex-wrap justify-center gap-3">
                 {activeRooms.map(room => (
-                  <Badge key={room.id} className="bg-green-100 text-green-600 border-none font-bold text-xs px-4 py-2 rounded-lg">
+                  <Badge key={room.id} className="bg-accent/10 text-accent border-none font-bold text-xs px-4 py-2 rounded-lg">
                     {room.number}
                   </Badge>
                 ))}
@@ -279,8 +279,8 @@ export default function DashboardPage() {
         {/* Most Used Facilities Card - Horizontal Bar Chart */}
         <Card className="border-none shadow-sm rounded-xl bg-white">
           <CardHeader className="p-4 border-b border-slate-50 flex flex-row items-center gap-2">
-            <BarChart3 className="text-[#266AFF]" size={16} />
-            <CardTitle className="text-sm font-bold">Most Used Facilities</CardTitle>
+            <BarChart3 className="text-primary" size={16} />
+            <CardTitle className="text-sm font-bold text-slate-800">Most Used Facilities</CardTitle>
           </CardHeader>
           <CardContent className="h-[250px] p-4">
             <ResponsiveContainer width="100%" height="100%">
@@ -303,7 +303,7 @@ export default function DashboardPage() {
                   cursor={{ fill: '#f8fafc' }}
                   contentStyle={{ borderRadius: '10px', border: 'none', fontSize: '10px' }} 
                 />
-                <Bar dataKey="value" fill="#266AFF" radius={[0, 4, 4, 0]} barSize={20} />
+                <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} barSize={20} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -312,7 +312,7 @@ export default function DashboardPage() {
         {/* Usage by College */}
         <Card className="border-none shadow-sm rounded-xl bg-white">
           <CardHeader className="p-4 border-b border-slate-50">
-            <CardTitle className="text-sm font-bold flex items-center gap-2">
+            <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-800">
               <PieChartIcon className="text-orange-500" size={16} /> Usage by College
             </CardTitle>
           </CardHeader>
@@ -351,10 +351,10 @@ export default function DashboardPage() {
 
       <Card className="border-none shadow-sm rounded-xl bg-white overflow-hidden">
         <CardHeader className="p-4 border-b border-slate-50 flex flex-row items-center justify-between">
-          <CardTitle className="text-sm font-bold flex items-center gap-2">
-            <History className="text-[#266AFF]" size={16} /> Recent Activity
+          <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-800">
+            <History className="text-primary" size={16} /> Recent Activity
           </CardTitle>
-          <Link href="/admin/reports" className="text-[9px] font-bold text-[#266AFF] hover:underline flex items-center gap-1">
+          <Link href="/admin/reports" className="text-[9px] font-bold text-primary hover:underline flex items-center gap-1">
             View All <ArrowRight size={10} />
           </Link>
         </CardHeader>
@@ -385,7 +385,7 @@ export default function DashboardPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="px-6 py-2 text-center">
-                    <Badge className={`text-[7px] font-bold px-1.5 py-0 ${activity.action === 'Check-in' ? 'bg-blue-100 text-blue-600' : 'bg-slate-100 text-slate-600'}`}>
+                    <Badge className={`text-[7px] font-bold px-1.5 py-0 ${activity.action === 'Check-in' ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-600'}`}>
                       {activity.action}
                     </Badge>
                   </TableCell>

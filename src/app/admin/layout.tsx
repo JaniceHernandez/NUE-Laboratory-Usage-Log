@@ -112,7 +112,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         className={cn(
                           "h-11 px-4 rounded-xl transition-all duration-200",
                           isActive 
-                            ? "bg-slate-50 text-primary border-l-4 border-primary rounded-l-none font-bold" 
+                            ? "bg-primary/5 text-primary border-l-4 border-primary rounded-l-none font-bold" 
                             : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                         )}
                       >
