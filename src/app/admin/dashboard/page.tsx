@@ -13,7 +13,7 @@ import {
   Clock, Monitor, Activity, MapPin, 
   TrendingUp, PieChart as PieChartIcon, 
   History, ArrowRight, Loader2,
-  BarChart3, Layout
+  BarChart3
 } from "lucide-react";
 import { useFirestore, useCollection } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";

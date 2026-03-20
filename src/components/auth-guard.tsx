@@ -6,7 +6,7 @@ import { useUser, useFirestore, useAuth } from "@/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-import { AuthService } from "@/services/auth-service";
+import { logout } from "@/services/auth-service";
 import { isBlocked, UserProfile } from "@/services/user-service";
 
 interface AuthGuardProps {
@@ -46,7 +46,7 @@ export function AuthGuard({ children, allowedRoles }: AuthGuardProps) {
         const userData = { uid: snapshot.id, ...snapshot.data() } as UserProfile;
         
         if (isBlocked(userData)) {
-          AuthService.logout(auth).then(() => {
+          logout(auth).then(() => {
             toast({
               variant: "destructive",
               title: "Session Terminated",
