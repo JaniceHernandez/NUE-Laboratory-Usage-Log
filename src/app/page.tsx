@@ -40,7 +40,6 @@ export default function LandingPage() {
     
     setIsLoading(true);
     try {
-      // Use intendedRole based on active tab
       const intendedRole = activeTab === 'admin' ? 'admin' : 'professor';
       const { profile } = await AuthService.signInWithGoogle(auth, db, intendedRole);
       
@@ -49,7 +48,6 @@ export default function LandingPage() {
         description: `Welcome back, ${profile.name || profile.email}!`,
       });
 
-      // Direct redirect based on the form intent
       if (intendedRole === 'admin') {
         router.push("/admin/dashboard");
       } else {
@@ -100,44 +98,42 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-blue-50 via-slate-50 to-slate-100">
-      <div className="mb-12 text-center flex flex-col items-center gap-6">
-        <div className="w-32 h-32 bg-white rounded-full flex items-center justify-center shadow-xl border border-slate-100 overflow-hidden">
-          <div className="w-full h-full relative p-2">
-            <Image 
-              src="https://lxgw2qbdgc9uqivt.public.blob.vercel-storage.com/cics-logs/New_Era_University.svg" 
-              alt="NEU Logo" 
-              fill 
-              className="object-contain"
-              priority
-            />
-          </div>
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 sm:p-6 bg-[radial-gradient(circle_at_top,_var(--tw-gradient-stops))] from-blue-50 via-slate-50 to-slate-100">
+      <div className="mb-8 sm:mb-12 text-center flex flex-col items-center gap-4 sm:gap-6">
+        <div className="w-24 h-24 sm:w-32 sm:h-32 bg-white rounded-full flex items-center justify-center shadow-xl border border-slate-100 overflow-hidden relative p-2">
+          <Image 
+            src="https://lxgw2qbdgc9uqivt.public.blob.vercel-storage.com/cics-logs/New_Era_University.svg" 
+            alt="NEU Logo" 
+            fill 
+            className="object-contain p-2"
+            priority
+          />
         </div>
-        <div className="space-y-2">
-          <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tighter sm:text-3xl">NEW ERA UNIVERSITY</h1>
-          <p className="text-sm font-bold text-primary uppercase tracking-[0.2em]">LABORATORY USAGE LOG</p>
+        <div className="space-y-1 sm:space-y-2">
+          <h1 className="text-xl sm:text-3xl font-black text-slate-900 uppercase tracking-tighter">NEW ERA UNIVERSITY</h1>
+          <p className="text-[10px] sm:text-sm font-bold text-primary uppercase tracking-[0.2em]">LABORATORY USAGE LOG</p>
         </div>
       </div>
 
-      <Card className="w-full max-w-[480px] border-none shadow-2xl rounded-[32px] overflow-hidden">
+      <Card className="w-full max-w-[480px] border-none shadow-2xl rounded-[24px] sm:rounded-[32px] overflow-hidden">
         <TabsRoot defaultValue="professor" value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TList className="grid w-full grid-cols-2 h-16 bg-slate-100/50 p-1 rounded-none">
-            <TTrigger value="professor" className="rounded-none h-full data-[state=active]:bg-white data-[state=active]:shadow-none data-[state=active]:text-primary font-semibold">
-              Professor Check-in
+          <TList className="grid w-full grid-cols-2 h-14 sm:h-16 bg-slate-100/50 p-1 rounded-none">
+            <TTrigger value="professor" className="rounded-none h-full data-[state=active]:bg-white data-[state=active]:shadow-none data-[state=active]:text-primary font-semibold text-xs sm:text-sm">
+              Professor Portal
             </TTrigger>
-            <TTrigger value="admin" className="rounded-none h-full data-[state=active]:bg-white data-[state=active]:shadow-none data-[state=active]:text-primary font-semibold">
+            <TTrigger value="admin" className="rounded-none h-full data-[state=active]:bg-white data-[state=active]:shadow-none data-[state=active]:text-primary font-semibold text-xs sm:text-sm">
               Admin Login
             </TTrigger>
           </TList>
           
-          <TContent value="professor" className="p-8 space-y-8 animate-in fade-in zoom-in-95 duration-300">
-            <div className="flex flex-col items-center text-center space-y-6">
-              <div className="w-20 h-20 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-center text-slate-400">
-                <QrCode size={40} strokeWidth={1.5} />
+          <TContent value="professor" className="p-6 sm:p-8 space-y-6 sm:space-y-8 animate-in fade-in zoom-in-95 duration-300">
+            <div className="flex flex-col items-center text-center space-y-4 sm:space-y-6">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-center text-slate-400">
+                <QrCode size={32} strokeWidth={1.5} className="sm:w-10 sm:h-10" />
               </div>
-              <div className="space-y-2">
-                <h2 className="text-2xl font-bold text-slate-800">Scan to Check-in</h2>
-                <p className="text-slate-500 text-sm max-w-[280px] mx-auto leading-relaxed">
+              <div className="space-y-1 sm:space-y-2">
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-800">Scan to Check-in</h2>
+                <p className="text-slate-500 text-xs sm:text-sm max-w-[280px] mx-auto leading-relaxed">
                   Use the QR code scanner at the laboratory entrance to begin your session.
                 </p>
               </div>
@@ -152,7 +148,7 @@ export default function LandingPage() {
 
             <Button 
               variant="outline" 
-              className="w-full h-14 rounded-xl border-slate-200 bg-white hover:bg-slate-50 hover:border-primary text-slate-700 flex items-center justify-center gap-3 transition-all"
+              className="w-full h-12 sm:h-14 rounded-xl border-slate-200 bg-white hover:bg-slate-50 hover:border-primary text-slate-700 flex items-center justify-center gap-3 transition-all"
               onClick={handleGoogleLogin}
               disabled={isLoading}
             >
@@ -164,22 +160,22 @@ export default function LandingPage() {
                   <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
                 </svg>
               )}
-              <span className="font-semibold">Sign in with @neu.edu.ph</span>
+              <span className="font-semibold text-xs sm:text-base">Sign in with @neu.edu.ph</span>
             </Button>
           </TContent>
 
-          <TContent value="admin" className="p-8 space-y-6 animate-in fade-in zoom-in-95 duration-300">
-            <div className="flex flex-col items-center text-center space-y-2 mb-4">
-              <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-2">
+          <TContent value="admin" className="p-6 sm:p-8 space-y-4 sm:space-y-6 animate-in fade-in zoom-in-95 duration-300">
+            <div className="flex flex-col items-center text-center space-y-2 mb-2 sm:mb-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-2">
                 <ShieldCheck size={24} />
               </div>
-              <h2 className="text-xl font-bold text-slate-800">Admin Portal</h2>
-              <p className="text-slate-500 text-sm">Secure access for management personnel.</p>
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-800">Admin Portal</h2>
+              <p className="text-slate-500 text-xs sm:text-sm">Secure access for management personnel.</p>
             </div>
 
             <Button 
               variant="outline" 
-              className="w-full h-14 rounded-xl border-slate-200 bg-white hover:bg-slate-50 hover:border-primary text-slate-700 flex items-center justify-center gap-3 transition-all mb-4"
+              className="w-full h-12 sm:h-14 rounded-xl border-slate-200 bg-white hover:bg-slate-50 hover:border-primary text-slate-700 flex items-center justify-center gap-3 transition-all"
               onClick={handleGoogleLogin}
               disabled={isLoading}
             >
@@ -191,7 +187,7 @@ export default function LandingPage() {
                   <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
                 </svg>
               )}
-              <span className="font-semibold">Sign in with Admin Google</span>
+              <span className="font-semibold text-xs sm:text-base">Sign in with Admin Google</span>
             </Button>
             
             <div className="relative">
@@ -201,31 +197,30 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <form onSubmit={handleAdminPasswordLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-slate-500">Email Address</Label>
+            <form onSubmit={handleAdminPasswordLogin} className="space-y-3 sm:space-y-4">
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor="email" className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">Email Address</Label>
                 <Input 
                   id="email" 
                   type="email" 
-                  placeholder="" 
-                  className="h-12 rounded-xl border-slate-200 bg-slate-50/50"
+                  className="h-11 sm:h-12 rounded-xl border-slate-200 bg-slate-50/50"
                   value={adminEmail}
                   onChange={(e) => setAdminEmail(e.target.value)}
                   required 
                 />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1.5 sm:space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <Input 
                   id="password" 
                   type="password" 
-                  className="h-12 rounded-xl border-slate-200 bg-slate-50/50"
+                  className="h-11 sm:h-12 rounded-xl border-slate-200 bg-slate-50/50"
                   value={adminPassword}
                   onChange={(e) => setAdminPassword(e.target.value)}
                   required 
                 />
               </div>
-              <Button type="submit" className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 font-bold transition-all shadow-lg shadow-primary/20" disabled={isLoading}>
+              <Button type="submit" className="w-full h-11 sm:h-12 rounded-xl bg-primary hover:bg-primary/90 font-bold transition-all shadow-lg shadow-primary/20" disabled={isLoading}>
                 {isLoading ? <Loader2 className="animate-spin mr-2" size={20} /> : "Login to Dashboard"}
               </Button>
             </form>
@@ -233,7 +228,7 @@ export default function LandingPage() {
         </TabsRoot>
       </Card>
 
-      <footer className="mt-12 text-slate-400 text-[10px] font-black uppercase tracking-widest">
+      <footer className="mt-8 sm:mt-12 text-slate-400 text-[10px] font-black uppercase tracking-widest text-center">
         &copy; {new Date().getFullYear()} NEW ERA UNIVERSITY
       </footer>
     </div>

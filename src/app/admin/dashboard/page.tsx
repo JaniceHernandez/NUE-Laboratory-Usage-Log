@@ -199,7 +199,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {analytics.map((stat) => (
           <Card key={stat.title} className="border-none shadow-sm rounded-xl bg-white group hover:shadow-md transition-all">
             <CardContent className="p-4">
@@ -219,19 +219,18 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Utilization Trends - Longer (2/3) */}
         <Card className="border-none shadow-sm rounded-xl bg-white lg:col-span-2">
-          <CardHeader className="p-4 border-b border-slate-50 flex flex-row items-center justify-between">
+          <CardHeader className="p-4 border-b border-slate-50 flex flex-col sm:flex-row items-center justify-between gap-4">
             <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-800">
               <TrendingUp className="text-primary" size={16} /> Utilization Trends
             </CardTitle>
-            <div className="flex bg-slate-50 p-1 rounded-lg gap-1">
+            <div className="flex bg-slate-50 p-1 rounded-lg gap-1 w-full sm:w-auto overflow-x-auto">
               {["daily", "weekly", "monthly"].map((g) => (
                 <button
                   key={g}
                   onClick={() => setTrendGranularity(g as any)}
                   className={cn(
-                    "px-2 py-1 text-[8px] font-black uppercase rounded-md transition-all",
+                    "flex-1 sm:flex-none px-2 py-1 text-[8px] font-black uppercase rounded-md transition-all whitespace-nowrap",
                     trendGranularity === g ? "bg-white text-primary shadow-sm" : "text-slate-400"
                   )}
                 >
@@ -253,7 +252,6 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Active Facilities Card - Shorter (1/3) */}
         <Card className="border-none shadow-sm rounded-xl bg-white lg:col-span-1">
           <CardHeader className="p-4 border-b border-slate-50 flex flex-row items-center gap-2">
             <Activity className="text-primary" size={16} />
@@ -261,22 +259,21 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent className="h-[250px] flex items-center justify-center p-4">
             {activeRooms.length > 0 ? (
-              <div className="flex flex-wrap justify-center gap-3">
+              <div className="flex flex-wrap justify-center gap-2">
                 {activeRooms.map(room => (
-                  <Badge key={room.id} className="bg-accent/10 text-accent border-none font-bold text-xs px-4 py-2 rounded-lg">
+                  <Badge key={room.id} className="bg-accent/10 text-accent border-none font-bold text-[10px] px-3 py-1.5 rounded-lg">
                     {room.number}
                   </Badge>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-slate-400 italic font-medium">All facilities currently idle.</p>
+              <p className="text-[10px] text-slate-400 italic font-medium uppercase tracking-widest">All facilities currently idle</p>
             )}
           </CardContent>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Most Used Facilities Card - Horizontal Bar Chart */}
         <Card className="border-none shadow-sm rounded-xl bg-white">
           <CardHeader className="p-4 border-b border-slate-50 flex flex-row items-center gap-2">
             <BarChart3 className="text-primary" size={16} />
@@ -287,7 +284,7 @@ export default function DashboardPage() {
               <BarChart 
                 data={mostUsedFacilitiesData} 
                 layout="vertical"
-                margin={{ left: 20, right: 30 }}
+                margin={{ left: 10, right: 30 }}
               >
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                 <XAxis type="number" hide />
@@ -309,15 +306,14 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Usage by College */}
         <Card className="border-none shadow-sm rounded-xl bg-white">
           <CardHeader className="p-4 border-b border-slate-50">
             <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-800">
               <PieChartIcon className="text-orange-500" size={16} /> Usage by College
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-4 flex items-center h-[250px] gap-4">
-            <div className="w-2/5 h-full">
+          <CardContent className="p-4 flex flex-col sm:flex-row items-center h-auto sm:h-[250px] gap-6 sm:gap-4">
+            <div className="w-full sm:w-2/5 h-[150px] sm:h-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie 
@@ -334,7 +330,7 @@ export default function DashboardPage() {
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            <div className="w-3/5 space-y-2.5 pl-2 overflow-y-auto max-h-full">
+            <div className="w-full sm:w-3/5 space-y-2.5 pl-0 sm:pl-2 overflow-y-auto max-h-[150px] sm:max-h-full">
               {collegeData.map((entry, index) => (
                 <div key={index} className="flex items-start gap-2">
                   <div className="w-2 h-2 rounded-full mt-1 shrink-0" style={{ backgroundColor: entry.color }} />
@@ -359,43 +355,45 @@ export default function DashboardPage() {
           </Link>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-slate-50/50">
-              <TableRow className="border-none">
-                <TableHead className="px-6 h-8 text-[8px] font-bold text-slate-400 uppercase tracking-widest">Professor</TableHead>
-                <TableHead className="px-6 h-8 text-[8px] font-bold text-slate-400 uppercase tracking-widest text-center">Facility</TableHead>
-                <TableHead className="px-6 h-8 text-[8px] font-bold text-slate-400 uppercase tracking-widest text-center">Action</TableHead>
-                <TableHead className="px-6 h-8 text-[8px] font-bold text-slate-400 uppercase tracking-widest text-right">Time</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recentActivityList.map((activity, i) => (
-                <TableRow key={i} className="hover:bg-slate-50/50 transition-colors border-slate-50">
-                  <TableCell className="px-6 py-2">
-                    <div className="flex items-center gap-2">
-                      <Avatar className="h-6 w-6 rounded bg-slate-100 border border-slate-200">
-                        <AvatarFallback className="text-[8px] font-bold text-slate-500">{activity.initials}</AvatarFallback>
-                      </Avatar>
-                      <span className="text-[10px] font-bold text-slate-700">{activity.professor}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="px-6 py-2 text-center">
-                    <Badge variant="outline" className="bg-primary/5 text-primary border-none text-[8px] px-1.5 py-0 font-bold">
-                      {activity.room}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="px-6 py-2 text-center">
-                    <Badge className={`text-[7px] font-bold px-1.5 py-0 ${activity.action === 'Check-in' ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-600'}`}>
-                      {activity.action}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="px-6 py-2 text-right">
-                    <span className="text-[9px] font-medium text-slate-400">{activity.time}</span>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-slate-50/50">
+                <TableRow className="border-none">
+                  <TableHead className="px-6 h-8 text-[8px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">Professor</TableHead>
+                  <TableHead className="px-6 h-8 text-[8px] font-bold text-slate-400 uppercase tracking-widest text-center whitespace-nowrap">Facility</TableHead>
+                  <TableHead className="px-6 h-8 text-[8px] font-bold text-slate-400 uppercase tracking-widest text-center whitespace-nowrap">Action</TableHead>
+                  <TableHead className="px-6 h-8 text-[8px] font-bold text-slate-400 uppercase tracking-widest text-right whitespace-nowrap">Time</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {recentActivityList.map((activity, i) => (
+                  <TableRow key={i} className="hover:bg-slate-50/50 transition-colors border-slate-50">
+                    <TableCell className="px-6 py-2">
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-6 w-6 rounded bg-slate-100 border border-slate-200">
+                          <AvatarFallback className="text-[8px] font-bold text-slate-500">{activity.initials}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-[10px] font-bold text-slate-700 truncate max-w-[120px]">{activity.professor}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="px-6 py-2 text-center">
+                      <Badge variant="outline" className="bg-primary/5 text-primary border-none text-[8px] px-1.5 py-0 font-bold">
+                        {activity.room}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-6 py-2 text-center">
+                      <Badge className={`text-[7px] font-bold px-1.5 py-0 ${activity.action === 'Check-in' ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-600'}`}>
+                        {activity.action}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="px-6 py-2 text-right">
+                      <span className="text-[9px] font-medium text-slate-400 whitespace-nowrap">{activity.time}</span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -182,7 +182,7 @@ export default function ProfessorPortal() {
   const handleSubmitSession = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!db || !user?.email || !profile) {
-      toast({ variant: "destructive", title: "Authentication Error", description: "Identity profile not yet ready. Please wait a moment." });
+      toast({ variant: "destructive", title: "Authentication Error", description: "Identity profile not yet ready." });
       return;
     }
 
@@ -282,9 +282,9 @@ export default function ProfessorPortal() {
 
   if (isActuallyLoading) {
     return (
-      <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50">
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50 p-4">
         <Loader2 className="animate-spin text-primary mb-4" size={40} />
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Preparing portal...</p>
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center">Preparing portal...</p>
       </div>
     );
   }
@@ -294,9 +294,9 @@ export default function ProfessorPortal() {
   return (
     <AuthGuard allowedRoles={["professor", "admin"]}>
       <div className="min-h-screen bg-slate-50 flex flex-col">
-        <header className="bg-white border-b border-slate-100 py-4 px-10 flex justify-between items-center sticky top-0 z-50 shadow-sm">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center overflow-hidden shrink-0 border border-slate-100 relative p-1">
+        <header className="bg-white border-b border-slate-100 py-3 sm:py-4 px-4 sm:px-10 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-lg sm:rounded-xl flex items-center justify-center overflow-hidden shrink-0 border border-slate-100 relative p-1">
               <Image 
                 src="https://lxgw2qbdgc9uqivt.public.blob.vercel-storage.com/cics-logs/New_Era_University.svg" 
                 alt="NEU Logo" 
@@ -305,33 +305,33 @@ export default function ProfessorPortal() {
               />
             </div>
             <div className="flex flex-col">
-              <h1 className="text-sm font-black text-slate-900 uppercase tracking-tight leading-none">NEW ERA UNIVERSITY</h1>
-              <p className="text-[9px] font-bold text-primary uppercase tracking-[0.2em] mt-1">Laboratory Usage Log</p>
+              <h1 className="text-[10px] sm:text-sm font-black text-slate-900 uppercase tracking-tight leading-none">NEW ERA UNIVERSITY</h1>
+              <p className="text-[7px] sm:text-[9px] font-bold text-primary uppercase tracking-[0.2em] mt-0.5 sm:mt-1">Laboratory Usage Log</p>
             </div>
           </div>
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2 sm:gap-6">
             <div className="text-right hidden sm:block">
               <p className="text-sm font-bold text-slate-800">{profile?.name || user?.displayName}</p>
               <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">{profile?.college || "Professor"}</p>
             </div>
-            <Button variant="ghost" size="icon" className="hover:bg-slate-100 rounded-xl h-10 w-10 text-slate-400" onClick={handleLogout}>
-              <LogOut size={20} />
+            <Button variant="ghost" size="icon" className="hover:bg-slate-100 rounded-xl h-9 w-9 sm:h-10 sm:w-10 text-slate-400" onClick={handleLogout}>
+              <LogOut size={18} className="sm:w-5 sm:h-5" />
             </Button>
           </div>
         </header>
 
-        <main className="flex-1 w-full max-w-5xl mx-auto p-8 pt-12 pb-24">
+        <main className="flex-1 w-full max-w-5xl mx-auto p-4 sm:p-8 sm:pt-12 pb-24">
           {needsOnboarding ? (
-            <Card className="shadow-xl border-none rounded-[2.5rem] overflow-hidden bg-white max-w-xl mx-auto">
-              <CardHeader className="text-center pt-10 pb-4">
-                <CardTitle className="text-2xl font-black">Profile Setup</CardTitle>
-                <CardDescription className="text-sm font-medium mt-1">Select your college affiliation to continue.</CardDescription>
+            <Card className="shadow-xl border-none rounded-[1.5rem] sm:rounded-[2.5rem] overflow-hidden bg-white max-w-xl mx-auto">
+              <CardHeader className="text-center pt-8 sm:pt-10 pb-4">
+                <CardTitle className="text-xl sm:text-2xl font-black">Profile Setup</CardTitle>
+                <CardDescription className="text-xs sm:text-sm font-medium mt-1">Select your college affiliation to continue.</CardDescription>
               </CardHeader>
-              <CardContent className="px-10 py-4 space-y-6">
-                <div className="space-y-3">
+              <CardContent className="px-6 sm:px-10 py-4 space-y-4 sm:space-y-6">
+                <div className="space-y-2 sm:space-y-3">
                   <Label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">College</Label>
                   <Select onValueChange={setOnboardingCollege}>
-                    <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-none shadow-sm text-sm font-bold">
+                    <SelectTrigger className="h-11 sm:h-12 rounded-xl bg-slate-50 border-none shadow-sm text-xs sm:text-sm font-bold">
                       <SelectValue placeholder="Select college" />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl">
@@ -340,9 +340,9 @@ export default function ProfessorPortal() {
                   </Select>
                 </div>
               </CardContent>
-              <CardFooter className="px-10 pb-10">
+              <CardFooter className="px-6 sm:px-10 pb-8 sm:pb-10">
                 <Button 
-                  className="w-full h-12 bg-primary hover:bg-primary/90 rounded-xl font-bold shadow-lg shadow-primary/20"
+                  className="w-full h-11 sm:h-12 bg-primary hover:bg-primary/90 rounded-xl font-bold shadow-lg shadow-primary/20"
                   disabled={!onboardingCollege || isActionLoading}
                   onClick={handleOnboarding}
                 >
@@ -351,11 +351,11 @@ export default function ProfessorPortal() {
               </CardFooter>
             </Card>
           ) : (
-            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
               {showThresholdWarning && (
                 <Alert className="bg-orange-50 text-orange-700 border-orange-200 shadow-sm rounded-2xl p-4">
                   <div className="flex items-center gap-3">
-                    <AlertTriangle className="h-5 w-5 text-orange-600" />
+                    <AlertTriangle className="h-5 w-5 text-orange-600 shrink-0" />
                     <div>
                       <AlertTitle className="font-bold text-xs uppercase tracking-widest">Extended Session</AlertTitle>
                       <AlertDescription className="text-[10px] mt-0.5">
@@ -367,30 +367,30 @@ export default function ProfessorPortal() {
               )}
 
               {!activeSession ? (
-                <Card className="shadow-2xl border-none rounded-[3rem] overflow-hidden bg-white">
-                  <CardHeader className="bg-white border-b border-slate-50 p-10">
-                    <div className="flex justify-between items-center">
+                <Card className="shadow-2xl border-none rounded-[1.5rem] sm:rounded-[3rem] overflow-hidden bg-white">
+                  <CardHeader className="bg-white border-b border-slate-50 p-6 sm:p-10">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                       <div className="space-y-1">
-                        <CardTitle className="text-3xl font-black text-slate-800 tracking-tight">
+                        <CardTitle className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">
                           Check-in Portal
                         </CardTitle>
-                        <CardDescription className="text-[10px] text-slate-400 uppercase font-black tracking-[0.2em]">
+                        <CardDescription className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-black tracking-[0.2em]">
                           Laboratory Access Management
                         </CardDescription>
                       </div>
-                      <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-xl border border-slate-100">
-                        <Label htmlFor="manual-mode" className="text-[9px] font-black uppercase tracking-widest text-slate-500 px-2">Manual Entry</Label>
+                      <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-xl border border-slate-100 self-end sm:self-auto">
+                        <Label htmlFor="manual-mode" className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-500 px-2">Manual Entry</Label>
                         <Switch id="manual-mode" checked={isManualEntry} onCheckedChange={setIsManualEntry} />
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="p-10">
-                    <form id="session-form" onSubmit={handleSubmitSession} className="space-y-8">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <CardContent className="p-6 sm:p-10">
+                    <form id="session-form" onSubmit={handleSubmitSession} className="space-y-6 sm:space-y-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
                         <div className="space-y-2">
-                          <Label htmlFor="room" className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Room Number</Label>
+                          <Label htmlFor="room" className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Room Number</Label>
                           <Select onValueChange={setRoom} required>
-                            <SelectTrigger id="room" className="h-14 rounded-2xl bg-slate-50 border-none text-sm font-bold shadow-sm">
+                            <SelectTrigger id="room" className="h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-slate-50 border-none text-xs sm:text-sm font-bold shadow-sm">
                               <SelectValue placeholder="Select Room" />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl">
@@ -403,9 +403,9 @@ export default function ProfessorPortal() {
                           </Select>
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="college" className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">College</Label>
+                          <Label htmlFor="college" className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">College</Label>
                           <Select onValueChange={(val) => { setCollege(val); setProgram(""); }} required>
-                            <SelectTrigger id="college" className="h-14 rounded-2xl bg-slate-50 border-none text-sm font-bold shadow-sm">
+                            <SelectTrigger id="college" className="h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-slate-50 border-none text-xs sm:text-sm font-bold shadow-sm">
                               <SelectValue placeholder="Select College" />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl">
@@ -415,11 +415,11 @@ export default function ProfessorPortal() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
                         <div className="space-y-2">
-                          <Label htmlFor="program" className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Program</Label>
+                          <Label htmlFor="program" className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Program</Label>
                           <Select onValueChange={setProgram} disabled={!college} required>
-                            <SelectTrigger id="program" className="h-14 rounded-2xl bg-slate-50 border-none text-sm font-bold shadow-sm">
+                            <SelectTrigger id="program" className="h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-slate-50 border-none text-xs sm:text-sm font-bold shadow-sm">
                               <SelectValue placeholder={college ? "Select Program" : "Select College First"} />
                             </SelectTrigger>
                             <SelectContent className="rounded-xl">
@@ -430,11 +430,11 @@ export default function ProfessorPortal() {
                           </Select>
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="section" className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Section</Label>
+                          <Label htmlFor="section" className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Section</Label>
                           <Input 
                             id="section" 
                             placeholder="e.g., CICS-401B" 
-                            className="h-14 rounded-2xl bg-slate-50 border-none text-sm font-bold shadow-sm px-6" 
+                            className="h-12 sm:h-14 rounded-xl sm:rounded-2xl bg-slate-50 border-none text-xs sm:text-sm font-bold shadow-sm px-4 sm:px-6" 
                             onChange={(e) => setSection(e.target.value)} 
                             required 
                           />
@@ -442,13 +442,13 @@ export default function ProfessorPortal() {
                       </div>
 
                       {isManualEntry && (
-                        <div className="p-8 bg-slate-50 rounded-[2rem] border border-slate-100 space-y-6 animate-in slide-in-from-top-4 duration-500">
+                        <div className="p-6 sm:p-8 bg-slate-50 rounded-[1.5rem] sm:rounded-[2rem] border border-slate-100 space-y-4 sm:space-y-6 animate-in slide-in-from-top-4 duration-500">
                           <div className="space-y-2">
-                            <Label className="text-[9px] font-bold uppercase tracking-widest text-slate-400 ml-1">Date</Label>
+                            <Label className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-slate-400 ml-1">Date</Label>
                             <Popover>
                               <PopoverTrigger asChild>
-                                <Button variant={"outline"} className={cn("w-full h-12 justify-start rounded-xl bg-white border-none shadow-sm text-sm font-bold", !manualDate && "text-muted-foreground")}>
-                                  <Clock className="mr-3 h-4 w-4 text-primary" />
+                                <Button variant={"outline"} className={cn("w-full h-11 sm:h-12 justify-start rounded-xl bg-white border-none shadow-sm text-xs sm:text-sm font-bold", !manualDate && "text-muted-foreground")}>
+                                  <Clock className="mr-2 sm:mr-3 h-4 w-4 text-primary" />
                                   {manualDate ? format(manualDate, "PPP") : <span>Pick a date</span>}
                                 </Button>
                               </PopoverTrigger>
@@ -457,24 +457,24 @@ export default function ProfessorPortal() {
                               </PopoverContent>
                             </Popover>
                           </div>
-                          <div className="grid grid-cols-2 gap-8">
+                          <div className="grid grid-cols-2 gap-4 sm:gap-8">
                             <div className="space-y-2">
-                              <Label className="text-[9px] font-bold uppercase tracking-widest text-slate-400 ml-1">Start Time</Label>
-                              <Input type="time" className="h-12 rounded-xl bg-white border-none shadow-sm text-sm font-bold px-6" value={manualStartTime} onChange={(e) => setManualStartTime(e.target.value)} />
+                              <Label className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-slate-400 ml-1">Start Time</Label>
+                              <Input type="time" className="h-11 sm:h-12 rounded-xl bg-white border-none shadow-sm text-xs sm:text-sm font-bold px-4 sm:px-6" value={manualStartTime} onChange={(e) => setManualStartTime(e.target.value)} />
                             </div>
                             <div className="space-y-2">
-                              <Label className="text-[9px] font-bold uppercase tracking-widest text-slate-400 ml-1">End Time</Label>
-                              <Input type="time" className="h-12 rounded-xl bg-white border-none shadow-sm text-sm font-bold px-6" value={manualEndTime} onChange={(e) => setManualEndTime(e.target.value)} />
+                              <Label className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-slate-400 ml-1">End Time</Label>
+                              <Input type="time" className="h-11 sm:h-12 rounded-xl bg-white border-none shadow-sm text-xs sm:text-sm font-bold px-4 sm:px-6" value={manualEndTime} onChange={(e) => setManualEndTime(e.target.value)} />
                             </div>
                           </div>
                         </div>
                       )}
                     </form>
                   </CardContent>
-                  <CardFooter className="p-10 pt-0">
+                  <CardFooter className="p-6 sm:p-10 pt-0">
                     <Button 
                       form="session-form" 
-                      className="w-full h-16 bg-primary hover:bg-primary/90 rounded-2xl text-lg font-black shadow-xl shadow-primary/20 transition-all active:scale-[0.98]"
+                      className="w-full h-14 sm:h-16 bg-primary hover:bg-primary/90 rounded-xl sm:rounded-2xl text-base sm:text-lg font-black shadow-xl shadow-primary/20 transition-all active:scale-[0.98]"
                       disabled={isActionLoading || (availableRooms && availableRooms.length === 0)}
                     >
                       {isActionLoading ? <Loader2 className="animate-spin mr-3" size={20} /> : (isManualEntry ? <CalendarClock className="mr-3" size={24} /> : <Play className="mr-3" size={24} />)}
@@ -483,37 +483,37 @@ export default function ProfessorPortal() {
                   </CardFooter>
                 </Card>
               ) : (
-                <Card className="shadow-2xl border-none rounded-[3.5rem] overflow-hidden bg-white animate-in zoom-in-95 duration-500">
-                  <CardHeader className="text-center pt-12 pb-2">
-                    <div className="mx-auto w-14 h-14 bg-primary/5 text-primary rounded-2xl flex items-center justify-center mb-4">
-                      <Clock size={28} className="animate-pulse" />
+                <Card className="shadow-2xl border-none rounded-[1.5rem] sm:rounded-[3.5rem] overflow-hidden bg-white animate-in zoom-in-95 duration-500">
+                  <CardHeader className="text-center pt-8 sm:pt-12 pb-2">
+                    <div className="mx-auto w-12 h-12 sm:w-14 sm:h-14 bg-primary/5 text-primary rounded-xl sm:rounded-2xl flex items-center justify-center mb-4">
+                      <Clock size={28} className="animate-pulse sm:w-8 sm:h-8" />
                     </div>
-                    <CardTitle className="text-2xl font-black text-slate-800 tracking-tight">Session Active</CardTitle>
-                    <CardDescription className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] flex items-center justify-center gap-2 mt-1">
+                    <CardTitle className="text-xl sm:text-2xl font-black text-slate-800 tracking-tight">Session Active</CardTitle>
+                    <CardDescription className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-[0.3em] flex items-center justify-center gap-2 mt-1">
                       <MapPin size={12} className="text-primary" /> Room {activeSession.roomNumber}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-6 px-12 pb-8">
-                    <div className="bg-slate-50/50 rounded-2xl p-6 border border-slate-50 text-center shadow-inner">
-                      <p className="text-[9px] text-slate-400 uppercase tracking-[0.2em] font-black mb-1">Duration</p>
-                      <p className="text-3xl font-mono font-black text-slate-900 tabular-nums tracking-tighter">{elapsedTime}</p>
+                  <CardContent className="space-y-4 sm:space-y-6 px-6 sm:px-12 pb-6 sm:pb-8">
+                    <div className="bg-slate-50/50 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-slate-50 text-center shadow-inner">
+                      <p className="text-[8px] sm:text-[9px] text-slate-400 uppercase tracking-[0.2em] font-black mb-1">Duration</p>
+                      <p className="text-2xl sm:text-3xl font-mono font-black text-slate-900 tabular-nums tracking-tighter">{elapsedTime}</p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="p-4 bg-white rounded-xl border border-slate-100 shadow-sm">
-                        <span className="text-[8px] text-slate-400 uppercase font-black tracking-widest mb-1 block">College</span>
-                        <p className="text-xs font-bold text-slate-700">{activeSession.college}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                      <div className="p-3 sm:p-4 bg-white rounded-lg sm:rounded-xl border border-slate-100 shadow-sm">
+                        <span className="text-[7px] sm:text-[8px] text-slate-400 uppercase font-black tracking-widest mb-1 block">College</span>
+                        <p className="text-[10px] sm:text-xs font-bold text-slate-700">{activeSession.college}</p>
                       </div>
-                      <div className="p-4 bg-white rounded-xl border border-slate-100 shadow-sm">
-                        <span className="text-[8px] text-slate-400 uppercase font-black tracking-widest mb-1 block">Program</span>
-                        <p className="text-xs font-bold text-slate-700 truncate">{activeSession.program}</p>
+                      <div className="p-3 sm:p-4 bg-white rounded-lg sm:rounded-xl border border-slate-100 shadow-sm">
+                        <span className="text-[7px] sm:text-[8px] text-slate-400 uppercase font-black tracking-widest mb-1 block">Program</span>
+                        <p className="text-[10px] sm:text-xs font-bold text-slate-700 truncate">{activeSession.program}</p>
                       </div>
                     </div>
                   </CardContent>
-                  <CardFooter className="px-12 pb-12">
+                  <CardFooter className="px-6 sm:px-12 pb-8 sm:pb-12">
                     <Button 
                       variant="destructive" 
-                      className="w-full h-14 rounded-2xl text-lg font-black shadow-lg shadow-destructive/20 transition-all active:scale-[0.98]" 
+                      className="w-full h-12 sm:h-14 rounded-xl sm:rounded-2xl text-base sm:text-lg font-black shadow-lg shadow-destructive/20 transition-all active:scale-[0.98]" 
                       onClick={handleEndSession}
                       disabled={isActionLoading}
                     >
@@ -528,43 +528,43 @@ export default function ProfessorPortal() {
         </main>
 
         <Dialog open={isThankYouOpen} onOpenChange={setIsThankYouOpen}>
-          <DialogContent className="sm:max-w-2xl rounded-[2.5rem] p-8 border-none shadow-2xl overflow-hidden">
+          <DialogContent className="w-[95vw] sm:max-w-2xl rounded-[1.5rem] sm:rounded-[2.5rem] p-4 sm:p-8 border-none shadow-2xl overflow-hidden">
             <DialogHeader>
-              <div className="flex items-center gap-6 mb-2">
-                <div className="w-16 h-16 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center shadow-sm shrink-0">
-                  <CheckCircle2 size={32} />
+              <div className="flex items-center gap-4 sm:gap-6 mb-2">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-green-50 text-green-600 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-sm shrink-0">
+                  <CheckCircle2 size={32} className="w-8 h-8 sm:w-10 sm:h-10" />
                 </div>
                 <div className="text-left">
-                  <DialogTitle className="text-3xl font-black text-slate-900 tracking-tight leading-none mb-1">Session Complete</DialogTitle>
-                  <DialogDescription className="text-base font-bold text-slate-500">
+                  <DialogTitle className="text-xl sm:text-3xl font-black text-slate-900 tracking-tight leading-none mb-1">Session Complete</DialogTitle>
+                  <DialogDescription className="text-xs sm:text-base font-bold text-slate-500">
                     Thank you for using Room {summaryData?.roomNumber}
                   </DialogDescription>
                 </div>
               </div>
             </DialogHeader>
             <div className="py-2 space-y-4">
-              <div className="bg-slate-50 rounded-[2rem] p-8 border border-slate-100 shadow-inner">
+              <div className="bg-slate-50 rounded-[1.5rem] sm:rounded-[2rem] p-6 sm:p-8 border border-slate-100 shadow-inner">
                 <div className="space-y-4">
                   <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">FACULTY MEMBER</p>
-                    <p className="text-xl font-black text-slate-800">Prof. {summaryData?.professorName}</p>
+                    <p className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">FACULTY MEMBER</p>
+                    <p className="text-base sm:text-xl font-black text-slate-800">Prof. {summaryData?.professorName}</p>
                   </div>
                   
                   <div className="pt-4 border-t border-slate-200/50 space-y-4">
                     <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">USAGE DURATION</p>
-                      <p className="text-xl font-black text-primary">
+                      <p className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">USAGE DURATION</p>
+                      <p className="text-base sm:text-xl font-black text-primary">
                         {summaryData?.durationMinutes || 0} 
-                        <span className="text-sm font-bold text-slate-400 ml-1">Minutes</span>
+                        <span className="text-[10px] sm:text-sm font-bold text-slate-400 ml-1">Minutes</span>
                       </p>
                     </div>
                     <div>
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">COLLEGE affiliation</p>
-                      <p className="text-xl font-black text-slate-700 leading-tight">{summaryData?.college}</p>
+                      <p className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">COLLEGE affiliation</p>
+                      <p className="text-sm sm:text-xl font-black text-slate-700 leading-tight">{summaryData?.college}</p>
                     </div>
                     <div>
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">academic PROGRAM</p>
-                      <p className="text-xl font-black text-slate-700 leading-tight">{summaryData?.program}</p>
+                      <p className="text-[8px] sm:text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">academic PROGRAM</p>
+                      <p className="text-sm sm:text-xl font-black text-slate-700 leading-tight">{summaryData?.program}</p>
                     </div>
                   </div>
                 </div>
@@ -573,7 +573,7 @@ export default function ProfessorPortal() {
             <DialogFooter>
               <Button 
                 onClick={() => setIsThankYouOpen(false)} 
-                className="w-full h-14 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-base font-bold transition-all shadow-lg shadow-slate-200"
+                className="w-full h-12 sm:h-14 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-sm sm:text-base font-bold transition-all shadow-lg shadow-slate-200"
               >
                 Close Summary
               </Button>
