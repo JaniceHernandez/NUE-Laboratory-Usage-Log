@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/admin/dashboard" },
   { title: "Room Management", icon: Monitor, href: "/admin/rooms" },
-  { title: "Identify & Access Management", icon: Fingerprint, href: "/admin/professors" },
+  { title: "Identify & Access", icon: Fingerprint, href: "/admin/professors" },
   { title: "Reports", icon: BarChart3, href: "/admin/reports" },
 ];
 

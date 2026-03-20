@@ -41,7 +41,8 @@ const PROGRAMS: Record<string, string[]> = {
     "Bachelor of Science in Computer Science",
     "Bachelor of Science in Information Technology",
     "Bachelor of Science in Information System",
-    "Bachelor of Science in Entertainment and Multimedia Computing"
+    "Bachelor of Science in Entertainment and Multimedia Computing",
+    "Bachelor of Library and Information Science"
   ],
   "College of Engineering and Architecture": [
     "Bachelor of Science in Architecture",
@@ -49,7 +50,8 @@ const PROGRAMS: Record<string, string[]> = {
     "Bachelor of Science in Civil Engineering",
     "Bachelor of Science in Electrical Engineering",
     "Bachelor of Science in Electronics Engineering",
-    "Bachelor of Science in Mechanical Engineering"
+    "Bachelor of Science in Mechanical Engineering",
+    "Bachelor of Science in Industrial Engineering"
   ],
   "College of Communication": [
     "Bachelor of Arts in Broadcasting",
