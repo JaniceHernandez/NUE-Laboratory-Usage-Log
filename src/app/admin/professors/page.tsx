@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
@@ -24,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 export default function IdentityManagementPage() {
   const [mounted, setMounted] = useState(false);
@@ -229,7 +231,12 @@ export default function IdentityManagementPage() {
                         {prof.email}
                       </TableCell>
                       <TableCell className="px-8 py-5">
-                        <Badge variant={prof.status === 'blocked' ? "destructive" : "secondary"} className="font-bold text-[9px] uppercase px-2.5 py-1">
+                        <Badge 
+                          className={cn(
+                            "font-bold text-[9px] uppercase px-2.5 py-1 border-none",
+                            prof.status === 'blocked' ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700"
+                          )}
+                        >
                           {prof.status}
                         </Badge>
                       </TableCell>
@@ -237,7 +244,12 @@ export default function IdentityManagementPage() {
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          className="rounded-xl h-9 px-4 font-bold text-[10px]"
+                          className={cn(
+                            "rounded-xl h-9 px-4 font-bold text-[10px] transition-all",
+                            prof.status === 'blocked' 
+                              ? "border-primary text-primary hover:bg-primary hover:text-white" 
+                              : "border-red-200 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600"
+                          )}
                           onClick={() => handleUpdateStatus(prof)}
                         >
                           {prof.status === 'blocked' ? 'Unblock' : 'Block'}
@@ -279,13 +291,13 @@ export default function IdentityManagementPage() {
                       </TableCell>
                       <TableCell className="px-8 py-5">
                         {admin.type === 'pending' ? (
-                          <Badge variant="outline" className="bg-orange-50 text-orange-600 border-none font-bold text-[8px] uppercase tracking-widest px-2.5 py-1">
+                          <Badge variant="outline" className="bg-orange-100 text-orange-700 border-none font-bold text-[8px] uppercase tracking-widest px-2.5 py-1">
                             <Clock size={10} className="mr-1" /> Pending
                           </Badge>
                         ) : isSuperAdmin(admin) ? (
                           <Badge className="bg-primary text-white border-none font-bold text-[8px] uppercase tracking-widest px-2.5 py-1">Super Admin</Badge>
                         ) : (
-                          <Badge variant="outline" className="bg-blue-50 text-blue-600 border-none font-bold text-[8px] uppercase tracking-widest px-2.5 py-1">Management</Badge>
+                          <Badge variant="outline" className="bg-blue-100 text-blue-700 border-none font-bold text-[8px] uppercase tracking-widest px-2.5 py-1">Management</Badge>
                         )}
                       </TableCell>
                       <TableCell className="px-8 py-5 text-xs text-slate-500 font-medium">
@@ -298,7 +310,12 @@ export default function IdentityManagementPage() {
                                <Button 
                                 variant="outline" 
                                 size="sm" 
-                                className="rounded-xl h-9 px-4 font-bold text-[10px]"
+                                className={cn(
+                                  "rounded-xl h-9 px-4 font-bold text-[10px] transition-all",
+                                  admin.status === 'blocked' 
+                                    ? "border-primary text-primary hover:bg-primary hover:text-white" 
+                                    : "border-red-200 text-red-600 hover:bg-red-600 hover:text-white hover:border-red-600"
+                                )}
                                 onClick={() => handleUpdateStatus(admin)}
                               >
                                 {admin.status === 'blocked' ? 'Unblock' : 'Block'}
@@ -307,7 +324,7 @@ export default function IdentityManagementPage() {
                             <Button 
                               variant="ghost" 
                               size="sm"
-                              className="rounded-xl h-9 w-9 p-0 text-red-500 hover:bg-red-50"
+                              className="rounded-xl h-9 w-9 p-0 text-red-500 hover:bg-red-50 hover:text-red-700 transition-colors"
                               onClick={() => handleRevokeAdmin(admin.email)}
                             >
                               <Trash2 size={14} />
