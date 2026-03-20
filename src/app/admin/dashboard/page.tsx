@@ -5,13 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   PieChart, Pie, Cell, 
   LineChart, Line, 
+  BarChart, Bar,
   ResponsiveContainer, Tooltip,
   CartesianGrid, XAxis, YAxis
 } from "recharts";
 import { 
   Clock, Monitor, Activity, MapPin, 
   TrendingUp, PieChart as PieChartIcon, 
-  History, ArrowRight, Loader2
+  History, ArrowRight, Loader2,
+  BarChart3, Layout
 } from "lucide-react";
 import { useFirestore, useCollection } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
@@ -131,6 +133,32 @@ export default function DashboardPage() {
       color: colors[idx % colors.length]
     }));
   }, [sessions]);
+
+  const mostUsedFacilitiesData = useMemo(() => {
+    const roomCounts: Record<string, number> = {};
+    sessions.forEach(s => {
+      if (s.roomNumber) {
+        roomCounts[s.roomNumber] = (roomCounts[s.roomNumber] || 0) + 1;
+      }
+    });
+    return Object.entries(roomCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, value]) => ({ name, value }));
+  }, [sessions]);
+
+  const facilityStatusData = useMemo(() => {
+    const statusCounts = {
+      available: rooms.filter(r => r.status === 'available').length,
+      inactive: rooms.filter(r => r.status === 'inactive').length,
+      maintenance: rooms.filter(r => r.status === 'maintenance').length,
+    };
+    return [
+      { name: "Available", value: statusCounts.available, color: "#266AFF" },
+      { name: "Inactive", value: statusCounts.inactive, color: "#94a3b8" },
+      { name: "Maintenance", value: statusCounts.maintenance, color: "#ef4444" },
+    ];
+  }, [rooms]);
 
   const recentActivityList = useMemo(() => {
     if (!mounted) return [];
@@ -267,6 +295,62 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <Card className="lg:col-span-3 border-none shadow-sm rounded-xl bg-white">
+          <CardHeader className="p-4 border-b border-slate-50">
+            <CardTitle className="text-sm font-bold flex items-center gap-2">
+              <BarChart3 className="text-primary" size={16} /> Most Used Facilities
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="h-[250px] p-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={mostUsedFacilitiesData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 8 }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 8 }} />
+                <Tooltip 
+                  cursor={{ fill: '#f8fafc' }}
+                  contentStyle={{ borderRadius: '10px', border: 'none', fontSize: '10px' }} 
+                />
+                <Bar dataKey="value" fill="#266AFF" radius={[4, 4, 0, 0]} barSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2 border-none shadow-sm rounded-xl bg-white">
+          <CardHeader className="p-4 border-b border-slate-50">
+            <CardTitle className="text-sm font-bold flex items-center gap-2">
+              <Layout className="text-orange-500" size={16} /> Facility Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 h-[250px] flex flex-col justify-center gap-6">
+            <div className="space-y-4">
+              {facilityStatusData.map((status, i) => (
+                <div key={i} className="space-y-1.5">
+                  <div className="flex justify-between items-end">
+                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{status.name}</span>
+                    <span className="text-[10px] font-black text-slate-800">{status.value} Units</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full transition-all duration-500" 
+                      style={{ 
+                        width: `${(status.value / rooms.length) * 100}%`,
+                        backgroundColor: status.color 
+                      }} 
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="pt-4 border-t border-slate-50">
+              <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest text-center">Total Registered Facilities: {rooms.length}</p>
             </div>
           </CardContent>
         </Card>
