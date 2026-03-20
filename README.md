@@ -60,7 +60,7 @@ Admins can view:
 - **Frontend:** HTML, CSS, JavaScript / React  
 - **Authentication:** Firebase Authentication (Google Login)  
 - **Database:** Firebase Firestore  
-- **Hosting:** Firebase Hosting  
+- **Hosting:** Vercel Hosting  
 
 ---
 
