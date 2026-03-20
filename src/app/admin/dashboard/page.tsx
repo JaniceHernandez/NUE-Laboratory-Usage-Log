@@ -147,17 +147,8 @@ export default function DashboardPage() {
       .map(([name, value]) => ({ name, value }));
   }, [sessions]);
 
-  const facilityStatusData = useMemo(() => {
-    const statusCounts = {
-      available: rooms.filter(r => r.status === 'available').length,
-      inactive: rooms.filter(r => r.status === 'inactive').length,
-      maintenance: rooms.filter(r => r.status === 'maintenance').length,
-    };
-    return [
-      { name: "Available", value: statusCounts.available, color: "#266AFF" },
-      { name: "Inactive", value: statusCounts.inactive, color: "#94a3b8" },
-      { name: "Maintenance", value: statusCounts.maintenance, color: "#ef4444" },
-    ];
+  const activeRooms = useMemo(() => {
+    return rooms.filter(r => r.currentlyOccupied);
   }, [rooms]);
 
   const recentActivityList = useMemo(() => {
@@ -207,7 +198,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-700">
+    <div className="space-y-6 animate-in fade-in duration-700">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {analytics.map((stat) => (
           <Card key={stat.title} className="border-none shadow-sm rounded-xl bg-white group hover:shadow-md transition-all">
@@ -227,8 +218,30 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        <Card className="lg:col-span-3 border-none shadow-sm rounded-xl bg-white">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Active Facilities Card */}
+        <Card className="border-none shadow-sm rounded-xl bg-white">
+          <CardHeader className="p-4 border-b border-slate-50 flex flex-row items-center gap-2">
+            <Activity className="text-[#266AFF]" size={16} />
+            <CardTitle className="text-sm font-bold">Active Facilities</CardTitle>
+          </CardHeader>
+          <CardContent className="h-[250px] flex items-center justify-center p-4">
+            {activeRooms.length > 0 ? (
+              <div className="flex flex-wrap justify-center gap-3">
+                {activeRooms.map(room => (
+                  <Badge key={room.id} className="bg-green-100 text-green-600 border-none font-bold text-xs px-4 py-2 rounded-lg">
+                    {room.number}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-400 italic font-medium">All facilities currently idle.</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Utilization Trends */}
+        <Card className="border-none shadow-sm rounded-xl bg-white">
           <CardHeader className="p-4 border-b border-slate-50 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-bold flex items-center gap-2">
               <TrendingUp className="text-[#266AFF]" size={16} /> Utilization Trends
@@ -260,8 +273,44 @@ export default function DashboardPage() {
             </ResponsiveContainer>
           </CardContent>
         </Card>
+      </div>
 
-        <Card className="lg:col-span-2 border-none shadow-sm rounded-xl bg-white">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Most Used Facilities Card - Horizontal Bar Chart */}
+        <Card className="border-none shadow-sm rounded-xl bg-white">
+          <CardHeader className="p-4 border-b border-slate-50 flex flex-row items-center gap-2">
+            <BarChart3 className="text-[#266AFF]" size={16} />
+            <CardTitle className="text-sm font-bold">Most Used Facilities</CardTitle>
+          </CardHeader>
+          <CardContent className="h-[250px] p-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart 
+                data={mostUsedFacilitiesData} 
+                layout="vertical"
+                margin={{ left: 20, right: 30 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                <XAxis type="number" hide />
+                <YAxis 
+                  dataKey="name" 
+                  type="category" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 600 }} 
+                  width={60}
+                />
+                <Tooltip 
+                  cursor={{ fill: '#f8fafc' }}
+                  contentStyle={{ borderRadius: '10px', border: 'none', fontSize: '10px' }} 
+                />
+                <Bar dataKey="value" fill="#266AFF" radius={[0, 4, 4, 0]} barSize={20} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Usage by College */}
+        <Card className="border-none shadow-sm rounded-xl bg-white">
           <CardHeader className="p-4 border-b border-slate-50">
             <CardTitle className="text-sm font-bold flex items-center gap-2">
               <PieChartIcon className="text-orange-500" size={16} /> Usage by College
@@ -295,62 +344,6 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        <Card className="lg:col-span-3 border-none shadow-sm rounded-xl bg-white">
-          <CardHeader className="p-4 border-b border-slate-50">
-            <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <BarChart3 className="text-primary" size={16} /> Most Used Facilities
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="h-[250px] p-4">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={mostUsedFacilitiesData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 8 }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 8 }} />
-                <Tooltip 
-                  cursor={{ fill: '#f8fafc' }}
-                  contentStyle={{ borderRadius: '10px', border: 'none', fontSize: '10px' }} 
-                />
-                <Bar dataKey="value" fill="#266AFF" radius={[4, 4, 0, 0]} barSize={40} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-2 border-none shadow-sm rounded-xl bg-white">
-          <CardHeader className="p-4 border-b border-slate-50">
-            <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <Layout className="text-orange-500" size={16} /> Facility Status
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 h-[250px] flex flex-col justify-center gap-6">
-            <div className="space-y-4">
-              {facilityStatusData.map((status, i) => (
-                <div key={i} className="space-y-1.5">
-                  <div className="flex justify-between items-end">
-                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">{status.name}</span>
-                    <span className="text-[10px] font-black text-slate-800">{status.value} Units</span>
-                  </div>
-                  <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full transition-all duration-500" 
-                      style={{ 
-                        width: `${(status.value / rooms.length) * 100}%`,
-                        backgroundColor: status.color 
-                      }} 
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="pt-4 border-t border-slate-50">
-              <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest text-center">Total Registered Facilities: {rooms.length}</p>
             </div>
           </CardContent>
         </Card>
